@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 birdnet-model.workspace = true
 frame-core.workspace = true
+libm.workspace = true
 
 [lints]
 workspace = true

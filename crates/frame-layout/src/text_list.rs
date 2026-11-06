@@ -1,19 +1,17 @@
 //! The text-only page: a heading and a ranked list of species.
 
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use birdnet_model::SpeciesSummary;
 use frame_core::Resolution;
 
 use crate::align::Align;
+use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body};
 use crate::page_layout::PageLayout;
 use crate::text_block::TextBlock;
 use crate::text_style::TextStyle;
-
-/// Typical width of a letter in the bundled italic, as a fraction of the font size.
-const AVERAGE_LETTER_WIDTH: f32 = 0.42;
 
 /// Settings for [`TextList::layout`].
 #[derive(Clone, Debug, PartialEq)]
@@ -48,60 +46,22 @@ impl TextList {
         resolution: Resolution,
         options: &TextListOptions,
     ) -> PageLayout {
-        let width: i32 = i32::try_from(resolution.width).unwrap_or(i32::MAX);
-        let height: i32 = i32::try_from(resolution.height).unwrap_or(i32::MAX);
-        let margin: i32 = width.min(height) / 16;
-        let heading_size: f32 = (height as f32 / 12.0).clamp(32.0, 120.0);
-
-        let mut text: Vec<TextBlock> = Vec::new();
-        text.push(TextBlock {
-            text: options.heading.clone(),
-            x: width / 2,
-            baseline_y: margin + heading_size as i32,
-            size_px: heading_size,
-            max_width: Some(width - 2 * margin),
-            align: Align::Centre,
-            style: TextStyle::Heading,
-        });
-
-        let footer_size: f32 = (heading_size * 0.3).max(16.0);
-        let list_top: i32 = margin + (heading_size * 1.8) as i32;
-        let list_bottom: i32 = height - margin - (footer_size * 1.5) as i32;
-
+        let mut page = PageLayout::new(resolution);
+        let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
         if species.is_empty() {
-            text.push(TextBlock {
-                text: String::from("No birds heard yet"),
-                x: width / 2,
-                baseline_y: (list_top + list_bottom) / 2,
-                size_px: heading_size * 0.6,
-                max_width: Some(width - 2 * margin),
-                align: Align::Centre,
-                style: TextStyle::Detail,
-            });
+            page_frame::nothing_heard(&mut page, &body);
         } else {
             push_species(
-                &mut text,
+                &mut page.text,
                 species,
                 options.max_species,
-                margin,
-                width,
-                list_top,
-                list_bottom,
+                body.margin,
+                body.width,
+                body.top,
+                body.bottom,
             );
         }
-
-        if !options.footer.is_empty() {
-            text.push(TextBlock {
-                text: options.footer.clone(),
-                x: width / 2,
-                baseline_y: height - margin,
-                size_px: footer_size,
-                max_width: Some(width - 2 * margin),
-                align: Align::Centre,
-                style: TextStyle::Footer,
-            });
-        }
-        PageLayout { resolution, text }
+        page
     }
 }
 
@@ -142,7 +102,7 @@ fn push_species(
         let left: i32 = margin + column * (column_width + gutter);
         let baseline: i32 = list_top + line * row_height + (size * 1.05) as i32;
         let name: String = if row.common_name.is_empty() {
-            format!("{}", row.scientific_name)
+            row.scientific_name.to_string()
         } else {
             row.common_name.clone()
         };

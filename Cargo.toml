@@ -3,6 +3,10 @@ resolver = "3"
 members = [
     "apps/fake-birdnet",
     "apps/server",
+    "crates/art-mock",
+    
+    "crates/art-pack",
+    "crates/bird-sizes",
     "crates/birdnet-client",
     "crates/birdnet-mock",
     "crates/birdnet-model",
@@ -21,6 +25,9 @@ license = "MIT"
 repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
 
 [workspace.dependencies]
+art-mock = { path = "crates/art-mock" }
+art-pack = { path = "crates/art-pack" }
+bird-sizes = { path = "crates/bird-sizes" }
 birdnet-client = { path = "crates/birdnet-client" }
 birdnet-mock = { path = "crates/birdnet-mock" }
 birdnet-model = { path = "crates/birdnet-model" }
@@ -30,6 +37,7 @@ frame-layout = { path = "crates/frame-layout" }
 frame-raster = { path = "crates/frame-raster" }
 transport-ureq = { path = "crates/transport-ureq" }
 
+libm = "0.2"
 fontdue = { version = "0.9", default-features = false, features = ["hashbrown"] }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }

@@ -2,11 +2,13 @@
 
 use alloc::vec::Vec;
 
+use art_pack::ArtImage;
 use fontdue::{Font, FontSettings, Metrics};
 use frame_core::{Ink, Rgb};
 use frame_layout::{Align, PageLayout, TextBlock, TextStyle};
 
 use crate::canvas::Canvas;
+use crate::draw_image::draw_image;
 use crate::font_error::FontError;
 
 /// The paper colour pages are drawn on before dithering.
@@ -29,10 +31,17 @@ impl Renderer {
         Ok(Self { font })
     }
 
-    /// Draws `layout` on a fresh paper-coloured canvas.
+    /// Draws `layout` on a fresh paper-coloured canvas: its pictures first, taken from `art` by
+    /// [`frame_layout::ImageBlock::art`], then its text. Pictures missing from `art` are
+    /// skipped.
     #[must_use]
-    pub fn render(&self, layout: &PageLayout) -> Canvas {
+    pub fn render(&self, layout: &PageLayout, art: &[ArtImage]) -> Canvas {
         let mut canvas = Canvas::new(layout.resolution, PAPER);
+        for block in &layout.images {
+            if let Some(picture) = art.get(block.art) {
+                draw_image(&mut canvas, block, picture);
+            }
+        }
         for block in &layout.text {
             self.draw(&mut canvas, block);
         }

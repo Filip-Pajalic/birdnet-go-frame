@@ -15,6 +15,27 @@ pub enum Source {
     Mock,
 }
 
+/// Which page to draw.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Layout {
+    /// A picture of every bird, heavier birds bigger (`LAYOUT=collage`, the default).
+    Collage,
+    /// Names and counts only (`LAYOUT=list`).
+    List,
+}
+
+impl FromStr for Layout {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        match text.to_ascii_lowercase().as_str() {
+            "collage" => Ok(Self::Collage),
+            "list" => Ok(Self::List),
+            _ => Err(String::from("expected `collage` or `list`")),
+        }
+    }
+}
+
 /// Server settings.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Config {
@@ -34,6 +55,10 @@ pub struct Config {
     pub refresh: Duration,
     /// Page heading.
     pub heading: String,
+    /// Which page to draw.
+    pub layout: Layout,
+    /// Most birds pictured on the collage.
+    pub max_birds: usize,
 }
 
 /// A setting that could not be read.
@@ -85,6 +110,8 @@ impl Config {
             utc_offset_minutes: parsed(&lookup, "UTC_OFFSET_MINUTES", 0)?,
             refresh: Duration::from_secs(parsed(&lookup, "REFRESH_SECONDS", 60)?),
             heading: lookup("HEADING").unwrap_or_else(|| String::from("Heard in the garden")),
+            layout: parsed(&lookup, "LAYOUT", Layout::Collage)?,
+            max_birds: parsed(&lookup, "MAX_BIRDS", 15)?,
         })
     }
 }
@@ -129,6 +156,16 @@ mod test {
         );
         assert_eq!(config.poll_minutes, 15);
         assert_eq!(config.rotation, Rotation::Degrees0);
+        assert_eq!(config.layout, Layout::Collage);
+        assert_eq!(config.max_birds, 15);
+    }
+
+    #[test]
+    fn layout_choice() {
+        let list = config(&[("BIRDNET_URL", "mock"), ("LAYOUT", "List")]).expect("valid");
+        assert_eq!(list.layout, Layout::List);
+        let bad = config(&[("BIRDNET_URL", "mock"), ("LAYOUT", "grid")]);
+        assert_eq!(bad.map_err(|error| error.variable), Err("LAYOUT"));
     }
 
     #[test]

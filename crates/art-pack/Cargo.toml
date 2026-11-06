@@ -1,0 +1,14 @@
+[package]
+name = "art-pack"
+description = "A compact bird-picture format a microcontroller can read, and the ArtSource trait."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+frame-core.workspace = true
+
+[lints]
+workspace = true

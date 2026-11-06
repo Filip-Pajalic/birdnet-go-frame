@@ -12,6 +12,9 @@ name = "birdnet-go-frame"
 path = "src/main.rs"
 
 [dependencies]
+art-mock.workspace = true
+art-pack.workspace = true
+bird-sizes.workspace = true
 birdnet-client.workspace = true
 birdnet-mock.workspace = true
 birdnet-model.workspace = true

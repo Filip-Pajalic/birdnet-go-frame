@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+art-pack.workspace = true
 fontdue.workspace = true
 frame-core.workspace = true
 frame-layout.workspace = true
