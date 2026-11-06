@@ -9,7 +9,7 @@
 | `birdnet-mock` | yes (alloc) | Simulated station, with seasons, rarities and weather | `MockBirdnet`, `MockTransport` |
 | `lan-http` | no | Plain HTTP/1.1 GET client and small server | `get`, `Server`, `Request`, `Response` |
 | `transport-lan` | no | `HttpTransport` for Linux, macOS, Windows | `LanTransport` |
-| `art-pack` | yes (alloc) | Bird cut-outs and their `.artp` format | `ArtImage`, `ArtSource`, `Rgba`, `Subject` |
+| `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, and bundles of them for flash | `ArtImage`, `ArtSource`, `ArtBundle`, `Rgba`, `Subject` |
 | `art-mock` | yes (alloc) | Generated bird pictures for any species | `MockArt` |
 | `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered | `ArtFolder` |
 | `bird-sizes` | yes | AVONET body masses for BirdNET's species | `BirdSizes` |
@@ -20,6 +20,7 @@
 | `bird-almanac` | yes (alloc) | What longer windows say: birds new for the year, arrivals after an absence, the rarest of today's birds, this week against last year's, and the day's story | `Almanac`, `Arrival`, `YearOnYear`, `DayStory` |
 | `open-meteo` | yes (alloc) | Today's weather from Open-Meteo's free forecast API, over any `HttpTransport` | `OpenMeteo`, `Weather`, `Sky` |
 | `home-assistant` | no | Announces frames to Home Assistant: just enough MQTT 3.1.1 to publish, and the discovery messages | `mqtt::publish`, `discovery::frame_messages` |
+| `frame-standalone` | yes (alloc) | The decisions of a frame that draws its own page: whether the birds changed, the request to BirdNET-Go and reading its answer and `Date`, what to keep in RTC memory and how long to sleep | `Fingerprint`, `birdnet_request`, `BirdnetAnswer`, `http_date::parse`, `StandaloneMemory` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target`, `FrameLog`, `query_value` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 | `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |

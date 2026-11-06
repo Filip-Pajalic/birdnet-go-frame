@@ -1,0 +1,17 @@
+[package]
+name = "frame-standalone"
+description = "The decisions of a frame that draws its own page: what to ask BirdNET-Go, when to redraw, how long to sleep. no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-model.workspace = true
+frame-artist.workspace = true
+frame-core.workspace = true
+panel-wake.workspace = true
+
+[lints]
+workspace = true
