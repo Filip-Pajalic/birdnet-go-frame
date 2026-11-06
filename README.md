@@ -25,7 +25,8 @@ fugleramme does, and sized as big as the page allows so the cluster reaches its 
 
 Besides today's birds, a frame can show the week, today's rarest birds, the day's story and the
 year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
-drawn first and biggest, and frames wake every 5 minutes while it is about. The bird pages end
+drawn first and biggest, and frames wake every 5 minutes while it is about. A quiet spell shows a
+bird of the day from this year's birds rather than an empty page. The bird pages end
 with something special about their main bird, a habit, song, record or folklore (built in, no cloud), and every page wears a
 seasonal border of Swedish wild plants cut from Lindman's botanical plates: spruce and juniper,
 bird cherry and wood anemone, cornflower and buttercup, oak and bilberry, and lingonberry, pussy

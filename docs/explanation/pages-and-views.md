@@ -97,6 +97,21 @@ The numbers' words are in English and Swedish; other languages fall back to Engl
 translated (keys `fact_*` in [Translations](../reference/configuration.md#translations)).
 `FACTS=false` turns the line off.
 
+## A quiet spell: the bird of the day
+
+A page with no birds of its own (a silent day for `today` and `rarest`, a silent week for
+`week`, no birds yet today for `story`, none yet this year for `season`) does not stand empty.
+It shows the bird of the day instead: one of the birds heard this year, drawn big under "Bird of
+the day" with its fact line, which is told even with `FACTS=false`. Early in January, before
+the year has a bird, it picks from last year's. The bird is the same all day and changes the
+next, preferring birds that have a plate; on list layouts it is still drawn as a picture, and
+only listed when there is no art. Only a station that has never heard a bird shows "No birds
+heard yet".
+
+The server finds the birds in the year summary it already fetches for the season page. The
+standalone firmware and the Raspberry Pi app ask for the year (then last year) only when the
+page turns out to be empty, so a busy day costs no extra request.
+
 ## Seasonal borders
 
 ![The seven borders on a portrait page: frost, blossom, meadow, autumn, Christmas, Easter and Midsummer, each a plant from a botanical plate in the top-left and bottom-right corners](../images/borders.jpg)

@@ -19,6 +19,9 @@ pub struct ViewData<'a> {
     pub day: Option<&'a DayFacts>,
     /// The year so far.
     pub year: Option<&'a YearFacts>,
+    /// Birds heard before: this year's, or last year's while this year has none yet. A page
+    /// with no birds of its own draws one of them, another each day, as the bird of the day.
+    pub known: &'a [SpeciesSummary],
     /// The line at the foot of the list, story and season pages, e.g. when they were drawn.
     pub footer: &'a str,
 }

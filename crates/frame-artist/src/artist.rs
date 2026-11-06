@@ -241,13 +241,30 @@ impl<A: ArtSource> Artist<A> {
     ///
     /// Today's and the week's pages put a bird new for the year first; the rarest page shows
     /// today's birds rarest first, at most six; the story and season pages fall back to
-    /// today's birds while their facts are missing.
+    /// today's birds while their facts are missing. A page with no birds of its own (a quiet
+    /// day, week or year so far) shows the bird of the day from `data.known` instead, when
+    /// there is one.
     pub fn draw_view(
         &mut self,
         view: PageView,
         data: &ViewData<'_>,
         resolution: Resolution,
     ) -> Canvas {
+        let quiet: bool = match view {
+            PageView::Today | PageView::Rarest => data.today.is_empty(),
+            PageView::Week => data.week.is_empty(),
+            PageView::Story => data
+                .day
+                .map_or(data.today.is_empty(), |day| day.species.is_empty()),
+            PageView::Season => data.year.map_or(data.today.is_empty(), |year| {
+                year.almanac.year_list().is_empty()
+            }),
+        };
+        if quiet {
+            if let Some(page) = self.draw_bird_of_the_day(data.known, data.footer, resolution) {
+                return page;
+            }
+        }
         let words: PageText = self.style.words.clone();
         let new_bird: Option<&SpeciesSummary> = data.new_today.first();
         let new_heading: Option<String> =
@@ -299,6 +316,65 @@ impl<A: ArtSource> Artist<A> {
         }
     }
 
+    /// Draws one of `known` big, with a fun fact about it, under the bird of the day heading:
+    /// the page for a quiet spell, a picture even on list pages. The bird changes each day, preferring birds the art source
+    /// has a picture of. Returns `None` when `known` is empty.
+    pub fn draw_bird_of_the_day(
+        &mut self,
+        known: &[SpeciesSummary],
+        footer: &str,
+        resolution: Resolution,
+    ) -> Option<Canvas> {
+        let bird: SpeciesSummary = self.bird_of_the_day(known)?;
+        let heading: String = self.style.words.bird_of_the_day.clone();
+        // The fact is the point of the page, so it is told whatever the style says.
+        let fact: String = self.fact_about(&bird);
+        let birds: [SpeciesSummary; 1] = [bird];
+        let pictured: bool = self
+            .pictures
+            .get(&birds[0].scientific_name.to_string())
+            .is_some_and(Option::is_some);
+        // A single row would leave a list page as bare as an empty one, so the bird is drawn
+        // whatever the layout, and listed only without a picture.
+        Some(if pictured {
+            self.draw_collage(&birds, true, &heading, &fact, resolution)
+        } else {
+            self.draw_list(&birds, &heading, &fact, footer, resolution)
+        })
+    }
+
+    /// Returns the day's pick of `known`: the same all day, another the next. Birds with a
+    /// picture are picked over those without.
+    fn bird_of_the_day(&mut self, known: &[SpeciesSummary]) -> Option<SpeciesSummary> {
+        let mut candidates: Vec<&SpeciesSummary> = known.iter().collect();
+        candidates.sort_by(|left, right| {
+            left.scientific_name
+                .as_str()
+                .cmp(right.scientific_name.as_str())
+        });
+        candidates.dedup_by(|left, right| left.scientific_name == right.scientific_name);
+        let count: usize = candidates.len();
+        if count == 0 {
+            return None;
+        }
+        // Knuth's multiplicative hash, so the days do not walk the list in name order.
+        let day: u64 = u64::from_le_bytes(self.day.unwrap_or(0).to_le_bytes());
+        let mixed: u64 = day.wrapping_mul(2_654_435_761) >> 7;
+        let count_u64: u64 = u64::try_from(count).unwrap_or(1);
+        let start: usize = usize::try_from(mixed % count_u64).unwrap_or(0);
+        let mut pictured: Option<&SpeciesSummary> = None;
+        for offset in 0..count {
+            let row: &SpeciesSummary = candidates[(start + offset) % count];
+            let name: String = row.scientific_name.to_string();
+            self.ensure_picture(&name);
+            if self.pictures.get(&name).is_some_and(Option::is_some) {
+                pictured = Some(row);
+                break;
+            }
+        }
+        Some(pictured.unwrap_or(candidates[start]).clone())
+    }
+
     /// Draws the page saying BirdNET-Go cannot be reached, with `problem` underneath.
     pub fn draw_unreachable(&self, problem: &str, resolution: Resolution) -> Canvas {
         let heading: String = self.style.words.unreachable.clone();
@@ -309,7 +385,16 @@ impl<A: ArtSource> Artist<A> {
     /// no facts, there is no bird or nothing is known about it.
     #[must_use]
     pub fn fact_line(&self, bird: Option<&SpeciesSummary>) -> String {
-        let (Some(bird), Some(day), true) = (bird, self.day, self.style.facts) else {
+        match bird {
+            Some(bird) if self.style.facts => self.fact_about(bird),
+            _ => String::new(),
+        }
+    }
+
+    /// Returns the fact line about `bird` for the current day, whatever the style says, or
+    /// nothing before the first day or when nothing is known about it.
+    fn fact_about(&self, bird: &SpeciesSummary) -> String {
+        let Some(day) = self.day else {
             return String::new();
         };
         let name: String = bird.scientific_name.to_string();
@@ -536,6 +621,76 @@ mod test {
         let outlines: Canvas =
             artist(OutlineArt::new(120), Layout::Collage).draw(&birds(), "Updated 07:30", size);
         assert_ne!(outlines, list);
+    }
+
+    #[test]
+    fn a_quiet_page_shows_the_bird_of_the_day() {
+        let size = Resolution::new(800, 480);
+        let mut drawing = artist(OutlineArt::new(120), Layout::Collage);
+        drawing.start_day(20_398);
+        let known: Vec<SpeciesSummary> = birds();
+        let data = ViewData {
+            today: &[],
+            week: &[],
+            new_today: &[],
+            day: None,
+            year: None,
+            known: &known,
+            footer: "Updated 07:30",
+        };
+        let quiet: Canvas = drawing.draw_view(PageView::Today, &data, size);
+        let empty: Canvas = drawing.draw(&[], "Updated 07:30", size);
+        assert_ne!(quiet, empty);
+        let bird: SpeciesSummary = drawing.bird_of_the_day(&known).expect("a bird");
+        let again: SpeciesSummary = drawing.bird_of_the_day(&known).expect("a bird");
+        assert_eq!(bird.scientific_name, again.scientific_name);
+        for view in [
+            PageView::Week,
+            PageView::Rarest,
+            PageView::Story,
+            PageView::Season,
+        ] {
+            assert_eq!(drawing.draw_view(view, &data, size), quiet, "{view}");
+        }
+        let picked: usize = (20_398..20_418)
+            .filter(|&day| {
+                drawing.start_day(day);
+                drawing
+                    .bird_of_the_day(&known)
+                    .is_some_and(|row| row.scientific_name.as_str() == "Parus major")
+            })
+            .count();
+        assert!(
+            picked > 0 && picked < 20,
+            "the bird changes from day to day"
+        );
+    }
+
+    #[test]
+    fn a_page_with_birds_or_nothing_known_is_drawn_as_before() {
+        let size = Resolution::new(800, 480);
+        let mut drawing = artist(OutlineArt::new(120), Layout::Collage);
+        let known: Vec<SpeciesSummary> = birds();
+        let today: Vec<SpeciesSummary> = birds()[..1].to_vec();
+        let busy = ViewData {
+            today: &today,
+            week: &[],
+            new_today: &[],
+            day: None,
+            year: None,
+            known: &known,
+            footer: "",
+        };
+        let drawn: Canvas = drawing.draw(&today, "", size);
+        assert_eq!(drawing.draw_view(PageView::Today, &busy, size), drawn);
+        let unknown = ViewData {
+            today: &[],
+            known: &[],
+            ..busy
+        };
+        let empty: Canvas = drawing.draw(&[], "", size);
+        assert_eq!(drawing.draw_view(PageView::Today, &unknown, size), empty);
+        assert!(drawing.draw_bird_of_the_day(&[], "", size).is_none());
     }
 
     #[test]

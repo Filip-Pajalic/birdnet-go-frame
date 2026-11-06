@@ -177,9 +177,18 @@ impl Frame<'_> {
             Ok(species) => species,
             Err(error) => return self.unreachable(&error),
         };
+        // A quiet spell shows the bird of the day, picked from the birds heard before.
+        let known: Vec<SpeciesSummary> = if species.is_empty() {
+            client
+                .known_species(now, config.utc_offset_minutes)
+                .inspect_err(|error| eprintln!("linux-panel: the bird of the day: {error}"))
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
         let day: i64 = now.div_euclid(SECONDS_PER_DAY);
         let fingerprint: Fingerprint =
-            Fingerprint::of(day, PageView::Today, &[&species], config.layout);
+            Fingerprint::of(day, PageView::Today, &[&species, &known], config.layout);
         if self.shown == Shown::Birds(fingerprint) {
             return Ok(());
         }
@@ -188,7 +197,14 @@ impl Frame<'_> {
             .artist
             .words()
             .updated(&clock(now, config.utc_offset_minutes));
-        let page: Canvas = self.artist.draw(&species, &footer, self.resolution());
+        let resolution: Resolution = self.resolution();
+        let page: Canvas = match self
+            .artist
+            .draw_bird_of_the_day(&known, &footer, resolution)
+        {
+            Some(page) => page,
+            None => self.artist.draw(&species, &footer, resolution),
+        };
         self.show(page)?;
         eprintln!("linux-panel: drew {} species", species.len());
         self.shown = Shown::Birds(fingerprint);

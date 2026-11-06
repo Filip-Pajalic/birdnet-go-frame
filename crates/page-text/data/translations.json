@@ -4,6 +4,7 @@
     "nothing_heard": "No birds heard yet",
     "more": "and {count} more",
     "updated": "Updated {time}",
+    "bird_of_the_day": "Bird of the day",
     "unreachable": "Cannot reach BirdNET-Go",
     "heading_week": "Heard this week",
     "heading_rarest": "Rarest today",
@@ -47,6 +48,7 @@
     "nothing_heard": "Ingen fugle hørt endnu",
     "more": "og {count} mere",
     "updated": "Opdateret {time}",
+    "bird_of_the_day": "Dagens fugl",
     "unreachable": "Kan ikke nå BirdNET-Go"
   },
   "de": {
@@ -54,6 +56,7 @@
     "nothing_heard": "Noch keine Vögel gehört",
     "more": "und {count} weitere",
     "updated": "Aktualisiert {time}",
+    "bird_of_the_day": "Vogel des Tages",
     "unreachable": "BirdNET-Go nicht erreichbar"
   },
   "es": {
@@ -61,6 +64,7 @@
     "nothing_heard": "Aún no se han oído aves",
     "more": "y {count} más",
     "updated": "Actualizado {time}",
+    "bird_of_the_day": "Ave del día",
     "unreachable": "No se puede conectar con BirdNET-Go"
   },
   "fi": {
@@ -68,6 +72,7 @@
     "nothing_heard": "Lintuja ei ole vielä kuultu",
     "more": "ja {count} muuta",
     "updated": "Päivitetty {time}",
+    "bird_of_the_day": "Päivän lintu",
     "unreachable": "BirdNET-Go ei vastaa"
   },
   "fr": {
@@ -75,6 +80,7 @@
     "nothing_heard": "Aucun oiseau entendu pour l'instant",
     "more": "et {count} de plus",
     "updated": "Mis à jour à {time}",
+    "bird_of_the_day": "Oiseau du jour",
     "unreachable": "BirdNET-Go injoignable"
   },
   "it": {
@@ -82,6 +88,7 @@
     "nothing_heard": "Nessun uccello sentito finora",
     "more": "e altri {count}",
     "updated": "Aggiornato alle {time}",
+    "bird_of_the_day": "Uccello del giorno",
     "unreachable": "BirdNET-Go non raggiungibile"
   },
   "nb": {
@@ -89,6 +96,7 @@
     "nothing_heard": "Ingen fugler hørt ennå",
     "more": "og {count} til",
     "updated": "Oppdatert {time}",
+    "bird_of_the_day": "Dagens fugl",
     "unreachable": "Får ikke kontakt med BirdNET-Go"
   },
   "nl": {
@@ -96,6 +104,7 @@
     "nothing_heard": "Nog geen vogels gehoord",
     "more": "en nog {count}",
     "updated": "Bijgewerkt {time}",
+    "bird_of_the_day": "Vogel van de dag",
     "unreachable": "BirdNET-Go niet bereikbaar"
   },
   "pl": {
@@ -103,6 +112,7 @@
     "nothing_heard": "Nie usłyszano jeszcze ptaków",
     "more": "i {count} więcej",
     "updated": "Zaktualizowano {time}",
+    "bird_of_the_day": "Ptak dnia",
     "unreachable": "Brak połączenia z BirdNET-Go"
   },
   "pt": {
@@ -110,6 +120,7 @@
     "nothing_heard": "Ainda nenhuma ave ouvida",
     "more": "e mais {count}",
     "updated": "Atualizado às {time}",
+    "bird_of_the_day": "Ave do dia",
     "unreachable": "Sem ligação ao BirdNET-Go"
   },
   "sv": {
@@ -117,6 +128,7 @@
     "nothing_heard": "Inga fåglar hörda än",
     "more": "och {count} till",
     "updated": "Uppdaterad {time}",
+    "bird_of_the_day": "Dagens fågel",
     "unreachable": "Når inte BirdNET-Go",
     "heading_week": "Hörda i veckan",
     "heading_rarest": "Dagens ovanligaste",

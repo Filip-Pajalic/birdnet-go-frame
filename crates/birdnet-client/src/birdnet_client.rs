@@ -67,6 +67,27 @@ impl<T: HttpTransport> BirdnetClient<T> {
         SpeciesSummary::parse_list(&body).map_err(ClientError::Parse)
     }
 
+    /// Returns the birds heard this year at unix time `now`, in a garden `utc_offset_minutes`
+    /// east of UTC, or last year's while this year has none yet: the birds a page with none of
+    /// its own picks a bird of the day from.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ClientError`] when BirdNET-Go cannot be reached, refuses the request, or
+    /// sends something unreadable.
+    pub fn known_species(
+        &mut self,
+        now: i64,
+        utc_offset_minutes: i32,
+    ) -> Result<Vec<SpeciesSummary>, ClientError<T::Error>> {
+        let year: Vec<SpeciesSummary> =
+            self.species_summary(DateWindow::year_to_date(now, utc_offset_minutes))?;
+        if !year.is_empty() {
+            return Ok(year);
+        }
+        self.species_summary(DateWindow::previous_year(now, utc_offset_minutes))
+    }
+
     /// Returns up to `limit` of the newest bird detections, newest first
     /// (`GET /detections/recent`).
     ///

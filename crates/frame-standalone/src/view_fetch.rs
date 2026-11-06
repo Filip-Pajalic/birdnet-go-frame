@@ -26,13 +26,16 @@ pub enum Summary {
     Recent,
     /// The weeks before those.
     Before,
+    /// The whole of last year, for the bird of the day while this year has no birds yet.
+    LastYear,
 }
 
 /// The requests for one page and, once answered, the facts it is drawn from. Without a server
 /// the frame asks only for what the page it shows needs: today's page is one request, the
 /// season's five. The story's hourly counts depend on the day's birds, so they are asked for
 /// after the summaries ([`hourly_paths`](Self::hourly_paths)). Weather and the new-bird
-/// alert need a server and are left out.
+/// alert need a server and are left out. A page that turns out to have no birds asks for
+/// more afterwards ([`next_fallback`](Self::next_fallback)), to find the bird of the day.
 ///
 /// ```
 /// use frame_artist::PageView;
@@ -47,6 +50,8 @@ pub enum Summary {
 pub struct ViewFetch {
     view: PageView,
     today: CivilDate,
+    year: DateWindow,
+    last_year: DateWindow,
     windows: Vec<(Summary, DateWindow)>,
     answers: Vec<(Summary, Vec<SpeciesSummary>)>,
     hours: Vec<SpeciesHours>,
@@ -69,6 +74,7 @@ impl ViewFetch {
                 Summary::Day => DateWindow::days_back(now, utc_offset_minutes, 1),
                 Summary::Recent => recent,
                 Summary::Before => before,
+                Summary::LastYear => DateWindow::previous_year(now, utc_offset_minutes),
             }
         };
         let needed: &[Summary] = match view {
@@ -87,6 +93,8 @@ impl ViewFetch {
         Self {
             view,
             today,
+            year: window_of(Summary::Year),
+            last_year: window_of(Summary::LastYear),
             windows: needed
                 .iter()
                 .map(|&summary| (summary, window_of(summary)))
@@ -113,6 +121,33 @@ impl ViewFetch {
     pub fn answer(&mut self, summary: Summary, species: Vec<SpeciesSummary>) {
         self.answers.retain(|(kept, _)| *kept != summary);
         self.answers.push((summary, species));
+    }
+
+    /// Returns the next summary to ask for, and its path from `/api/v2`, once the page's own
+    /// answers are in and it has no birds: the year so far, then last year while this year has
+    /// none. The page then shows the bird of the day from them. `None` when the page has birds
+    /// or nothing more can be asked; answer each with [`answer`](Self::answer) before calling
+    /// again.
+    pub fn next_fallback(&mut self) -> Option<(Summary, String)> {
+        let own: Summary = match self.view {
+            PageView::Today | PageView::Rarest => Summary::Window,
+            PageView::Week => Summary::Week,
+            PageView::Story => Summary::Day,
+            PageView::Season => Summary::Year,
+        };
+        if !self.list(own).is_empty() {
+            return None;
+        }
+        let asked = |summary: Summary| self.windows.iter().any(|(kept, _)| *kept == summary);
+        let (summary, window): (Summary, DateWindow) = if !asked(Summary::Year) {
+            (Summary::Year, self.year)
+        } else if self.list(Summary::Year).is_empty() && !asked(Summary::LastYear) {
+            (Summary::LastYear, self.last_year)
+        } else {
+            return None;
+        };
+        self.windows.push((summary, window));
+        Some((summary, window.species_summary_path()))
     }
 
     /// Returns the paths of the story's hourly counts, from `/api/v2`, once the day's summary
@@ -184,7 +219,16 @@ impl ViewFetch {
             new_today: &[],
             day: facts.day.as_ref(),
             year: facts.year.as_ref(),
+            known: self.known(),
             footer,
+        }
+    }
+
+    /// This year's birds, or last year's while this year has none.
+    fn known(&self) -> &[SpeciesSummary] {
+        match self.list(Summary::Year) {
+            [] => self.list(Summary::LastYear),
+            year => year,
         }
     }
 
@@ -286,5 +330,45 @@ mod test {
         assert_eq!(season.almanac.year_list().len(), 1);
         assert_eq!(season.year_on_year.now, 1);
         assert_eq!(fetch.lists().len(), 5);
+    }
+
+    #[test]
+    fn a_quiet_page_asks_for_the_year_then_last_year() {
+        let tit =
+            birds(br#"[{"scientific_name":"Parus major","common_name":"Great Tit","count":9}]"#);
+        let mut busy = ViewFetch::new(PageView::Today, NOW, 60, 24);
+        busy.answer(Summary::Window, tit.clone());
+        assert!(busy.next_fallback().is_none());
+
+        let mut quiet = ViewFetch::new(PageView::Today, NOW, 60, 24);
+        quiet.answer(Summary::Window, Vec::new());
+        let (summary, path) = quiet.next_fallback().expect("the year");
+        assert_eq!(summary, Summary::Year);
+        assert_eq!(
+            path,
+            "/api/v2/analytics/species/summary?start_date=2026-01-01&end_date=2026-11-06"
+        );
+        quiet.answer(Summary::Year, Vec::new());
+        let (summary, path) = quiet.next_fallback().expect("last year");
+        assert_eq!(summary, Summary::LastYear);
+        assert_eq!(
+            path,
+            "/api/v2/analytics/species/summary?start_date=2025-01-01&end_date=2025-12-31"
+        );
+        quiet.answer(Summary::LastYear, tit);
+        assert!(quiet.next_fallback().is_none());
+        let facts: ViewFacts = quiet.facts();
+        assert_eq!(quiet.data(&facts, "").known.len(), 1);
+        assert_eq!(quiet.lists().len(), 3);
+
+        let mut rarest = ViewFetch::new(PageView::Rarest, NOW, 60, 24);
+        rarest.answer(Summary::Window, Vec::new());
+        rarest.answer(
+            Summary::Year,
+            birds(br#"[{"scientific_name":"Parus major","count":1}]"#),
+        );
+        assert!(rarest.next_fallback().is_none());
+        let facts: ViewFacts = rarest.facts();
+        assert_eq!(rarest.data(&facts, "").known.len(), 1);
     }
 }
