@@ -3,6 +3,7 @@
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::{self, InputPin, OutputPin};
 use embedded_hal::spi::{self, SpiBus};
+use frame_core::{Glass, PanelSize};
 
 use crate::commands::{self, Chips};
 use crate::panel_error::PanelError;
@@ -231,6 +232,30 @@ where
             waited += 50;
         }
         Ok(())
+    }
+}
+
+impl<S, O, I, D> Glass for T133a01<S, O, I, D>
+where
+    S: SpiBus,
+    O: OutputPin,
+    I: InputPin,
+    D: DelayNs,
+{
+    type Error = PanelError;
+
+    const PANEL: PanelSize = PanelSize::Inches13Point3;
+
+    fn wake(&mut self) -> Result<(), PanelError> {
+        T133a01::wake(self)
+    }
+
+    fn show(&mut self, page: &[u8]) -> Result<u32, PanelError> {
+        T133a01::show(self, page)
+    }
+
+    fn sleep(&mut self) -> Result<(), PanelError> {
+        T133a01::sleep(self)
     }
 }
 

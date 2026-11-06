@@ -55,6 +55,14 @@ plate it came from. The `classic` style is licensed under CC BY-SA 4.0
 The T133A01 panel initialisation sequence references Seeed_GFX2's `Driver_T133A01.cpp`,
 https://github.com/Seeed-Studio/Seeed_GFX2, MIT License (see that repository's LICENSE file).
 
+## Zephyr
+
+The 7.3" panel's register values in `crates/panel-ed2208/src/commands.rs`, and its reset,
+refresh and sleep order, follow Zephyr's ED2208 driver, `drivers/display/display_ed2208_gca.c`,
+https://github.com/zephyrproject-rtos/zephyr, Copyright (c) 2026 The Zephyr Project
+Contributors, Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0). The pins of
+Seeed's reTerminal E1002 come from that project's board files.
+
 ## BirdNET-Go
 
 Not included. This project only calls BirdNET-Go's HTTP API. BirdNET-Go is licensed under

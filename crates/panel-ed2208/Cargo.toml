@@ -1,0 +1,15 @@
+[package]
+name = "panel-ed2208"
+description = "Drives the 7.3-inch Spectra 6 panel's ED2208 controller over embedded-hal 1.0."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+embedded-hal.workspace = true
+frame-core.workspace = true
+
+[lints]
+workspace = true

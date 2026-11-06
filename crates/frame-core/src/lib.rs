@@ -9,6 +9,7 @@
 extern crate alloc;
 
 mod crc32;
+mod glass;
 mod indexed_image;
 mod inflate;
 mod ink;
@@ -20,6 +21,7 @@ mod rgb;
 mod rotation;
 
 pub use crc32::Crc32;
+pub use glass::Glass;
 pub use indexed_image::IndexedImage;
 pub use inflate::{InflateError, inflate_zlib};
 pub use ink::Ink;

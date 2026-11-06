@@ -1456,6 +1456,7 @@ name = "panel-t133a01"
 version = "0.1.0"
 dependencies = [
  "embedded-hal 1.0.0",
+ "frame-core",
 ]
 
 [[package]]

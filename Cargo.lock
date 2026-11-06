@@ -203,10 +203,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "panel-ed2208"
+version = "0.1.0"
+dependencies = [
+ "embedded-hal",
+ "frame-core",
+]
+
+[[package]]
 name = "panel-t133a01"
 version = "0.1.0"
 dependencies = [
  "embedded-hal",
+ "frame-core",
 ]
 
 [[package]]

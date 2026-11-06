@@ -2,7 +2,7 @@
 
 | Crate | `no_std` | Purpose | Key items |
 | --- | --- | --- | --- |
-| `frame-core` | yes | Shared page format, and unpacking it | `Ink`, `Rotation`, `PanelSize`, `IndexedImage`, `PageSizeError`, `Crc32`, `panel_bytes::pack`, `inflate_zlib` |
+| `frame-core` | yes | Shared page format, and unpacking it | `Ink`, `Rotation`, `PanelSize`, `Glass` (what every panel driver does), `IndexedImage`, `PageSizeError`, `Crc32`, `panel_bytes::pack`, `inflate_zlib` |
 | `lite-json` | yes (alloc) | A small JSON reader, in place of serde | `Json`, `JsonError` |
 | `birdnet-model` | yes (alloc) | BirdNET-Go response types | `SpeciesSummary`, `Detection`, `ScientificName` |
 | `birdnet-client` | yes (alloc) | API client | `BirdnetClient<T>`, `HttpTransport`, `DateWindow`, `CivilDate` |
@@ -19,6 +19,7 @@
 | `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `panel_bytes` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
+| `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |
 | `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `page_request` |
 | `transport-esp` | yes (alloc) | ESP32 Wi-Fi with fast rejoin and one HTTP GET, on `esp-radio` and `embassy-net`. Built only with the Xtensa toolchain, outside the root workspace | `join`, `network_config`, `wait_for_address`, `get`, `rejoin`, `WifiCredentials`, `TransportError` |
 
