@@ -90,15 +90,21 @@ fn posts_a_body_with_headers_and_reads_response_headers() {
     let address = listener.local_addr().expect("address");
     let seen = thread::spawn(move || {
         let (mut stream, _) = listener.accept().expect("accept");
-        let mut request = vec![0_u8; 4096];
-        let read = stream.read(&mut request).expect("read");
+        // TCP may split the request anywhere: read until the whole body is in.
+        let mut request: Vec<u8> = Vec::new();
+        let mut chunk = [0_u8; 4096];
+        while !request.ends_with(br#"{"password":"pw"}"#) {
+            let read = stream.read(&mut chunk).expect("read");
+            assert!(read > 0, "the request ended early");
+            request.extend_from_slice(&chunk[..read]);
+        }
         stream
             .write_all(
                 b"HTTP/1.1 200 OK\r\nSet-Cookie: a=1; Path=/\r\nSet-Cookie: b=2\r\n\
                   Content-Length: 2\r\n\r\nok",
             )
             .expect("write");
-        String::from_utf8_lossy(&request[..read]).into_owned()
+        String::from_utf8_lossy(&request).into_owned()
     });
     let response = lan_http::send(
         "POST",

@@ -72,8 +72,10 @@ pub fn send(
         request.push_str(&format!("Content-Length: {}\r\n", body.len()));
     }
     request.push_str("\r\n");
-    stream.write_all(request.as_bytes())?;
-    stream.write_all(body)?;
+    // Head and body in one write, so a small request goes out in one packet.
+    let mut bytes: Vec<u8> = request.into_bytes();
+    bytes.extend_from_slice(body);
+    stream.write_all(&bytes)?;
     let (head, mut body) =
         head::read_head(&mut stream)?.ok_or(HttpError::Malformed("connection closed early"))?;
     let status: u16 = status(&head)?;
