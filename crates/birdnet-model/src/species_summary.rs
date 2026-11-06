@@ -3,9 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::json::Json;
 use crate::parse_error::ParseError;
 use crate::scientific_name::ScientificName;
+use lite_json::Json;
 
 /// A species heard in the requested date range, with false positives already excluded by
 /// BirdNET-Go.
@@ -34,7 +34,7 @@ impl SpeciesSummary {
     ///
     /// Returns [`ParseError`] when the body is not a JSON array of summary rows.
     pub fn parse_list(body: &[u8]) -> Result<Vec<Self>, ParseError> {
-        let Json::Array(items) = Json::parse(body)? else {
+        let Json::Array(items) = Json::parse(body).map_err(ParseError::from)? else {
             return Err(ParseError::new("expected a list of species", 0));
         };
         let rows = items.iter().filter_map(Self::from_json);

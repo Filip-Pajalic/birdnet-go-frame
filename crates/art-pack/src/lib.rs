@@ -23,8 +23,10 @@ mod art_error;
 mod art_image;
 mod art_source;
 mod rgba;
+mod subject;
 
 pub use art_error::ArtError;
 pub use art_image::ArtImage;
 pub use art_source::ArtSource;
 pub use rgba::Rgba;
+pub use subject::Subject;

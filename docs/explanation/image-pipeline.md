@@ -1,21 +1,24 @@
 # How the image is made
 
-![The collage drawn from the simulated garden](../images/collage-mock.png)
+![The collage with fugleramme's classic plates](../images/collage-classic.jpg)
 
-A page goes through five stages, from BirdNET-Go's JSON to the bytes the panel's controllers
+*The simulated garden drawn with `ART_DIR` set to fugleramme's `classic` style. Artwork: 1800s
+plates (von Wright, Gould and others) curated and edited by fugleramme, CC BY-SA 4.0.*
+
+A page goes through six stages, from BirdNET-Go's JSON to the bytes the panel's controllers
 expect. Each stage is a separate crate with plain data in and out, so each can be tested alone.
 
 ```mermaid
 flowchart TD
     json["BirdNET-Go JSON<br/>species summary"] -->|"birdnet-model<br/>parse, drop non-birds, merge spellings, sort"| species["Vec&lt;SpeciesSummary&gt;"]
     species --> sizes["bird-sizes<br/>body mass per species"]
-    species --> art["ArtSource (art-mock)<br/>a cut-out per species"]
+    species --> art["ArtSource (art-webp or art-mock)<br/>a cut-out per species"]
     sizes -->|"size_weights<br/>mass^0.14"| collage
-    art -->|aspect ratios| collage
+    art -->|"outlines + bird boxes"| collage
     collage["frame-layout<br/>Collage::layout (or TextList)"] --> layout["PageLayout<br/>image blocks + text blocks"]
     art -->|pictures| canvas
     layout -->|"frame-raster<br/>Renderer::render"| canvas["Canvas<br/>full-colour RGB, as it hangs"]
-    canvas -->|"frame-raster<br/>dither"| page["IndexedImage<br/>one of six inks per pixel"]
+    canvas -->|"frame-raster<br/>pop, then dither"| page["IndexedImage<br/>one of six inks per pixel"]
     page -->|"frame-core<br/>e6::encode"| e6["/frame.e6<br/>header + 960,000 bytes"]
     canvas -->|frame-http| preview["/preview.png"]
     page -->|"frame-http<br/>rotated to the glass"| framepng["/frame.png"]
@@ -31,45 +34,67 @@ last `WINDOW_HOURS` in your time zone. The parser:
   reclassification), adding their counts;
 - sorts by count, most detections first.
 
-## 2. Lay out (`frame-layout`)
+## 2. Pictures (`art-webp`)
+
+With `ART_DIR` set, pictures are fugleramme's own artwork: hand-coloured 1800s plates, cut out
+around the bird (often with its branch or patch of ground) and saved as `birds/<genus>-<species>.webp`,
+with numbered variants (`-2`, `-3`). `ArtFolder` follows fugleramme for each species:
+
+1. **Variant.** One plate per species per day, picked by a hash of the name and the date, so a
+   bird in the garden all week still changes, and a restart changes nothing.
+2. **Trim and shrink.** The plate is cropped to its opaque pixels and shrunk to at most 800 px.
+3. **Bird box.** `geometry.json` records where the bird itself is on each plate. A layout sizes
+   the *bird*, not the plate, so a wren on a big branch is not drawn tiny.
+4. **Paper halo.** Each plate keeps a ring of its scanned paper, whose tone varies from scan to
+   scan. The ring's median tone is measured, paper-like pixels are shifted to the page's paper,
+   the outer ring is snapped flat, and the cut edge is feathered inwards. Every plate then looks
+   printed on one sheet.
+
+Without `ART_DIR`, `art-mock` paints a simple perched bird for any species, so the server works
+with nothing installed and tests need no image files. Its pictures are cut-outs with transparent
+backgrounds too, so sizing, packing and drawing are exercised as with real plates.
+
+## 3. Lay out (`frame-layout`)
 
 Layout decides *what goes where* without drawing anything. The output is a `PageLayout`: image
 blocks (which picture, where, how big, mirrored or not) and text blocks (text, position, size,
-alignment and a role: heading, name, detail, footer). Both layouts share the heading at the top
-and the "Updated HH:MM" footer.
+alignment and a role: heading, name, detail, footer).
 
 ### The collage (`LAYOUT=collage`, the default)
 
-Each bird gets a picture from an `ArtSource` and a size from its body mass:
+A port of fugleramme's collage. The page is birds only: no heading or footer unless `HEADING`
+is set.
 
-1. **Mass.** `bird-sizes` looks the species up in AVONET's body masses (6,421 species BirdNET
-   can detect; unknown species get the median).
-2. **Weight.** `size_weights` turns masses into relative sizes, as in fugleramme:
-   `(mass / geometric mean) ^ 0.14`. A wood pigeon (490 g) comes out about 1.9 times the size of
-   a goldcrest (5.5 g), not 90 times, so small birds stay visible.
-3. **Box.** The weight sets the square root of the picture's area, so a magpie's long tail
-   widens its box without making the bird huge.
-4. **Rows.** Birds, most heard first, fill rows from the top, each row about as wide as the
-   others. Every row count from one to the number of birds is tried, and for each the largest
-   scale that fits is found by bisection. The row count that draws birds largest wins.
-5. **Placing.** In each row the tallest bird is in the middle, smaller ones outwards. Birds stand
-   on a shared shelf with their name centred underneath, and each one faces the middle of the
-   page (pictures right of centre are mirrored).
+1. **Weight.** `bird-sizes` looks up the body mass (AVONET; unknown species get the median), and
+   `size_weights` compresses it as fugleramme does: `(mass / geometric mean) ^ 0.14`. A wood
+   pigeon comes out about 1.9 times the size of a goldcrest, not 90 times. The weight is then
+   multiplied by how much bigger the plate is than its bird.
+2. **Starting size.** The set starts too big:
+   `min(sqrt(page area x 1.5 / sum of weights squared), short side x 0.7 / largest weight)`.
+3. **Footprints.** Each bird's outline (alpha above 24) is resampled to its size, mirrored if a
+   hash of its name says so, and shrunk by 2 px so neighbours nestle into each other's invisible
+   halos. Its name is joined underneath, centred on the body rather than the box and raised
+   until it clears the outline: into the gap beside a leg or under a perch.
+4. **Spiral.** Biggest first, each footprint goes at the first spot on an outward walk from the
+   middle of the page (rings 6 px apart) where no opaque pixel overlaps. Biggest birds land in
+   the middle.
+5. **Shrink.** If any bird does not fit, the whole set shrinks by 10% and packs again. Names
+   shrink with the set; once it fits, names left small beside a few big birds are grown back as
+   far as the packing allows.
+6. **Centre.** The cluster's bounding box is centred on the page.
+
+The page is packed at a short side of 1200 pixels and scaled, so a page packs the same at every
+resolution.
 
 ```mermaid
 flowchart LR
-    birds["birds, most heard first<br/>weight + aspect ratio"] --> split["split into R rows<br/>of equal width"]
-    split --> fit["bisect the largest scale<br/>where every row fits"]
-    fit -->|"try R = 1 … n"| best["keep the R with<br/>the largest scale"]
-    best --> place["tallest in the middle,<br/>shelf, names, face inwards"]
+    birds["birds<br/>weight x span ratio"] --> size["start too big"]
+    size --> foot["outline + name<br/>as one footprint"]
+    foot --> spiral["spiral out from the middle,<br/>biggest first"]
+    spiral -->|"a bird did not fit"| shrink["shrink 10%"]
+    shrink --> foot
+    spiral -->|"all fit"| centre["centre the cluster"]
 ```
-
-Until real art is supported, pictures come from `art-mock`: it paints a simple perched bird for
-any species from ellipses, polygons and round-ended lines, with a dark outline and anti-aliased
-edges. Eighteen garden birds have their own shape and plumage; any other species gets a shape
-and colours derived from a hash of its name, the same every time. The pictures are cut-outs with
-transparent backgrounds, like fugleramme's art, so sizing, packing and drawing are exercised
-exactly as they will be with real pictures.
 
 ### The list (`LAYOUT=list`)
 
@@ -77,19 +102,25 @@ exactly as they will be with real pictures.
 get two columns. All names share one font size, small enough for the longest name to fit beside
 its count.
 
-## 3. Draw (`frame-raster`)
+## 4. Draw (`frame-raster`)
 
-The renderer starts from a white canvas the size of the page *as it hangs* (1600x1200 landscape or
+The renderer starts from a canvas of fugleramme's panel paper, a warm cream (233, 225, 202), the size of the page *as it hangs* (1600x1200 landscape or
 1200x1600 portrait). It draws the pictures first, scaling each into its block by averaging the
 source pixels under every target pixel and blending by the picture's transparency. Then it draws
 each text block with the embedded EB Garamond Italic, using `fontdue`. Names and the heading are
 black, counts are red.
 
-Glyph edges are drawn hard (coverage of 50% or more is ink, less is paper). Smooth grey edges look
+Glyph edges are drawn hard (a quarter coverage or more is ink, less is paper; any higher and
+the italic's hairlines break apart at small sizes). Smooth grey edges look
 nice on a monitor, but the next stage would turn them into coloured specks, because grey is not
 one of the panel's inks.
 
-## 4. Dither (`frame-raster`)
+## 5. Dither (`frame-raster`)
+
+First `pop` darkens the pictures and adds contrast (fugleramme's per-channel lift, pivot 182,
+contrast 1.15), because pale plumage would otherwise dither to bare paper. The paper, and the
+halos reachable from it through near-paper pixels, keep their tone, or every bird would wear a
+dark ring.
 
 A Spectra 6 panel can show exactly six colours. Dithering picks one per pixel and spreads the
 rounding error to the neighbours (Floyd-Steinberg), so areas of in-between colour come out as a
@@ -118,7 +149,7 @@ colours. These are fugleramme's blend of the panel's saturated and desaturated p
 | Blue | 30, 29, 174 | 5 |
 | Green | 29, 173, 35 | 6 |
 
-## 5. Pack for the panel (`frame-core`)
+## 6. Pack for the panel (`frame-core`)
 
 The 13.3" glass is driven by two T133A01 controllers, each handling one half of every row, in the
 glass's own orientation. `e6::encode` therefore:
@@ -142,6 +173,6 @@ both. The exact layout is in [The E6F1 page format](../reference/e6-format.md).
 | --- | --- | --- | --- |
 | `/frame.e6` | dithered page | controller orientation | 4-bit controller codes |
 | `/frame.png` | dithered page | native landscape | six nominal ink colours |
-| `/preview.png` | canvas before dithering | as it hangs | full colour |
+| `/preview.png` | canvas before the boost and dithering | as it hangs | full colour |
 
 All three share one ETag, derived from the E6F1 bytes, so they change together.

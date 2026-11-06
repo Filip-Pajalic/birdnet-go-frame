@@ -6,6 +6,7 @@ use frame_core::Resolution;
 
 use crate::art_error::ArtError;
 use crate::rgba::Rgba;
+use crate::subject::Subject;
 
 const MAGIC: [u8; 4] = *b"ARTP";
 const VERSION: u16 = 1;
@@ -17,18 +18,54 @@ const RUN_LEN: usize = 6;
 /// `.artp` layout, little-endian: magic `ARTP`, version (u16, 1), width (u16), height (u16),
 /// then runs of identical pixels, each a count (u16, at least 1) followed by red, green, blue
 /// and alpha bytes, until width times height pixels are covered. Transparent backgrounds become
-/// a few long runs.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// a few long runs. The [`Subject`] box is not stored.
+#[derive(Clone, Debug, PartialEq)]
 pub struct ArtImage {
     resolution: Resolution,
     pixels: Vec<Rgba>,
+    subject: Option<Subject>,
 }
 
 impl ArtImage {
     /// Creates a picture, or returns `None` when the pixel count does not match `resolution`.
     #[must_use]
     pub fn new(resolution: Resolution, pixels: Vec<Rgba>) -> Option<Self> {
-        (pixels.len() == resolution.area()).then_some(Self { resolution, pixels })
+        (pixels.len() == resolution.area()).then_some(Self {
+            resolution,
+            pixels,
+            subject: None,
+        })
+    }
+
+    /// Returns the picture with `subject` marking where the bird is on it.
+    #[must_use]
+    pub fn with_subject(mut self, subject: Subject) -> Self {
+        self.subject = Some(subject);
+        self
+    }
+
+    /// Returns where the bird is on the picture, if known.
+    #[must_use]
+    pub fn subject(&self) -> Option<Subject> {
+        self.subject
+    }
+
+    /// Returns how much longer the picture's longest side is than the bird's, so a layout can
+    /// size the bird rather than its branch. 1.0 when the subject is unknown.
+    #[must_use]
+    pub fn span_ratio(&self) -> f32 {
+        let Some(subject) = self.subject else {
+            return 1.0;
+        };
+        let width: f32 = self.resolution.width as f32;
+        let height: f32 = self.resolution.height as f32;
+        let span: f32 =
+            ((subject.right - subject.left) * width).max((subject.bottom - subject.top) * height);
+        if span > 0.0 {
+            width.max(height) / span
+        } else {
+            1.0
+        }
     }
 
     /// Returns the picture's size.
@@ -156,6 +193,16 @@ mod test {
             bytes.len()
         );
         assert_eq!(ArtImage::decode(&bytes), Ok(picture));
+    }
+
+    #[test]
+    fn span_ratio_measures_the_bird() {
+        let plate = ArtImage::new(Resolution::new(200, 100), vec![Rgba::TRANSPARENT; 20_000])
+            .expect("sizes match");
+        assert_eq!(plate.span_ratio(), 1.0);
+        let bird = Subject::new(0.0, 0.0, 0.5, 1.0).expect("valid");
+        assert_eq!(plate.with_subject(bird).span_ratio(), 2.0);
+        assert!(Subject::new(0.5, 0.0, 0.4, 1.0).is_none());
     }
 
     #[test]

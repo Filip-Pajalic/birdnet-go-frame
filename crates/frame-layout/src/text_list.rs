@@ -22,6 +22,10 @@ pub struct TextListOptions {
     pub footer: String,
     /// Most species shown; the rest are summarised in one line.
     pub max_species: usize,
+    /// The line shown when nothing has been heard.
+    pub empty: String,
+    /// The line counting species left off; `{count}` is replaced by the number.
+    pub more: String,
 }
 
 impl Default for TextListOptions {
@@ -30,6 +34,8 @@ impl Default for TextListOptions {
             heading: String::from("Heard in the garden"),
             footer: String::new(),
             max_species: 24,
+            empty: String::from("No birds heard yet"),
+            more: String::from("and {count} more"),
         }
     }
 }
@@ -49,17 +55,9 @@ impl TextList {
         let mut page = PageLayout::new(resolution);
         let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
         if species.is_empty() {
-            page_frame::nothing_heard(&mut page, &body);
+            page_frame::nothing_heard(&mut page, &body, &options.empty);
         } else {
-            push_species(
-                &mut page.text,
-                species,
-                options.max_species,
-                body.margin,
-                body.width,
-                body.top,
-                body.bottom,
-            );
+            push_species(&mut page.text, species, options, &body);
         }
         page
     }
@@ -68,12 +66,12 @@ impl TextList {
 fn push_species(
     text: &mut Vec<TextBlock>,
     species: &[SpeciesSummary],
-    max_species: usize,
-    margin: i32,
-    width: i32,
-    list_top: i32,
-    list_bottom: i32,
+    options: &TextListOptions,
+    body: &Body,
 ) {
+    let (max_species, more): (usize, &str) = (options.max_species, &options.more);
+    let (margin, width, list_top, list_bottom): (i32, i32, i32, i32) =
+        (body.margin, body.width, body.top, body.bottom);
     let shown: usize = species.len().min(max_species.max(1));
     let hidden: usize = species.len() - shown;
     let lines: usize = shown + usize::from(hidden > 0);
@@ -131,7 +129,7 @@ fn push_species(
         let column: i32 = i32::try_from(shown / rows).unwrap_or(0);
         let line: i32 = i32::try_from(shown % rows).unwrap_or(0);
         text.push(TextBlock {
-            text: format!("and {hidden} more"),
+            text: more.replace("{count}", &hidden.to_string()),
             x: margin + column * (column_width + gutter),
             baseline_y: list_top + line * row_height + (size * 1.05) as i32,
             size_px: size * 0.8,

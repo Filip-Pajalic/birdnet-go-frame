@@ -1,0 +1,14 @@
+[package]
+name = "page-text"
+description = "The words printed on the page, in many languages, from a simple translations JSON. no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lite-json.workspace = true
+
+[lints]
+workspace = true

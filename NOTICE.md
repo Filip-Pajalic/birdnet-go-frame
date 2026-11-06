@@ -2,9 +2,15 @@
 
 ## fugleramme
 
-Parts of this project (the `/frame.e6` image format in `crates/frame-core`, the panel
-command sequence in `crates/panel-t133a01`, and ideas in `crates/frame-layout`) are derived from
-fugleramme: https://github.com/arnegiacomo/fugleramme
+Parts of this project are derived from fugleramme: https://github.com/arnegiacomo/fugleramme
+
+- the `/frame.e6` image format in `crates/frame-core`;
+- the collage in `crates/frame-layout` (`collage.rs`, `footprint.rs`, `spiral.rs`), ported from
+  `render/collage.py` and `render/packing.py`;
+- the paper-halo blending in `crates/art-webp/src/halo.rs`, from `render/paper.py`, and the
+  plate choice per day in `art_folder.rs`, from `names.py`;
+- the panel boost in `crates/frame-raster/src/pop.rs`, from `render/dither.py`;
+- the panel command sequence in `crates/panel-t133a01` (planned).
 
 Files containing ported code say so in their header comment.
 
@@ -34,7 +40,10 @@ SOFTWARE.
 
 ### fugleramme artwork
 
-Not distributed with this repository. When downloaded by `scripts/fetch-art.sh`, each style
+Not distributed with this repository, except one rendered example page,
+`docs/images/collage-classic.jpg`, which shows plates from the `classic` style and is shared
+under CC BY-SA 4.0 like them (sources: von Wright, *Svenska Fåglar*; John Gould, *The Birds of
+Europe* and others, as listed in the style's `ATTRIBUTION.md`). When downloaded by `scripts/fetch-art.sh`, each style
 folder keeps its own `ATTRIBUTION.md` and `manifest.json`, which link every cut-out to the
 plate it came from. The `classic` style is licensed under CC BY-SA 4.0
 (https://creativecommons.org/licenses/by-sa/4.0/).

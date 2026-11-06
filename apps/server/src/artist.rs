@@ -5,127 +5,220 @@ use std::collections::HashMap;
 use art_pack::{ArtImage, ArtSource};
 use bird_sizes::BirdSizes;
 use birdnet_model::SpeciesSummary;
-use frame_core::Resolution;
+use frame_core::{Resolution, Rgb};
 use frame_layout::{
-    Collage, CollageBird, CollageOptions, PageLayout, TextList, TextListOptions, size_weights,
+    Collage, CollageBird, CollageOptions, PageLayout, Silhouette, TextList, TextListOptions,
+    size_weights,
 };
 use frame_raster::{Canvas, Renderer};
+use page_text::PageText;
 
 use crate::config::Layout;
 
-/// What goes on a page besides the birds.
-pub struct Captions<'a> {
-    pub heading: &'a str,
-    pub footer: &'a str,
+/// How pages are set out, from the settings.
+pub struct PageStyle {
+    /// Which page to draw.
+    pub layout: Layout,
+    /// Most birds on a page; 0 for every bird heard.
+    pub max_birds: usize,
+    /// Whether the collage names its birds.
+    pub names: bool,
+    /// A heading to print; `None` for the collage's bare page and the list's translated one.
+    pub heading: Option<String>,
+    /// The page's words in the chosen language.
+    pub words: PageText,
 }
 
-/// Draws pages with one font, one source of pictures and one layout.
+/// A species' picture and its outline, worked out once a day.
+struct Picture {
+    art: ArtImage,
+    silhouette: Silhouette,
+}
+
+/// Draws pages with one font, one source of pictures and one style.
 pub struct Artist<A: ArtSource> {
     renderer: Renderer,
     art: A,
-    pictures: HashMap<String, ArtImage>,
+    pictures: HashMap<String, Option<Picture>>,
+    day: Option<i64>,
     sizes: BirdSizes<'static>,
-    layout: Layout,
-    max_birds: usize,
+    style: PageStyle,
 }
 
 impl<A: ArtSource> Artist<A> {
-    pub fn new(renderer: Renderer, art: A, layout: Layout, max_birds: usize) -> Self {
+    pub fn new(renderer: Renderer, art: A, style: PageStyle) -> Self {
         Self {
             renderer,
             art,
             pictures: HashMap::new(),
+            day: None,
             sizes: BirdSizes::bundled(),
-            layout,
-            max_birds,
+            style,
         }
     }
 
-    /// Draws `species` (most heard first) on a page of `resolution`.
+    /// Returns the paper pages are drawn on.
+    pub fn paper(&self) -> Rgb {
+        self.renderer.paper()
+    }
+
+    /// Returns the page's words.
+    pub fn words(&self) -> &PageText {
+        &self.style.words
+    }
+
+    /// Starts day `day` (days since 1970): art sources may pick another plate for a species,
+    /// so cached pictures are forgotten.
+    pub fn start_day(&mut self, day: i64) {
+        if self.day != Some(day) {
+            self.pictures.clear();
+            self.day = Some(day);
+        }
+    }
+
+    /// Draws `species` (most heard first) on a page of `resolution`. `footer` goes under the
+    /// list page; the collage, like fugleramme's, is birds only.
     pub fn draw(
         &mut self,
         species: &[SpeciesSummary],
-        captions: &Captions<'_>,
+        footer: &str,
         resolution: Resolution,
     ) -> Canvas {
-        match self.layout {
-            Layout::List => self.draw_list(species, captions, resolution),
-            Layout::Collage => self.draw_collage(species, captions, resolution),
+        let shown: &[SpeciesSummary] = match self.style.max_birds {
+            0 => species,
+            limit => &species[..species.len().min(limit)],
+        };
+        match self.style.layout {
+            Layout::List => {
+                let heading: String = self
+                    .style
+                    .heading
+                    .clone()
+                    .unwrap_or_else(|| self.style.words.heading.clone());
+                self.draw_list(species, &heading, footer, resolution)
+            }
+            Layout::Collage => self.draw_collage(shown, resolution),
         }
     }
 
-    /// Draws a page of text only, e.g. to say BirdNET-Go cannot be reached.
-    pub fn draw_list(
+    /// Draws the page saying BirdNET-Go cannot be reached, with `problem` underneath.
+    pub fn draw_unreachable(&self, problem: &str, resolution: Resolution) -> Canvas {
+        let heading: String = self.style.words.unreachable.clone();
+        self.draw_list(&[], &heading, problem, resolution)
+    }
+
+    fn draw_list(
         &self,
         species: &[SpeciesSummary],
-        captions: &Captions<'_>,
+        heading: &str,
+        footer: &str,
         resolution: Resolution,
     ) -> Canvas {
         let options = TextListOptions {
-            heading: captions.heading.to_owned(),
-            footer: captions.footer.to_owned(),
-            max_species: self.max_birds.max(24),
+            heading: heading.to_owned(),
+            footer: footer.to_owned(),
+            max_species: match self.style.max_birds {
+                0 => 24,
+                limit => limit.max(24),
+            },
+            empty: self.style.words.nothing_heard.clone(),
+            more: self.style.words.more.clone(),
         };
         let layout: PageLayout = TextList::layout(species, resolution, &options);
         self.renderer.render(&layout, &[])
     }
 
-    fn draw_collage(
-        &mut self,
-        species: &[SpeciesSummary],
-        captions: &Captions<'_>,
-        resolution: Resolution,
-    ) -> Canvas {
-        let shown: usize = species.len().min(self.max_birds.max(1));
-        let art: Vec<ArtImage> = species[..shown]
+    fn draw_collage(&mut self, species: &[SpeciesSummary], resolution: Resolution) -> Canvas {
+        for row in species {
+            self.ensure_picture(&row.scientific_name.to_string());
+        }
+        // Species without a picture are left off: with names under the birds, there is nothing
+        // to draw for them.
+        let pictured: Vec<(&SpeciesSummary, &Picture)> = species
             .iter()
-            .map(|row| self.picture(&row.scientific_name.to_string()))
-            .collect();
-        let masses: Vec<f32> = species[..shown]
-            .iter()
-            .map(|row| self.sizes.mass_grams(&row.scientific_name.to_string()))
-            .collect();
-        let weights: Vec<f32> = size_weights(&masses);
-        let birds: Vec<CollageBird> = species
-            .iter()
-            .enumerate()
-            .map(|(index, row)| CollageBird {
-                label: if row.common_name.is_empty() {
-                    row.scientific_name.to_string()
-                } else {
-                    row.common_name.clone()
-                },
-                weight: weights.get(index).copied().unwrap_or(1.0),
-                aspect_ratio: art.get(index).map_or(1.0, ArtImage::aspect_ratio),
+            .filter_map(|row| {
+                let picture: &Picture = self
+                    .pictures
+                    .get(&row.scientific_name.to_string())?
+                    .as_ref()?;
+                Some((row, picture))
             })
             .collect();
+        let masses: Vec<f32> = pictured
+            .iter()
+            .map(|(row, _)| self.sizes.mass_grams(&row.scientific_name.to_string()))
+            .collect();
+        let weights: Vec<f32> = size_weights(&masses);
+        let mut art: Vec<ArtImage> = Vec::with_capacity(pictured.len());
+        let mut birds: Vec<CollageBird> = Vec::with_capacity(pictured.len());
+        for ((row, picture), weight) in pictured.into_iter().zip(weights) {
+            let name: String = row.scientific_name.to_string();
+            let label: String = if row.common_name.is_empty() {
+                name.clone()
+            } else {
+                row.common_name.clone()
+            };
+            birds.push(CollageBird {
+                label_width_em: self.renderer.measure(&label, 1.0),
+                label,
+                weight,
+                span_ratio: picture.art.span_ratio(),
+                silhouette: picture.silhouette.clone(),
+                mirrored: mirrored(&name),
+            });
+            art.push(picture.art.clone());
+        }
         let options = CollageOptions {
-            heading: captions.heading.to_owned(),
-            footer: captions.footer.to_owned(),
-            max_birds: shown,
+            heading: self.style.heading.clone().unwrap_or_default(),
+            empty: self.style.words.nothing_heard.clone(),
+            names: self.style.names,
+            ..CollageOptions::default()
         };
         let layout: PageLayout = Collage::layout(&birds, resolution, &options);
         self.renderer.render(&layout, &art)
     }
 
-    /// Returns the species' picture, from the cache or the art source. Species without one
-    /// get a blank picture, which draws nothing but keeps their name on the page.
-    fn picture(&mut self, scientific_name: &str) -> ArtImage {
-        if let Some(picture) = self.pictures.get(scientific_name) {
-            return picture.clone();
+    /// Fetches the species' picture into the cache, if it is not there yet.
+    fn ensure_picture(&mut self, scientific_name: &str) {
+        if self.pictures.contains_key(scientific_name) {
+            return;
         }
-        let picture: ArtImage = self.art.art_for(scientific_name).unwrap_or_else(blank);
-        self.pictures
-            .insert(scientific_name.to_owned(), picture.clone());
-        picture
+        let picture: Option<Picture> = self.art.art_for(scientific_name).and_then(|art| {
+            let alpha: Vec<u8> = art.pixels().iter().map(|pixel| pixel.alpha).collect();
+            let silhouette: Silhouette = Silhouette::new(art.resolution(), &alpha)?;
+            Some(Picture { art, silhouette })
+        });
+        self.pictures.insert(scientific_name.to_owned(), picture);
     }
 }
 
-#[expect(
-    clippy::expect_used,
-    reason = "cannot fail: one pixel for a 1x1 picture"
-)]
-fn blank() -> ArtImage {
-    ArtImage::new(Resolution::new(1, 1), vec![art_pack::Rgba::TRANSPARENT])
-        .expect("one pixel for a 1x1 picture")
+/// Whether to draw a species mirrored: decided by its name alone, for variety that does not
+/// change whenever another bird arrives. FNV-1a, stable across runs.
+fn mirrored(scientific_name: &str) -> bool {
+    let hash: u64 = scientific_name
+        .bytes()
+        .fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+            (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
+        });
+    hash & 0x80 == 0
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn mirroring_is_stable_and_mixed() {
+        let names: [&str; 6] = [
+            "Parus major",
+            "Erithacus rubecula",
+            "Pica pica",
+            "Turdus merula",
+            "Columba palumbus",
+            "Passer domesticus",
+        ];
+        let flipped: usize = names.iter().filter(|name| mirrored(name)).count();
+        assert!(flipped > 0 && flipped < names.len());
+        assert_eq!(mirrored("Parus major"), mirrored("Parus major"));
+    }
 }

@@ -11,16 +11,19 @@ mod poller;
 
 use std::process::ExitCode;
 use std::sync::Arc;
-use std::thread;
+use std::{fs, thread};
 
 use art_mock::MockArt;
+use art_pack::ArtSource;
+use art_webp::ArtFolder;
 use birdnet_client::BirdnetClient;
 use birdnet_mock::MockTransport;
 use frame_http::{FrameServer, PageStore};
 use frame_raster::Renderer;
+use page_text::{PageText, Translations};
 use transport_lan::LanTransport;
 
-use crate::artist::Artist;
+use crate::artist::{Artist, PageStyle};
 use crate::config::{Config, Source};
 
 /// The face species names are set in: EB Garamond Italic, SIL OFL 1.1 (see assets/fonts).
@@ -57,14 +60,43 @@ fn main() -> ExitCode {
         config.listen, config.source
     );
 
+    let art: Box<dyn ArtSource + Send> = match &config.art_dir {
+        Some(folder) => match ArtFolder::open(folder) {
+            Ok(art) => {
+                eprintln!(
+                    "birdnet-go-frame: {} plates in {}",
+                    art.len(),
+                    folder.display()
+                );
+                Box::new(art.with_paper(renderer.paper()))
+            }
+            Err(error) => {
+                eprintln!(
+                    "birdnet-go-frame: cannot read art in {}: {error}",
+                    folder.display()
+                );
+                return ExitCode::FAILURE;
+            }
+        },
+        // Generated birds, so the server works with nothing else installed.
+        None => Box::new(MockArt::default()),
+    };
+    let words: PageText = match page_words(&config) {
+        Ok(words) => words,
+        Err(error) => {
+            eprintln!("birdnet-go-frame: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let style = PageStyle {
+        layout: config.layout,
+        max_birds: config.max_birds,
+        names: config.names,
+        heading: config.heading.clone(),
+        words,
+    };
     let poller_store: Arc<PageStore> = Arc::clone(&store);
-    // Generated pictures until real art is supported; see docs/explanation/image-pipeline.md.
-    let mut artist = Artist::new(
-        renderer,
-        MockArt::default(),
-        config.layout,
-        config.max_birds,
-    );
+    let mut artist = Artist::new(renderer, art, style);
     thread::spawn(move || match config.source.clone() {
         Source::Live(url) => {
             let client = BirdnetClient::new(&url, LanTransport::default());
@@ -80,4 +112,18 @@ fn main() -> ExitCode {
 
     server.run();
     ExitCode::SUCCESS
+}
+
+/// Returns the page's words in the configured language, from the bundled translations and any
+/// file named by `TRANSLATIONS`.
+fn page_words(config: &Config) -> Result<PageText, String> {
+    let mut translations: Translations = Translations::bundled();
+    if let Some(path) = &config.translations {
+        let bytes: Vec<u8> =
+            fs::read(path).map_err(|error| format!("TRANSLATIONS: {}: {error}", path.display()))?;
+        let extra: Translations = Translations::parse(&bytes)
+            .map_err(|error| format!("TRANSLATIONS: {}: {error}", path.display()))?;
+        translations.merge(extra);
+    }
+    Ok(translations.page_text(&config.language))
 }

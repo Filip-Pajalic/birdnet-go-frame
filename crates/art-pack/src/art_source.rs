@@ -8,3 +8,9 @@ pub trait ArtSource {
     /// without regard to case), or `None` when there is none.
     fn art_for(&mut self, scientific_name: &str) -> Option<ArtImage>;
 }
+
+impl<T: ArtSource + ?Sized> ArtSource for alloc::boxed::Box<T> {
+    fn art_for(&mut self, scientific_name: &str) -> Option<ArtImage> {
+        (**self).art_for(scientific_name)
+    }
+}

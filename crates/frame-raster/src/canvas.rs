@@ -22,6 +22,12 @@ impl Canvas {
         }
     }
 
+    /// Wraps pixels already drawn; `pixels` must hold one colour per pixel of `resolution`.
+    pub(crate) fn from_pixels(resolution: Resolution, pixels: Vec<Rgb>) -> Self {
+        debug_assert_eq!(pixels.len(), resolution.area());
+        Self { resolution, pixels }
+    }
+
     /// Returns the canvas size.
     #[must_use]
     pub fn resolution(&self) -> Resolution {

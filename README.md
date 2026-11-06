@@ -5,14 +5,17 @@ Rust server reads your BirdNET-Go API and renders the birds heard in your garden
 then shows the result on a 13.3" six-colour e-ink panel and runs on battery for months.
 
 > **Status:** early development. The server runs and serves the illustrated collage (or a text
-> list) that the panel can show. Until real art is supported the birds are generated pictures,
-> so it works out of the box. The Rust ESP32 firmware comes next; until then, fugleramme's
-> MicroPython EE02 firmware can show this server's `/frame.e6`.
+> list) that the panel can show, drawn with fugleramme's 1800s plates when you fetch them, or
+> with generated birds out of the box. The Rust ESP32 firmware comes next; until then,
+> fugleramme's MicroPython EE02 firmware can show this server's `/frame.e6`.
 
-![The collage, drawn from the built-in simulated garden](docs/images/collage-mock.png)
+![The collage with fugleramme's classic plates](docs/images/collage-classic.jpg)
 
-*The page as it hangs, from `BIRDNET_URL=mock`. Heavier birds are drawn bigger; the panel shows
-it dithered to its six inks.*
+*The page as it hangs, from the simulated garden with `ART_DIR` set to fugleramme's `classic`
+style. Birds are packed by their outlines outwards from the middle, heavier birds bigger, as
+fugleramme does. Artwork: 1800s plates curated and edited by
+[fugleramme](https://github.com/arnegiacomo/fugleramme), CC BY-SA 4.0 (sources in each style's
+`ATTRIBUTION.md`).*
 
 ## Quick start (no BirdNET-Go needed)
 
@@ -21,8 +24,15 @@ BIRDNET_URL=mock cargo run --release -p server
 # open http://localhost:8080/
 ```
 
-`BIRDNET_URL=mock` uses the built-in simulated station: a garden of 18 European species with a
-dawn chorus, deterministic for a given time. To test over real HTTP instead, run the fake
+`BIRDNET_URL=mock` uses the built-in simulated station: a garden of 35 European species with a
+dawn chorus, deterministic for a given time. Without artwork the birds are generated pictures
+([example](docs/images/collage-mock.png)). For the real plates, fetch fugleramme's art once
+(about 250 MB, never committed here) and point `ART_DIR` at it:
+
+```bash
+scripts/fetch-art.sh                     # downloads art/classic
+BIRDNET_URL=mock ART_DIR=art/classic LANGUAGE=sv cargo run --release -p server
+``` To test over real HTTP instead, run the fake
 BirdNET-Go and point the server at it:
 
 ```bash
@@ -95,23 +105,27 @@ driving the panel, or on the ESP32 itself.
 | Path | What | State |
 | --- | --- | --- |
 | `crates/frame-core` | `no_std`: E6 image format, inks, panel geometry, CRC-32 | Done; byte-compatible with fugleramme |
-| `crates/birdnet-model` | `no_std` + `alloc`: BirdNET-Go response types and a small JSON reader | Done |
+| `crates/lite-json` | `no_std` + `alloc`: a small JSON reader, in place of serde | Done |
+| `crates/birdnet-model` | `no_std` + `alloc`: BirdNET-Go response types | Done |
 | `crates/birdnet-client` | `no_std` + `alloc`: API client, generic over an `HttpTransport` | Done (no private-mode login yet) |
 | `crates/birdnet-mock` | `no_std` + `alloc`: simulated BirdNET-Go and an in-process transport | Done |
 | `crates/lan-http` | Plain HTTP/1.1 GET client and small server (std only) | Done |
 | `crates/transport-lan` | `HttpTransport` for Linux, macOS and Windows | Done |
 | `crates/art-pack` | `no_std` + `alloc`: bird cut-outs, the `.artp` format, the `ArtSource` trait | Done |
 | `crates/art-mock` | `no_std` + `alloc`: generated bird pictures for any species | Done |
+| `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered | Done |
+| `crates/page-text` | `no_std` + `alloc`: the page's words in a dozen languages, from a translations JSON | Done |
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
-| `crates/frame-layout` | `no_std` + `alloc`: what goes where on the page | Collage and text list done |
-| `crates/frame-raster` | `no_std` + `alloc`: draws pictures and text, dithers to six inks | Done |
+| `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline | Collage and text list done |
+| `crates/frame-raster` | `no_std` + `alloc`: draws pictures and text, boosts and dithers to six inks | Done |
 | `crates/frame-http` | Serves `/frame.e6`, `/frame.png`, `/preview.png`; writes PNGs | Done |
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
-| `crates/transport-esp`, `crates/panel-t133a01`, `tools/art-packer` | ESP32 networking, panel driver, real art | Planned |
+| `crates/transport-esp`, `crates/panel-t133a01`, `tools/art-packer` | ESP32 networking, panel driver, art on an SD card | Planned |
 | `apps/ee02-thin`, `apps/ee02-standalone`, `apps/linux-panel` | ESP32 and Pi firmware | Planned |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
 | `deploy/` | Dockerfile | |
+| `scripts/fetch-art.sh` | Downloads a fugleramme art style for `ART_DIR` | |
 | `.github/` | CI, release and container workflows, Dependabot, issue and PR templates | |
 
 ## Configuration
@@ -127,19 +141,30 @@ The server is configured with environment variables:
 | `WINDOW_HOURS` | `24` | How far back detections count |
 | `UTC_OFFSET_MINUTES` | `0` | Your time zone, for the date range and the "Updated" time |
 | `REFRESH_SECONDS` | `60` | How often the server asks BirdNET-Go for news |
-| `HEADING` | `Heard in the garden` | Page heading |
-| `LAYOUT` | `collage` | `collage` (pictures, sized by body mass) or `list` (names and counts) |
-| `MAX_BIRDS` | `15` | Most birds pictured; the rest are counted in one line |
+| `ART_DIR` | unset | fugleramme art style folder, e.g. `art/classic`; unset draws generated birds |
+| `LAYOUT` | `collage` | `collage` (pictures packed by outline, sized by body mass) or `list` (names and counts) |
+| `MAX_BIRDS` | `0` | Most birds on a page; `0` for every bird heard |
+| `NAMES` | `true` | Whether the collage writes each bird's name under it |
+| `HEADING` | unset | A heading over the page; the collage has none by default, like fugleramme |
+| `LANGUAGE` | `en` | Language of the page's own words, e.g. `sv`, `nb`, `de` (bird names come from BirdNET-Go) |
+| `TRANSLATIONS` | unset | A translations JSON adding languages or overriding words |
 
-The page is redrawn only when the set of species changes, so most panel wakes get a 304.
+The page is redrawn only when the set of species changes (or a new day picks other plates), so
+most panel wakes get a 304. Details, and the translations format, are in
+[docs/reference/configuration.md](docs/reference/configuration.md).
 
 ## Install
 
 **Docker / Unraid.** Images for amd64 and arm64 are published to GitHub Container Registry:
 
 ```bash
-docker run -p 8080:8080 -e BIRDNET_URL=http://192.168.1.10:8080 ghcr.io/filip-pajalic/birdnet-go-frame:edge
+docker run -p 8080:8080 -e BIRDNET_URL=http://192.168.1.10:8080 \
+  -v /mnt/user/appdata/birdnet-go-frame/art:/art:ro -e ART_DIR=/art/classic \
+  ghcr.io/filip-pajalic/birdnet-go-frame:edge
 ```
+
+Fill the art folder once with `scripts/fetch-art.sh classic /mnt/user/appdata/birdnet-go-frame/art`
+(or leave out the two art lines for generated birds).
 
 `:edge` follows `main`; version tags (`:0.2.0`, `:0.2`) appear with releases. The image is
 `FROM scratch` with one static binary of about 1.5 MB and runs as an unprivileged user. To build
@@ -151,9 +176,9 @@ Apple silicon) and Windows, with `SHA256SUMS.txt`.
 
 ## Dependencies
 
-The server uses **eight third-party crates**, all of them the font rasteriser `fontdue` and its
-own dependencies. JSON parsing, HTTP and PNG encoding are small, tested modules in this
-repository. Why, and the rules for adding one: [docs/explanation/dependencies.md](docs/explanation/dependencies.md).
+The server uses **eleven third-party crates**: the font rasteriser `fontdue` with its own
+dependencies, and the webp decoder `image-webp` with its two. JSON parsing, HTTP and PNG encoding
+are small, tested modules in this repository. Why, and the rules for adding one: [docs/explanation/dependencies.md](docs/explanation/dependencies.md).
 `cargo deny` checks licences, advisories and duplicates in CI.
 
 ## Development
@@ -183,8 +208,10 @@ Formatting and the lints it names are enforced in CI (see `rustfmt.toml` and the
 ## Credits
 
 - **[fugleramme](https://github.com/arnegiacomo/fugleramme)** by Arne Giacomo Munthe-Kaas: the
-  concept, the `/frame.e6` format, the EE02 panel driving sequence and the curated 1800s bird
-  artwork. Code under the MIT License; artwork under CC BY-SA 4.0.
+  concept, the `/frame.e6` format, the EE02 panel driving sequence, the collage (spiral packing
+  by outline, names tucked under each bird, mass-based sizing), the paper-halo blending and
+  panel boost, and the curated 1800s bird artwork this server draws. Code under the MIT License;
+  artwork under CC BY-SA 4.0. Credit appears here and in `NOTICE.md`, never on the page itself.
 - **[BirdNET-Go](https://github.com/tphakala/birdnet-go)** by tphakala and contributors:
   the bird detection this frame displays. The BirdNET model is by the Cornell Lab of Ornithology
   and Chemnitz University of Technology. Taxonomy data is powered by eBird.org.

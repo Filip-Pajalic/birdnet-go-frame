@@ -12,6 +12,7 @@ art-pack.workspace = true
 fontdue.workspace = true
 frame-core.workspace = true
 frame-layout.workspace = true
+libm.workspace = true
 
 [lints]
 workspace = true

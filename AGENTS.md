@@ -19,10 +19,11 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
 - `crates/` holds libraries only. `apps/` holds thin binaries that wire libraries together and
   read configuration; no logic belongs there that a library could own.
 - Libraries are `no_std` + `alloc` unless their job needs an OS (`lan-http`, `transport-lan`,
-  `frame-http`). Keep it that way: the same code must compile for the ESP32, and CI builds those
+  `frame-http`, `art-webp`). Keep it that way: the same code must compile for the ESP32, and CI builds those
   crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
-  `birdnet-client`, `birdnet-mock`, `art-pack`, `art-mock`, `bird-sizes`, `frame-layout` or
-  `frame-raster`.
+  `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `art-mock`, `bird-sizes`,
+  `page-text`, `frame-layout` or `frame-raster`. `art-webp` is `std` (it reads folders) and is the
+  only crate that decodes images.
 - Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`, later
   `embedded-hal`),
   not `cfg` branches inside libraries. Prefer generics over `dyn`.
@@ -71,7 +72,9 @@ often get wrong:
 ## Testing
 
 - Use `birdnet-mock` (`MockTransport` with a fixed clock) instead of network calls in tests, and
-  `art-mock` instead of image files.
+  `art-mock` instead of image files. Never commit fugleramme's artwork (CC BY-SA, ~250 MB):
+  `scripts/fetch-art.sh` downloads it into the git-ignored `art/` folder, and credit for it lives
+  in README and NOTICE only, never on the rendered page.
 - Add a JSON fixture under `crates/birdnet-model/tests/fixtures/` when BirdNET-Go sends a shape
   the parser mishandles.
 - `crates/frame-core/tests/e6_golden.rs` guards byte compatibility with fugleramme. Never update

@@ -21,22 +21,25 @@ pub(crate) struct Body {
     pub(crate) footer_size: f32,
 }
 
-/// Adds the heading and footer to `page` and returns the space left between them.
+/// Adds the heading and footer to `page` and returns the space left between them. An empty
+/// heading or footer is left out and its space given to the body.
 pub(crate) fn frame(page: &mut PageLayout, heading: &str, footer: &str) -> Body {
     let width: i32 = i32::try_from(page.resolution.width).unwrap_or(i32::MAX);
     let height: i32 = i32::try_from(page.resolution.height).unwrap_or(i32::MAX);
     let margin: i32 = width.min(height) / 16;
     let heading_size: f32 = (height as f32 / 12.0).clamp(32.0, 120.0);
     let footer_size: f32 = (heading_size * 0.3).max(16.0);
-    page.text.push(TextBlock {
-        text: String::from(heading),
-        x: width / 2,
-        baseline_y: margin + heading_size as i32,
-        size_px: heading_size,
-        max_width: Some(width - 2 * margin),
-        align: Align::Centre,
-        style: TextStyle::Heading,
-    });
+    if !heading.is_empty() {
+        page.text.push(TextBlock {
+            text: String::from(heading),
+            x: width / 2,
+            baseline_y: margin + heading_size as i32,
+            size_px: heading_size,
+            max_width: Some(width - 2 * margin),
+            align: Align::Centre,
+            style: TextStyle::Heading,
+        });
+    }
     if !footer.is_empty() {
         page.text.push(TextBlock {
             text: String::from(footer),
@@ -51,17 +54,25 @@ pub(crate) fn frame(page: &mut PageLayout, heading: &str, footer: &str) -> Body 
     Body {
         margin,
         width,
-        top: margin + (heading_size * 1.8) as i32,
-        bottom: height - margin - (footer_size * 1.5) as i32,
+        top: if heading.is_empty() {
+            margin
+        } else {
+            margin + (heading_size * 1.8) as i32
+        },
+        bottom: if footer.is_empty() {
+            height - margin
+        } else {
+            height - margin - (footer_size * 1.5) as i32
+        },
         heading_size,
         footer_size,
     }
 }
 
-/// Adds the line shown when nothing has been heard.
-pub(crate) fn nothing_heard(page: &mut PageLayout, body: &Body) {
+/// Adds `message`, the line shown when nothing has been heard.
+pub(crate) fn nothing_heard(page: &mut PageLayout, body: &Body, message: &str) {
     page.text.push(TextBlock {
-        text: String::from("No birds heard yet"),
+        text: String::from(message),
         x: body.width / 2,
         baseline_y: (body.top + body.bottom) / 2,
         size_px: body.heading_size * 0.6,

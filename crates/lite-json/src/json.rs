@@ -1,31 +1,38 @@
-//! A small JSON reader, enough for BirdNET-Go's responses.
-//!
-//! Replaces serde and serde_json (and the proc-macro crates they bring) with about two hundred
-//! lines. It builds a tree, which is fine for responses of a few hundred kilobytes.
+//! The JSON tree and its reader.
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::parse_error::ParseError;
+use crate::json_error::JsonError;
 
 /// Deepest nesting accepted, so a hostile body cannot exhaust the stack.
 const MAX_DEPTH: usize = 64;
 
 /// A JSON value.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Json {
+pub enum Json {
+    /// `null`.
     Null,
+    /// `true` or `false`.
     Bool(bool),
+    /// Any number, as a double.
     Number(f64),
+    /// A string, with escapes decoded.
     String(String),
+    /// An array.
     Array(Vec<Json>),
-    /// Members in document order.
+    /// An object's members in document order.
     Object(Vec<(String, Json)>),
 }
 
 impl Json {
-    /// Parses a whole document.
-    pub(crate) fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
+    /// Parses a whole document. Nesting deeper than 64 levels is refused, so a hostile document
+    /// cannot exhaust the stack.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`JsonError`] when the bytes are not one valid JSON value.
+    pub fn parse(bytes: &[u8]) -> Result<Self, JsonError> {
         let mut reader = Reader { bytes, at: 0 };
         let value: Self = reader.value(0)?;
         reader.skip_space();
@@ -36,7 +43,8 @@ impl Json {
     }
 
     /// Returns the member named `key` of an object.
-    pub(crate) fn get(&self, key: &str) -> Option<&Self> {
+    #[must_use]
+    pub fn get(&self, key: &str) -> Option<&Self> {
         match self {
             Self::Object(members) => members
                 .iter()
@@ -47,7 +55,8 @@ impl Json {
     }
 
     /// Returns the member named `key` if it is a string.
-    pub(crate) fn str(&self, key: &str) -> Option<&str> {
+    #[must_use]
+    pub fn str(&self, key: &str) -> Option<&str> {
         match self.get(key) {
             Some(Self::String(text)) => Some(text),
             _ => None,
@@ -55,9 +64,34 @@ impl Json {
     }
 
     /// Returns the member named `key` if it is a number.
-    pub(crate) fn number(&self, key: &str) -> Option<f64> {
-        match self.get(key) {
-            Some(Self::Number(number)) => Some(*number),
+    #[must_use]
+    pub fn number(&self, key: &str) -> Option<f64> {
+        self.get(key).and_then(Self::as_number)
+    }
+
+    /// Returns the value if it is a number.
+    #[must_use]
+    pub fn as_number(&self) -> Option<f64> {
+        match self {
+            Self::Number(number) => Some(*number),
+            _ => None,
+        }
+    }
+
+    /// Returns the items if the value is an array.
+    #[must_use]
+    pub fn as_array(&self) -> Option<&[Json]> {
+        match self {
+            Self::Array(items) => Some(items),
+            _ => None,
+        }
+    }
+
+    /// Returns the members if the value is an object.
+    #[must_use]
+    pub fn as_object(&self) -> Option<&[(String, Json)]> {
+        match self {
+            Self::Object(members) => Some(members),
             _ => None,
         }
     }
@@ -69,8 +103,8 @@ struct Reader<'a> {
 }
 
 impl Reader<'_> {
-    fn error(&self, problem: &'static str) -> ParseError {
-        ParseError::new(problem, self.at)
+    fn error(&self, problem: &'static str) -> JsonError {
+        JsonError::new(problem, self.at)
     }
 
     fn peek(&self) -> Option<u8> {
@@ -83,7 +117,7 @@ impl Reader<'_> {
         }
     }
 
-    fn expect(&mut self, byte: u8, problem: &'static str) -> Result<(), ParseError> {
+    fn expect(&mut self, byte: u8, problem: &'static str) -> Result<(), JsonError> {
         self.skip_space();
         if self.peek() == Some(byte) {
             self.at += 1;
@@ -93,7 +127,7 @@ impl Reader<'_> {
         }
     }
 
-    fn value(&mut self, depth: usize) -> Result<Json, ParseError> {
+    fn value(&mut self, depth: usize) -> Result<Json, JsonError> {
         if depth > MAX_DEPTH {
             return Err(self.error("nested too deeply"));
         }
@@ -111,7 +145,7 @@ impl Reader<'_> {
         }
     }
 
-    fn word(&mut self, word: &[u8], value: Json) -> Result<Json, ParseError> {
+    fn word(&mut self, word: &[u8], value: Json) -> Result<Json, JsonError> {
         if self.bytes.get(self.at..self.at + word.len()) == Some(word) {
             self.at += word.len();
             Ok(value)
@@ -120,7 +154,7 @@ impl Reader<'_> {
         }
     }
 
-    fn object(&mut self, depth: usize) -> Result<Json, ParseError> {
+    fn object(&mut self, depth: usize) -> Result<Json, JsonError> {
         self.at += 1;
         let mut members: Vec<(String, Json)> = Vec::new();
         self.skip_space();
@@ -149,7 +183,7 @@ impl Reader<'_> {
         }
     }
 
-    fn array(&mut self, depth: usize) -> Result<Json, ParseError> {
+    fn array(&mut self, depth: usize) -> Result<Json, JsonError> {
         self.at += 1;
         let mut items: Vec<Json> = Vec::new();
         self.skip_space();
@@ -171,7 +205,7 @@ impl Reader<'_> {
         }
     }
 
-    fn number(&mut self) -> Result<Json, ParseError> {
+    fn number(&mut self) -> Result<Json, JsonError> {
         let start: usize = self.at;
         while matches!(
             self.peek(),
@@ -183,10 +217,10 @@ impl Reader<'_> {
             .ok()
             .and_then(|text| text.parse::<f64>().ok())
             .map(Json::Number)
-            .ok_or_else(|| ParseError::new("malformed number", start))
+            .ok_or_else(|| JsonError::new("malformed number", start))
     }
 
-    fn string(&mut self) -> Result<String, ParseError> {
+    fn string(&mut self) -> Result<String, JsonError> {
         self.at += 1;
         let mut text: Vec<u8> = Vec::new();
         loop {
@@ -204,7 +238,7 @@ impl Reader<'_> {
         String::from_utf8(text).map_err(|_| self.error("string is not UTF-8"))
     }
 
-    fn escape(&mut self, text: &mut Vec<u8>) -> Result<(), ParseError> {
+    fn escape(&mut self, text: &mut Vec<u8>) -> Result<(), JsonError> {
         let Some(byte) = self.peek() else {
             return Err(self.error("unterminated string"));
         };
@@ -246,7 +280,7 @@ impl Reader<'_> {
         Ok(())
     }
 
-    fn hex4(&mut self) -> Result<u32, ParseError> {
+    fn hex4(&mut self) -> Result<u32, JsonError> {
         let digits: &[u8] = self
             .bytes
             .get(self.at..self.at + 4)

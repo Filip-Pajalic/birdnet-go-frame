@@ -10,8 +10,9 @@ pub(crate) struct Resident {
     pub(crate) presence_percent: u32,
 }
 
-/// Common garden birds of northern Europe.
-pub(crate) const RESIDENTS: [Resident; 18] = [
+/// Common garden birds of northern Europe: residents first, then visitors that turn up on
+/// some days only, so a day's page holds anything from a dozen to thirty-odd species.
+pub(crate) const RESIDENTS: [Resident; 35] = [
     Resident {
         scientific_name: "Parus major",
         common_name: "Great Tit",
@@ -119,6 +120,108 @@ pub(crate) const RESIDENTS: [Resident; 18] = [
         common_name: "Goldcrest",
         peak_per_hour: 4,
         presence_percent: 35,
+    },
+    Resident {
+        scientific_name: "Spinus spinus",
+        common_name: "Eurasian Siskin",
+        peak_per_hour: 12,
+        presence_percent: 45,
+    },
+    Resident {
+        scientific_name: "Turdus pilaris",
+        common_name: "Fieldfare",
+        peak_per_hour: 9,
+        presence_percent: 40,
+    },
+    Resident {
+        scientific_name: "Turdus viscivorus",
+        common_name: "Mistle Thrush",
+        peak_per_hour: 6,
+        presence_percent: 45,
+    },
+    Resident {
+        scientific_name: "Turdus iliacus",
+        common_name: "Redwing",
+        peak_per_hour: 8,
+        presence_percent: 35,
+    },
+    Resident {
+        scientific_name: "Periparus ater",
+        common_name: "Coal Tit",
+        peak_per_hour: 14,
+        presence_percent: 60,
+    },
+    Resident {
+        scientific_name: "Certhia familiaris",
+        common_name: "Eurasian Treecreeper",
+        peak_per_hour: 6,
+        presence_percent: 50,
+    },
+    Resident {
+        scientific_name: "Passer montanus",
+        common_name: "Eurasian Tree Sparrow",
+        peak_per_hour: 15,
+        presence_percent: 50,
+    },
+    Resident {
+        scientific_name: "Coloeus monedula",
+        common_name: "Western Jackdaw",
+        peak_per_hour: 10,
+        presence_percent: 60,
+    },
+    Resident {
+        scientific_name: "Motacilla alba",
+        common_name: "White Wagtail",
+        peak_per_hour: 7,
+        presence_percent: 45,
+    },
+    Resident {
+        scientific_name: "Sturnus vulgaris",
+        common_name: "Common Starling",
+        peak_per_hour: 18,
+        presence_percent: 60,
+    },
+    Resident {
+        scientific_name: "Strix aluco",
+        common_name: "Tawny Owl",
+        peak_per_hour: 3,
+        presence_percent: 40,
+    },
+    Resident {
+        scientific_name: "Garrulus glandarius",
+        common_name: "Eurasian Jay",
+        peak_per_hour: 5,
+        presence_percent: 55,
+    },
+    Resident {
+        scientific_name: "Coccothraustes coccothraustes",
+        common_name: "Hawfinch",
+        peak_per_hour: 4,
+        presence_percent: 30,
+    },
+    Resident {
+        scientific_name: "Poecile palustris",
+        common_name: "Marsh Tit",
+        peak_per_hour: 8,
+        presence_percent: 45,
+    },
+    Resident {
+        scientific_name: "Muscicapa striata",
+        common_name: "Spotted Flycatcher",
+        peak_per_hour: 6,
+        presence_percent: 35,
+    },
+    Resident {
+        scientific_name: "Phylloscopus trochilus",
+        common_name: "Willow Warbler",
+        peak_per_hour: 14,
+        presence_percent: 45,
+    },
+    Resident {
+        scientific_name: "Fringilla montifringilla",
+        common_name: "Brambling",
+        peak_per_hour: 8,
+        presence_percent: 30,
     },
 ];
 

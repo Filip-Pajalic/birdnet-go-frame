@@ -2,6 +2,8 @@
 
 use core::fmt;
 
+use lite_json::JsonError;
+
 /// A response body could not be read as the expected JSON.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[must_use]
@@ -25,6 +27,12 @@ impl ParseError {
     #[must_use]
     pub fn offset(&self) -> usize {
         self.offset
+    }
+}
+
+impl From<JsonError> for ParseError {
+    fn from(error: JsonError) -> Self {
+        Self::new(error.problem(), error.offset())
     }
 }
 

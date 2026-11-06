@@ -18,6 +18,9 @@ flowchart BT
     transport[transport-lan]
     artpack[art-pack<br/>no_std]
     artmock[art-mock<br/>no_std]
+    artwebp[art-webp]
+    json[lite-json<br/>no_std]
+    words[page-text<br/>no_std]
     sizes[bird-sizes<br/>no_std]
     layout[frame-layout<br/>no_std]
     raster[frame-raster<br/>no_std]
@@ -37,8 +40,14 @@ flowchart BT
     http --> core
     http --> lan
     artmock --> artpack
+    artwebp --> artpack
+    artwebp --> json
+    model --> json
+    words --> json
     raster --> artpack
     server --> artmock
+    server --> artwebp
+    server --> words
     server --> sizes
     server --> http
     server --> transport
@@ -53,7 +62,7 @@ places:
 | Trait | Lets you swap |
 | --- | --- |
 | `HttpTransport` (`birdnet-client`) | Desktop networking (`transport-lan`), the simulated station (`birdnet-mock`), or ESP32 networking (planned) |
-| `ArtSource` (`art-pack`) | Where bird pictures come from: generated (`art-mock`), files on disk, or an SD card (planned) |
+| `ArtSource` (`art-pack`) | Where bird pictures come from: generated (`art-mock`), fugleramme's webp folders (`art-webp`), or an SD card (planned) |
 | `embedded-hal` 1.0 traits (planned, `panel-t133a01`) | Which board drives the panel: ESP32 or a Raspberry Pi |
 
 ## `no_std` wherever possible

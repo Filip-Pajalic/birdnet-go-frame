@@ -3,9 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::json::Json;
 use crate::parse_error::ParseError;
 use crate::scientific_name::ScientificName;
+use lite_json::Json;
 
 /// A single detection.
 #[derive(Clone, Debug, PartialEq)]
@@ -36,7 +36,7 @@ impl Detection {
     ///
     /// Returns [`ParseError`] when the body is not a JSON array of detections.
     pub fn parse_list(body: &[u8]) -> Result<Vec<Self>, ParseError> {
-        let Json::Array(items) = Json::parse(body)? else {
+        let Json::Array(items) = Json::parse(body).map_err(ParseError::from)? else {
             return Err(ParseError::new("expected a list of detections", 0));
         };
         Ok(items

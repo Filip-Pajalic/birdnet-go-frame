@@ -1,0 +1,86 @@
+{
+  "en": {
+    "heading": "Heard in the garden",
+    "nothing_heard": "No birds heard yet",
+    "more": "and {count} more",
+    "updated": "Updated {time}",
+    "unreachable": "Cannot reach BirdNET-Go"
+  },
+  "da": {
+    "heading": "Hørt i haven",
+    "nothing_heard": "Ingen fugle hørt endnu",
+    "more": "og {count} mere",
+    "updated": "Opdateret {time}",
+    "unreachable": "Kan ikke nå BirdNET-Go"
+  },
+  "de": {
+    "heading": "Im Garten gehört",
+    "nothing_heard": "Noch keine Vögel gehört",
+    "more": "und {count} weitere",
+    "updated": "Aktualisiert {time}",
+    "unreachable": "BirdNET-Go nicht erreichbar"
+  },
+  "es": {
+    "heading": "Oídos en el jardín",
+    "nothing_heard": "Aún no se han oído aves",
+    "more": "y {count} más",
+    "updated": "Actualizado {time}",
+    "unreachable": "No se puede conectar con BirdNET-Go"
+  },
+  "fi": {
+    "heading": "Kuultu puutarhassa",
+    "nothing_heard": "Lintuja ei ole vielä kuultu",
+    "more": "ja {count} muuta",
+    "updated": "Päivitetty {time}",
+    "unreachable": "BirdNET-Go ei vastaa"
+  },
+  "fr": {
+    "heading": "Entendus au jardin",
+    "nothing_heard": "Aucun oiseau entendu pour l'instant",
+    "more": "et {count} de plus",
+    "updated": "Mis à jour à {time}",
+    "unreachable": "BirdNET-Go injoignable"
+  },
+  "it": {
+    "heading": "Sentiti in giardino",
+    "nothing_heard": "Nessun uccello sentito finora",
+    "more": "e altri {count}",
+    "updated": "Aggiornato alle {time}",
+    "unreachable": "BirdNET-Go non raggiungibile"
+  },
+  "nb": {
+    "heading": "Hørt i hagen",
+    "nothing_heard": "Ingen fugler hørt ennå",
+    "more": "og {count} til",
+    "updated": "Oppdatert {time}",
+    "unreachable": "Får ikke kontakt med BirdNET-Go"
+  },
+  "nl": {
+    "heading": "Gehoord in de tuin",
+    "nothing_heard": "Nog geen vogels gehoord",
+    "more": "en nog {count}",
+    "updated": "Bijgewerkt {time}",
+    "unreachable": "BirdNET-Go niet bereikbaar"
+  },
+  "pl": {
+    "heading": "Usłyszane w ogrodzie",
+    "nothing_heard": "Nie usłyszano jeszcze ptaków",
+    "more": "i {count} więcej",
+    "updated": "Zaktualizowano {time}",
+    "unreachable": "Brak połączenia z BirdNET-Go"
+  },
+  "pt": {
+    "heading": "Ouvidos no jardim",
+    "nothing_heard": "Ainda nenhuma ave ouvida",
+    "more": "e mais {count}",
+    "updated": "Atualizado às {time}",
+    "unreachable": "Sem ligação ao BirdNET-Go"
+  },
+  "sv": {
+    "heading": "Hört i trädgården",
+    "nothing_heard": "Inga fåglar hörda än",
+    "more": "och {count} till",
+    "updated": "Uppdaterad {time}",
+    "unreachable": "Når inte BirdNET-Go"
+  }
+}

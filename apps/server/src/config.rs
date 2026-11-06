@@ -1,5 +1,6 @@
 //! Settings, read from environment variables.
 
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 use std::{env, fmt};
@@ -53,12 +54,21 @@ pub struct Config {
     pub utc_offset_minutes: i32,
     /// How often the server asks BirdNET-Go for news.
     pub refresh: Duration,
-    /// Page heading.
-    pub heading: String,
+    /// A heading to print over the birds; `None` for none on the collage and the translated
+    /// one on the list.
+    pub heading: Option<String>,
     /// Which page to draw.
     pub layout: Layout,
-    /// Most birds pictured on the collage.
+    /// Most birds on a page; 0 for every bird heard.
     pub max_birds: usize,
+    /// Whether the collage writes each bird's name under it.
+    pub names: bool,
+    /// Language code for the page's own words, e.g. `sv`.
+    pub language: String,
+    /// A translations file adding to or overriding the bundled one.
+    pub translations: Option<PathBuf>,
+    /// A fugleramme-style art folder; `None` draws generated birds.
+    pub art_dir: Option<PathBuf>,
 }
 
 /// A setting that could not be read.
@@ -109,11 +119,21 @@ impl Config {
             window_hours: parsed(&lookup, "WINDOW_HOURS", 24)?,
             utc_offset_minutes: parsed(&lookup, "UTC_OFFSET_MINUTES", 0)?,
             refresh: Duration::from_secs(parsed(&lookup, "REFRESH_SECONDS", 60)?),
-            heading: lookup("HEADING").unwrap_or_else(|| String::from("Heard in the garden")),
+            heading: lookup("HEADING").filter(|heading| !heading.trim().is_empty()),
             layout: parsed(&lookup, "LAYOUT", Layout::Collage)?,
-            max_birds: parsed(&lookup, "MAX_BIRDS", 15)?,
+            max_birds: parsed(&lookup, "MAX_BIRDS", 0)?,
+            names: parsed(&lookup, "NAMES", true)?,
+            language: lookup("LANGUAGE").unwrap_or_else(|| String::from("en")),
+            translations: path(&lookup, "TRANSLATIONS"),
+            art_dir: path(&lookup, "ART_DIR"),
         })
     }
+}
+
+fn path(lookup: &impl Fn(&str) -> Option<String>, variable: &str) -> Option<PathBuf> {
+    lookup(variable)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
 }
 
 fn parsed<T: FromStr>(
@@ -157,7 +177,11 @@ mod test {
         assert_eq!(config.poll_minutes, 15);
         assert_eq!(config.rotation, Rotation::Degrees0);
         assert_eq!(config.layout, Layout::Collage);
-        assert_eq!(config.max_birds, 15);
+        assert_eq!(config.max_birds, 0);
+        assert_eq!(config.heading, None);
+        assert!(config.names);
+        assert_eq!(config.language, "en");
+        assert_eq!(config.art_dir, None);
     }
 
     #[test]
@@ -166,6 +190,22 @@ mod test {
         assert_eq!(list.layout, Layout::List);
         let bad = config(&[("BIRDNET_URL", "mock"), ("LAYOUT", "grid")]);
         assert_eq!(bad.map_err(|error| error.variable), Err("LAYOUT"));
+    }
+
+    #[test]
+    fn art_language_and_names() {
+        let config = config(&[
+            ("BIRDNET_URL", "mock"),
+            ("ART_DIR", "/art/classic"),
+            ("LANGUAGE", "sv"),
+            ("NAMES", "false"),
+            ("HEADING", "Fåglar"),
+        ])
+        .expect("valid");
+        assert_eq!(config.art_dir, Some(PathBuf::from("/art/classic")));
+        assert_eq!(config.language, "sv");
+        assert!(!config.names);
+        assert_eq!(config.heading.as_deref(), Some("Fåglar"));
     }
 
     #[test]

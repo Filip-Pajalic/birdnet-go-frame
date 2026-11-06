@@ -14,6 +14,7 @@ path = "src/main.rs"
 [dependencies]
 art-mock.workspace = true
 art-pack.workspace = true
+art-webp.workspace = true
 bird-sizes.workspace = true
 birdnet-client.workspace = true
 birdnet-mock.workspace = true
@@ -22,6 +23,7 @@ frame-core.workspace = true
 frame-http.workspace = true
 frame-layout.workspace = true
 frame-raster.workspace = true
+page-text.workspace = true
 transport-lan.workspace = true
 
 [lints]

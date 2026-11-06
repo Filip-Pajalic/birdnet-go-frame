@@ -10,9 +10,11 @@ mod canvas;
 mod dither;
 mod draw_image;
 mod font_error;
+mod pop;
 mod renderer;
 
 pub use canvas::Canvas;
 pub use dither::dither;
 pub use font_error::FontError;
+pub use pop::pop;
 pub use renderer::Renderer;

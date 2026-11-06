@@ -1,7 +1,8 @@
 # Dependencies
 
-The server has **eight third-party crates**, all of them the font rasteriser `fontdue` and what
-it needs. Everything else is in this repository. This page explains why, and what a new
+The server has **eleven third-party crates**: the font rasteriser `fontdue` and what it needs
+(eight), and the webp decoder `image-webp` with its two (three), for fugleramme's artwork.
+Everything else is in this repository. This page explains why, and what a new
 dependency has to clear.
 
 ## What is used
@@ -15,12 +16,17 @@ flowchart LR
     hashbrown --> foldhash
     layout[frame-layout] --> libm
     artmock[art-mock] --> libm
+    webp[art-webp] --> imagewebp[image-webp]
+    imagewebp --> byteorder-lite
+    imagewebp --> quick-error
 ```
 
 | Crate | Why | Licence |
 | --- | --- | --- |
 | `fontdue` | Rasterises TrueType glyphs, `no_std`. Writing a font rasteriser is a project of its own. | MIT OR Apache-2.0 OR Zlib |
 | `ttf-parser`, `core_maths`, `hashbrown`, `allocator-api2`, `equivalent`, `foldhash` | fontdue's own dependencies (font tables, a `no_std` hash map) | MIT / Apache-2.0 / Zlib |
+| `image-webp` | Decodes the webp plates (lossy and lossless, with alpha). Image codecs are the kind of job worth a crate; it is pure Rust and has no unsafe code. Only `art-webp` uses it, and only the server links `art-webp`. | MIT OR Apache-2.0 |
+| `byteorder-lite`, `quick-error` | image-webp's own dependencies | Unlicense OR MIT / MIT OR Apache-2.0 |
 | `libm` | `sin`, `exp`, `sqrt` for `no_std` float maths. fontdue already brings it, so using it directly adds nothing. | MIT |
 
 `cargo tree -p server -e normal` lists exactly these. `cargo deny check` in CI fails the build on
@@ -34,7 +40,7 @@ RustSec lists `ttf-parser` as unmaintained
 vulnerability, and here it only parses the font embedded in our own binary, never input from
 the network, so `deny.toml` accepts it with that reason. If fontdue does not move to a maintained
 parser, the options are a fork of fontdue on `skrifa`, or pre-rendering the glyphs the pages use
-into a small bitmap font at build time, which would remove all eight crates.
+into a small bitmap font at build time, which would remove all eight of fontdue's crates.
 
 ## What was replaced, and with what
 
@@ -42,13 +48,13 @@ The first version used 42 third-party crates. They were replaced with code sized
 
 | Was | Now | Why it is enough |
 | --- | --- | --- |
-| `serde`, `serde_json` (+ `syn`, `quote`, `proc-macro2`, …) | `birdnet-model`'s JSON reader, about 250 lines | Two response shapes, read once a minute. No proc macros means faster builds too. |
+| `serde`, `serde_json` (+ `syn`, `quote`, `proc-macro2`, …) | `lite-json`, about 250 lines | Two response shapes read once a minute, plus `geometry.json` and translations at start-up. No proc macros means faster builds too. |
 | `ureq` (+ `http`, `httparse`, `base64`, …) | `lan-http::get` | One plain-HTTP GET on the LAN, with chunked bodies. BirdNET-Go is not reached over TLS. |
 | `tiny_http` (+ `ascii`, `chunked_transfer`, …) | `lan-http::Server` | Five GET routes, one request per connection, for a panel and a browser. |
 | `png` (+ `flate2`, `miniz_oxide`, `fdeflate`, `crc32fast`, …) | `frame-http`'s PNG writer with a small deflate | Previews compress to the same size; the CRC-32 was already in `frame-core`. |
 
 The server binary went from 1.96 MB to 1.51 MB with the collage and the 158 KB size table
-added. Each replacement has tests, including round trips over real sockets and a check that the
+added; the webp decoder, spiral packing and translations bring it to 1.70 MB. Each replacement has tests, including round trips over real sockets and a check that the
 deflate stream decodes.
 
 ## Adding a dependency
@@ -60,5 +66,5 @@ crate already in the tree; a new crate. A new crate is worth it when the job is 
 1. Turn off default features and enable only what is used.
 2. Keep it out of the `no_std` crates unless it is `no_std` itself.
 3. Put it in a tool or app crate rather than a library when only that app needs it (for example
-   a future `tools/art-packer` may use an image decoder; the server will not).
+   only `art-webp` decodes images, so the ESP32 firmware will not link `image-webp`).
 4. Add a row to the table above, and check `cargo deny check` passes.

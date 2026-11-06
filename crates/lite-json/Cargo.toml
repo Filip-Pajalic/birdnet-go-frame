@@ -1,0 +1,13 @@
+[package]
+name = "lite-json"
+description = "A small JSON reader for no_std targets: enough for API responses and settings files."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -11,12 +11,14 @@ use crate::canvas::Canvas;
 use crate::draw_image::draw_image;
 use crate::font_error::FontError;
 
-/// The paper colour pages are drawn on before dithering.
-const PAPER: Rgb = Rgb::WHITE;
+/// Glyph coverage, of 255, from which a pixel is inked. Lower than half so the italic's
+/// hairlines survive at small sizes instead of breaking letters apart.
+const INK_COVERAGE: u8 = 64;
 
-/// Draws [`PageLayout`]s with one font.
+/// Draws [`PageLayout`]s with one font, on one paper colour.
 pub struct Renderer {
     font: Font,
+    paper: Rgb,
 }
 
 impl Renderer {
@@ -28,7 +30,27 @@ impl Renderer {
     pub fn new(font_data: &[u8]) -> Result<Self, FontError> {
         let font: Font =
             Font::from_bytes(font_data, FontSettings::default()).map_err(FontError::new)?;
-        Ok(Self { font })
+        Ok(Self {
+            font,
+            paper: Self::PAPER,
+        })
+    }
+
+    /// The paper pages are drawn on by default: fugleramme's panel paper, a cream the six-ink
+    /// dither renders cleanly.
+    pub const PAPER: Rgb = Rgb::new(233, 225, 202);
+
+    /// Returns the renderer drawing on `paper` instead of [`Self::PAPER`].
+    #[must_use]
+    pub fn with_paper(mut self, paper: Rgb) -> Self {
+        self.paper = paper;
+        self
+    }
+
+    /// Returns the paper pages are drawn on.
+    #[must_use]
+    pub fn paper(&self) -> Rgb {
+        self.paper
     }
 
     /// Draws `layout` on a fresh paper-coloured canvas: its pictures first, taken from `art` by
@@ -36,7 +58,7 @@ impl Renderer {
     /// skipped.
     #[must_use]
     pub fn render(&self, layout: &PageLayout, art: &[ArtImage]) -> Canvas {
-        let mut canvas = Canvas::new(layout.resolution, PAPER);
+        let mut canvas = Canvas::new(layout.resolution, self.paper);
         for block in &layout.images {
             if let Some(picture) = art.get(block.art) {
                 draw_image(&mut canvas, block, picture);
@@ -85,7 +107,7 @@ impl Renderer {
                     let y: i32 = glyph_top + i32::try_from(row_index).unwrap_or(0);
                     // Hard edges: anti-aliased grey would dither into coloured specks on
                     // a six-ink panel.
-                    let ink_coverage: u8 = if alpha >= 128 { u8::MAX } else { 0 };
+                    let ink_coverage: u8 = if alpha >= INK_COVERAGE { u8::MAX } else { 0 };
                     canvas.blend(x, y, colour, ink_coverage);
                 }
             }
