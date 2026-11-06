@@ -77,7 +77,7 @@ pub struct Config {
     pub language: String,
     /// A translations file adding to or overriding the bundled one.
     pub translations: Option<PathBuf>,
-    /// A fugleramme-style art folder; `None` draws generated birds.
+    /// A fugleramme-style art folder; `None` has no pictures, so collages are drawn as lists.
     pub art_dir: Option<PathBuf>,
     /// Where pages go.
     pub output: Output,

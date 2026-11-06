@@ -33,22 +33,21 @@ says "No birds heard yet".
 
 ## 2. Look at the page
 
-Open <http://localhost:8080/> in a browser. You see the full-colour preview: a picture of every
-species heard today with its name underneath, packed by their outlines outwards from the middle
-of the page. Heavier birds are drawn bigger. The pictures are generated (no artwork is
-downloaded), so they are simple, but they are sized and placed exactly as real art would be.
+Open <http://localhost:8080/> in a browser. You see the full-colour preview. Without artwork it
+lists every species heard today by name, most heard first.
 
-![The collage from the simulated garden](../images/collage-mock.png)
-
-To see fugleramme's 1800s plates instead, stop the server, fetch the art once and start it
-again with `ART_DIR`:
+The collage needs fugleramme's 1800s plates. Stop the server, fetch the art once (about 250 MB)
+and start it again with `ART_DIR`:
 
 ```bash
 scripts/fetch-art.sh
 BIRDNET_URL=mock ART_DIR=art/classic cargo run --release -p server
 ```
 
-![The same garden with the classic plates](../images/collage-classic.jpg)
+Now the page is a plate of every species heard today with its name underneath, packed by their
+outlines outwards from the middle of the page. Heavier birds are drawn bigger.
+
+![The garden with the classic plates](../images/collage-classic.jpg)
 
 Now open <http://localhost:8080/frame.png>. This is the same page reduced to the panel's six inks,
 in the panel's native landscape orientation.

@@ -15,7 +15,7 @@ The server reads environment variables at start-up.
 | `WINDOW_HOURS` | `24` | hours | How far back detections count. Rounded outwards to whole days, as BirdNET-Go's summary takes dates. |
 | `UTC_OFFSET_MINUTES` | `0` | minutes | The garden's time zone, minutes east of UTC. Used for the date range and the "Updated" time. Not adjusted for daylight saving. |
 | `REFRESH_SECONDS` | `60` | seconds | How often the server asks BirdNET-Go for news. |
-| `ART_DIR` | unset | folder | A fugleramme art style folder (`birds/*.webp`, `geometry.json`), e.g. from `scripts/fetch-art.sh`. Unset draws generated birds. Species without a plate are left off the collage. |
+| `ART_DIR` | unset | folder | A fugleramme art style folder (`birds/*.webp`, `geometry.json`), e.g. from `scripts/fetch-art.sh`. Unset: no pictures, so collages are drawn as the list. Species without a plate are left off the collage. |
 | `LAYOUT` | `collage` | `collage` or `list` | `collage` packs a picture of every bird by its outline, heavier birds bigger. `list` writes names and counts only. |
 | `MAX_BIRDS` | `0` | number | Most birds on a page, most heard first. `0` shows every bird heard, as fugleramme does. |
 | `NAMES` | `true` | `true` or `false` | Whether the collage writes each bird's name under it. |

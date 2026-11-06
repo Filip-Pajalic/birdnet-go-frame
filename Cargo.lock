@@ -9,15 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
-name = "art-mock"
-version = "0.1.0"
-dependencies = [
- "art-pack",
- "frame-core",
- "libm",
-]
-
-[[package]]
 name = "art-pack"
 version = "0.1.0"
 dependencies = [
@@ -160,7 +151,6 @@ dependencies = [
 name = "frame-artist"
 version = "0.1.0"
 dependencies = [
- "art-mock",
  "art-pack",
  "bird-almanac",
  "bird-sizes",
@@ -212,7 +202,6 @@ dependencies = [
 name = "frame-standalone"
 version = "0.1.0"
 dependencies = [
- "art-mock",
  "art-pack",
  "birdnet-model",
  "frame-artist",
@@ -294,7 +283,6 @@ dependencies = [
 name = "linux-panel"
 version = "0.1.0"
 dependencies = [
- "art-mock",
  "art-pack",
  "art-webp",
  "birdnet-client",
@@ -402,7 +390,6 @@ checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
 name = "server"
 version = "0.1.0"
 dependencies = [
- "art-mock",
  "art-pack",
  "art-webp",
  "bird-almanac",

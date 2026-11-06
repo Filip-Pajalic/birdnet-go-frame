@@ -2,7 +2,7 @@
 //! includes it.
 //!
 //! `FRAME_ART` names an `.artb` file made by `tools/art-packer`; without it the bundle is empty
-//! and the firmware draws generated birds.
+//! and the firmware lists the birds by name.
 
 use std::path::PathBuf;
 use std::{env, fs};

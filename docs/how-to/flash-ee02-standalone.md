@@ -27,9 +27,9 @@ dithered, so it is a little softer than the server's.
 - Espressif's Rust toolchain and `espflash`, installed as in step 1 of
   [Build and flash the EE02 firmware](flash-ee02-thin.md#1-install-espressifs-toolchain)
 
-## 1. Pack the art (optional)
+## 1. Pack the art
 
-Without art the frame draws generated birds. For fugleramme's plates, fetch a style and pack it,
+Without art the frame has no pictures and lists the birds by name. For fugleramme's plates, fetch a style and pack it,
 from the repository's root:
 
 ```bash
@@ -95,7 +95,7 @@ as the one on the glass, it goes straight back to sleep: `the page has not chang
 | `could not join the Wi-Fi` | Check the name and password, and that the network has 2.4 GHz |
 | `BirdNET-Go: BirdNET-Go wants a login; ...` | BirdNET-Go's private mode is on; this firmware cannot log in, so turn it off or use the server |
 | `BirdNET-Go's answer has no Date header` | Something between the frame and BirdNET-Go drops it; reach BirdNET-Go directly |
-| `the art bundle: ...` | `FRAME_ART` is not a bundle from `art-packer`; the frame draws generated birds |
+| `the art bundle: ...` | `FRAME_ART` is not a bundle from `art-packer`; the frame lists the birds by name |
 
 After a failure the picture stays and the frame tries again in a minute, doubling after each
 failure in a row up to the poll interval.

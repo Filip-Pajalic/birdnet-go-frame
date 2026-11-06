@@ -42,9 +42,9 @@ SOFTWARE.
 
 ### fugleramme artwork
 
-Not distributed with this repository, except one rendered example page,
-`docs/images/collage-classic.jpg`, which shows plates from the `classic` style and is shared
-under CC BY-SA 4.0 like them (sources: von Wright, *Svenska Fåglar*; John Gould, *The Birds of
+Not distributed with this repository, except rendered example pages in `docs/images/`
+(`collage-classic.jpg`, `view-today-new-bird.jpg`, `view-week.jpg`, `view-rarest.jpg`), which
+show plates from the `classic` style and are shared under CC BY-SA 4.0 like them (sources: von Wright, *Svenska Fåglar*; John Gould, *The Birds of
 Europe* and others, as listed in the style's `ATTRIBUTION.md`). When downloaded by `scripts/fetch-art.sh`, each style
 folder keeps its own `ATTRIBUTION.md` and `manifest.json`, which link every cut-out to the
 plate it came from. The `classic` style is licensed under CC BY-SA 4.0

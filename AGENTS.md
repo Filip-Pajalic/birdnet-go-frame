@@ -21,7 +21,7 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
 - Libraries are `no_std` + `alloc` unless their job needs an OS (`lan-http`, `transport-lan`,
   `frame-http`, `art-webp`, `home-assistant`). Keep it that way: the same code must compile for the ESP32, and CI builds those
   crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
-  `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `art-mock`, `bird-sizes`,
+  `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `bird-sizes`,
   `page-text`, `frame-layout`, `frame-raster`, `frame-artist`, `frame-standalone`, `bird-almanac`, `open-meteo`, `panel-t133a01`, `panel-ed2208`, `panel-setup` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
   only crate that decodes images.
 - The ESP32 firmware (`apps/ee02-thin`) and its radio crate (`crates/transport-esp`, `no_std`)
@@ -89,10 +89,16 @@ often get wrong:
 
 ## Testing
 
-- Use `birdnet-mock` (`MockTransport` with a fixed clock) instead of network calls in tests, and
-  `art-mock` instead of image files. Never commit fugleramme's artwork (CC BY-SA, ~250 MB):
-  `scripts/fetch-art.sh` downloads it into the git-ignored `art/` folder, and credit for it lives
-  in README and NOTICE only, never on the rendered page.
+- Use `birdnet-mock` (`MockTransport` with a fixed clock) instead of network calls in tests.
+- **Never draw made-up birds.** Generated or placeholder bird pictures are banned everywhere: in
+  code, tests, screenshots, docs and the mock. Birds are always fugleramme's real plates. Without
+  plates a frame lists the birds (`NoArt`). Unit tests of layout that cannot load plates use
+  `OutlineArt`, plain ovals that look like nothing but a shape. Screenshots for docs, PRs and
+  reviews are rendered with `ART_DIR=art/classic`.
+- Never commit fugleramme's artwork (CC BY-SA, ~250 MB): `scripts/fetch-art.sh` downloads it into
+  the git-ignored `art/` folder (CI caches it), and credit for it lives in README and NOTICE only,
+  never on the rendered page. Screenshots in `docs/images/` that show plates are credited there
+  too.
 - Add a JSON fixture under `crates/birdnet-model/tests/fixtures/` when BirdNET-Go sends a shape
   the parser mishandles.
 - `crates/frame-core/tests/panel_bytes_golden.rs` guards byte compatibility with fugleramme. Never update

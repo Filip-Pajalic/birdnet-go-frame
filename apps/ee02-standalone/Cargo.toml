@@ -19,7 +19,6 @@ board-ee02 = []
 board-e1002 = []
 
 [dependencies]
-art-mock = { path = "../../crates/art-mock", version = "0.1.0" }
 art-pack = { path = "../../crates/art-pack", version = "0.1.0" }
 birdnet-client = { path = "../../crates/birdnet-client", version = "0.1.0" }
 birdnet-model = { path = "../../crates/birdnet-model", version = "0.1.0" }

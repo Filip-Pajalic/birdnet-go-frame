@@ -3,8 +3,7 @@
 
 #![allow(clippy::expect_used)] // Tests may panic on failed assumptions.
 
-use art_mock::MockArt;
-use art_pack::{ArtBundle, BundleEntry};
+use art_pack::{ArtBundle, BundleEntry, OutlineArt};
 use birdnet_model::SpeciesSummary;
 use frame_artist::{Artist, Layout, PageStyle};
 use frame_core::{PanelSize, Rotation};
@@ -41,7 +40,7 @@ fn draws_both_panels_from_an_answer_and_then_waits_for_news() {
         (PanelSize::Inches7Point3, 192_000),
     ] {
         let renderer = Renderer::new(FONT).expect("the font loads");
-        let mut artist = Artist::new(renderer, MockArt::new(200), style());
+        let mut artist = Artist::new(renderer, OutlineArt::new(200), style());
         artist.start_day(day);
         let size = frame_standalone::drawing_resolution(panel, Rotation::Degrees0);
         let page: Canvas = artist.draw(&species, "", size);
@@ -56,7 +55,7 @@ fn draws_both_panels_from_an_answer_and_then_waits_for_news() {
 
 #[test]
 fn draws_from_a_bundle_of_art() {
-    let tit = MockArt::new(64).paint("Parus major");
+    let tit = OutlineArt::new(64).outline();
     let artp: Vec<u8> = tit.encode();
     // A zlib stream of one stored block.
     let mut zlib: Vec<u8> = vec![0x78, 0x01, 0x01];

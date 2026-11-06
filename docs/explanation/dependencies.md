@@ -23,7 +23,6 @@ flowchart LR
     hashbrown --> equivalent
     hashbrown --> foldhash
     layout[frame-layout] --> libm
-    artmock[art-mock] --> libm
     webp[art-webp] --> imagewebp[image-webp]
     imagewebp --> byteorder-lite
     imagewebp --> quick-error

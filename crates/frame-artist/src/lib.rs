@@ -8,7 +8,7 @@
 //! with it. `no_std` with `alloc`.
 //!
 //! ```
-//! use art_mock::MockArt;
+//! use art_pack::NoArt;
 //! use birdnet_model::SpeciesSummary;
 //! use frame_artist::{Artist, Layout, PageStyle};
 //! use frame_core::{PanelSize, Resolution, Rotation};
@@ -17,7 +17,7 @@
 //! let font: &[u8] = include_bytes!("../../../assets/fonts/ebgaramond/EBGaramond-Italic.ttf");
 //! let renderer = Renderer::new(font).expect("the bundled font loads");
 //! let style = PageStyle { layout: Layout::List, ..PageStyle::default() };
-//! let mut artist = Artist::new(renderer, MockArt::default(), style);
+//! let mut artist = Artist::new(renderer, NoArt, style);
 //! let species: Vec<SpeciesSummary> =
 //!     SpeciesSummary::parse_list(br#"[{"scientific_name":"Parus major","common_name":"Great Tit","count":3}]"#)
 //!         .expect("valid JSON");

@@ -78,7 +78,7 @@ PANEL=13.3
 ROTATION=0
 UTC_OFFSET_MINUTES=60
 LANGUAGE=sv
-# ART_DIR=/opt/birdnet-go-frame/art/classic   # from scripts/fetch-art.sh; generated birds without
+# ART_DIR=/opt/birdnet-go-frame/art/classic   # from scripts/fetch-art.sh; a list without
 ```
 
 and install the service from `deploy/raspberry-pi/`:

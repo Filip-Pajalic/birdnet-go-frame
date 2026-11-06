@@ -37,7 +37,7 @@ CC BY-SA). Fill it once from any machine with git, e.g. the Unraid terminal:
 scripts/fetch-art.sh classic /mnt/user/appdata/birdnet-go-frame/art
 ```
 
-Leave out the `-v` and `ART_DIR` lines to draw generated birds instead.
+Without the `-v` and `ART_DIR` lines there are no pictures, and the birds are listed by name.
 
 BirdNET-Go usually holds port 8080 on the host, so the example publishes the frame on 8081.
 
@@ -56,8 +56,8 @@ BirdNET-Go usually holds port 8080 on the host, so the example publishes the fra
 3. Set **BirdNET-Go URL** to BirdNET-Go's address as the container sees it, e.g.
    `http://192.168.1.10:8080` (the Unraid IP and BirdNET-Go's port), and **Time zone offset**
    to your garden's (60 for Sweden in winter). Leave **Art style** empty for now.
-4. **Apply**, then open `http://<unraid-ip>:8081/`. You should see generated birds for the
-   species your station has heard today.
+4. **Apply**, then open `http://<unraid-ip>:8081/`. You should see the species your station has
+   heard today, listed by name until the art style is set.
 
 The template is in the repository at
 [`deploy/unraid/birdnet-go-frame.xml`](../../deploy/unraid/birdnet-go-frame.xml). **Show more

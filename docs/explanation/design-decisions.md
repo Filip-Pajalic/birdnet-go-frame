@@ -17,7 +17,6 @@ flowchart BT
     lan[lan-http]
     transport[transport-lan]
     artpack[art-pack<br/>no_std]
-    artmock[art-mock<br/>no_std]
     artwebp[art-webp]
     json[lite-json<br/>no_std]
     words[page-text<br/>no_std]
@@ -39,13 +38,11 @@ flowchart BT
     http --> raster
     http --> core
     http --> lan
-    artmock --> artpack
     artwebp --> artpack
     artwebp --> json
     model --> json
     words --> json
     raster --> artpack
-    server --> artmock
     server --> artwebp
     server --> words
     server --> sizes
@@ -62,7 +59,7 @@ places:
 | Trait | Lets you swap |
 | --- | --- |
 | `HttpTransport` (`birdnet-client`) | Desktop networking (`transport-lan`), the simulated station (`birdnet-mock`), or ESP32 networking for a panel that renders its own page (planned) |
-| `ArtSource` (`art-pack`) | Where bird pictures come from: generated (`art-mock`), fugleramme's webp folders (`art-webp`), or an SD card (planned) |
+| `ArtSource` (`art-pack`) | Where bird pictures come from: fugleramme's webp folders (`art-webp`), a bundle in an ESP32's flash (`ArtBundle`), or none (`NoArt`, which turns collages into lists) |
 | `embedded-hal` 1.0 traits (`panel-t133a01`) | Which board drives the panel: ESP32, a Raspberry Pi, or the mock bus in its tests |
 
 ## `no_std` wherever possible
@@ -86,8 +83,10 @@ firmware needs a few lines changed to read `/panel`
 
 `birdnet-mock` simulates a BirdNET-Go whose output depends only on the time asked, so tests are
 deterministic and nobody needs a microphone to work on the frame. It is available in-process
-(`BIRDNET_URL=mock`) and over HTTP (`apps/fake-birdnet`). `art-mock` does the same for pictures:
-it paints a bird for any species, so the collage works without downloading any artwork.
+(`BIRDNET_URL=mock`) and over HTTP (`apps/fake-birdnet`). There is no mock for pictures: frames,
+screenshots and CI's real-art job use fugleramme's plates, and without them a collage is drawn as
+the list. Made-up birds would misrepresent the frame. Unit tests of layout use plain ovals
+(`OutlineArt`).
 
 ## Plain HTTP to BirdNET-Go
 

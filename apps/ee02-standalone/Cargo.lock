@@ -33,15 +33,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c583acf993cf4245c4acb0a2cc2ab1f9cc097de73411bb6d3647ff6af2b1013d"
 
 [[package]]
-name = "art-mock"
-version = "0.1.0"
-dependencies = [
- "art-pack",
- "frame-core",
- "libm",
-]
-
-[[package]]
 name = "art-pack"
 version = "0.1.0"
 dependencies = [
@@ -428,7 +419,6 @@ dependencies = [
 name = "ee02-standalone"
 version = "0.1.0"
 dependencies = [
- "art-mock",
  "art-pack",
  "birdnet-client",
  "birdnet-model",

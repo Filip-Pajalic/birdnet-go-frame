@@ -12,7 +12,6 @@ name = "birdnet-go-frame-panel"
 path = "src/main.rs"
 
 [dependencies]
-art-mock.workspace = true
 art-pack.workspace = true
 art-webp.workspace = true
 birdnet-client.workspace = true

@@ -6,8 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
-use art_mock::MockArt;
-use art_pack::{ArtBundle, ArtSource};
+use art_pack::{ArtBundle, ArtSource, NoArt};
 use birdnet_model::SpeciesSummary;
 use esp_println::println;
 use frame_artist::{Artist, PageStyle};
@@ -22,8 +21,6 @@ const FONT: &[u8] = include_bytes!("../../../assets/fonts/ebgaramond/EBGaramond-
 const ART: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/art.artb"));
 /// Seconds in a day.
 const SECONDS_PER_DAY: i64 = 86_400;
-/// The side of a generated bird, in pixels, when no art was bundled.
-const MOCK_SIDE: usize = 200;
 
 /// Why no page was drawn.
 #[derive(Debug)]
@@ -78,11 +75,12 @@ pub fn page(
         .map_err(DrawError::Size)
 }
 
-/// The bundled art, or generated birds when the build had none or it does not read.
+/// The bundled art, or none when the build had none or it does not read: then collages are
+/// drawn as lists.
 fn art() -> Box<dyn ArtSource> {
     if ART.is_empty() {
-        println!("standalone: no art bundled; drawing generated birds");
-        return Box::new(MockArt::new(MOCK_SIDE));
+        println!("standalone: no art bundled; drawing lists");
+        return Box::new(NoArt);
     }
     match ArtBundle::parse(ART) {
         Ok(bundle) => {
@@ -90,8 +88,8 @@ fn art() -> Box<dyn ArtSource> {
             Box::new(bundle)
         }
         Err(error) => {
-            println!("standalone: the art bundle: {error}; drawing generated birds");
-            Box::new(MockArt::new(MOCK_SIDE))
+            println!("standalone: the art bundle: {error}; drawing lists");
+            Box::new(NoArt)
         }
     }
 }

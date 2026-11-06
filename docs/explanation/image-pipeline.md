@@ -12,7 +12,7 @@ expect. Each stage is a separate crate with plain data in and out, so each can b
 flowchart TD
     json["BirdNET-Go JSON<br/>species summary"] -->|"birdnet-model<br/>parse, drop non-birds, merge spellings, sort"| species["Vec&lt;SpeciesSummary&gt;"]
     species --> sizes["bird-sizes<br/>body mass per species"]
-    species --> art["ArtSource (art-webp or art-mock)<br/>a cut-out per species"]
+    species --> art["ArtSource (art-webp, or a bundle on the ESP32)<br/>a cut-out per species"]
     sizes -->|"size_weights<br/>mass^0.14"| collage
     art -->|"outlines + bird boxes"| collage
     collage["frame-layout<br/>Collage::layout (or TextList)"] --> layout["PageLayout<br/>image blocks + text blocks"]
@@ -51,9 +51,10 @@ with numbered variants (`-2`, `-3`). `ArtFolder` follows fugleramme for each spe
    the outer ring is snapped flat, and the cut edge is feathered inwards. Every plate then looks
    printed on one sheet.
 
-Without `ART_DIR`, `art-mock` paints a simple perched bird for any species, so the server works
-with nothing installed and tests need no image files. Its pictures are cut-outs with transparent
-backgrounds too, so sizing, packing and drawing are exercised as with real plates.
+Without `ART_DIR` the source is `NoArt` (in `art-pack`), which has no pictures; a collage with
+no pictures is drawn as the list, so the server works with nothing installed. Nothing ever draws
+made-up birds. Unit tests of layout use `OutlineArt`, plain ovals that are cut-outs like real
+plates; the pages in the docs and CI's real-art job use fugleramme's plates.
 
 ## 3. Lay out (`frame-layout`)
 

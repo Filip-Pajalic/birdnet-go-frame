@@ -78,7 +78,7 @@ jobs:
       - run: >-
           cargo build --locked --target thumbv7em-none-eabihf
           -p frame-core -p birdnet-model -p birdnet-client -p birdnet-mock
-          -p frame-layout -p frame-raster -p art-pack -p art-mock -p bird-sizes
+          -p frame-layout -p frame-raster -p art-pack -p bird-sizes
           -p lite-json -p page-text -p panel-setup -p panel-t133a01 -p panel-wake -p frame-artist -p panel-ed2208 -p frame-standalone
           -p bird-almanac -p open-meteo
 
@@ -247,3 +247,40 @@ jobs:
         run: |
           BIRDNET_URL=mock PANEL_OUT=pi.bin target/x86_64-unknown-linux-musl/release/birdnet-go-frame-panel --once
           test "$(stat -c %s pi.bin)" = "960000"
+
+  real-art:
+    name: Pages drawn with fugleramme's plates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+      # The plates are CC BY-SA and never committed: fetched once per fugleramme commit, then cached.
+      - id: fugleramme
+        run: echo "commit=$(git ls-remote https://github.com/arnegiacomo/fugleramme.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+      - id: art
+        uses: actions/cache@v4
+        with:
+          path: art/classic
+          key: fugleramme-classic-${{ steps.fugleramme.outputs.commit }}
+          restore-keys: fugleramme-classic-
+      - if: steps.art.outputs.cache-hit != 'true'
+        run: scripts/fetch-art.sh classic art
+      - run: cargo build --release --locked -p server
+      - name: Every view, both panels, with the plates
+        run: |
+          BIRDNET_URL=mock ART_DIR=art/classic LISTEN=127.0.0.1:8080 target/release/birdnet-go-frame 2> server.log &
+          for attempt in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
+          grep -q "plates in art/classic" server.log
+          for view in today week rarest story season; do
+            for panel in 13.3 7.3; do
+              curl -fsS -o "page-$view-$panel.png" "http://127.0.0.1:8080/preview.png?view=$view&panel=$panel"
+              test "$(stat -c %s "page-$view-$panel.png")" -gt 20000
+            done
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pages-with-plates
+          path: page-*.png

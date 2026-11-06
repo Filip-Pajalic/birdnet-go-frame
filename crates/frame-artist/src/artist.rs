@@ -88,7 +88,8 @@ impl<A: ArtSource> Artist<A> {
     }
 
     /// Draws `species` (most heard first) on a page of `resolution`. `footer` goes under the
-    /// list page; the collage, like fugleramme's, is birds only.
+    /// list page; the collage, like fugleramme's, is birds only. A collage for which the art
+    /// source has no picture of any of the birds is drawn as the list.
     pub fn draw(
         &mut self,
         species: &[SpeciesSummary],
@@ -142,7 +143,26 @@ impl<A: ArtSource> Artist<A> {
                     .or_else(|| self.style.heading.clone())
                     .unwrap_or_default();
                 let shown: Vec<SpeciesSummary> = shown.to_vec();
-                self.draw_collage(&shown, featured.is_some(), &heading, resolution)
+                for row in &shown {
+                    self.ensure_picture(&row.scientific_name.to_string());
+                }
+                // Without a single plate, e.g. before the art is installed, the collage would be
+                // empty: the birds are listed instead.
+                let any_pictured: bool = shown.iter().any(|row| {
+                    self.pictures
+                        .get(&row.scientific_name.to_string())
+                        .is_some_and(Option::is_some)
+                });
+                if shown.is_empty() || any_pictured {
+                    self.draw_collage(&shown, featured.is_some(), &heading, resolution)
+                } else {
+                    let heading: String = if heading.is_empty() {
+                        self.style.words.heading.clone()
+                    } else {
+                        heading
+                    };
+                    self.draw_list(&ordered, &heading, footer, resolution)
+                }
             }
         }
     }
@@ -283,7 +303,39 @@ fn mirrored(scientific_name: &str) -> bool {
 
 #[cfg(test)]
 mod test {
+    use art_pack::{NoArt, OutlineArt};
+
     use super::*;
+
+    const FONT: &[u8] = include_bytes!("../../../assets/fonts/ebgaramond/EBGaramond-Italic.ttf");
+
+    fn artist<A: ArtSource>(art: A, layout: Layout) -> Artist<A> {
+        let renderer: Renderer = Renderer::new(FONT).expect("the bundled font loads");
+        let style = PageStyle {
+            layout,
+            ..PageStyle::default()
+        };
+        Artist::new(renderer, art, style)
+    }
+
+    fn birds() -> Vec<SpeciesSummary> {
+        SpeciesSummary::parse_list(
+            br#"[{"scientific_name":"Parus major","common_name":"Great Tit","count":3},
+                {"scientific_name":"Pica pica","common_name":"Magpie","count":1}]"#,
+        )
+        .expect("valid JSON")
+    }
+
+    #[test]
+    fn lists_the_birds_when_there_is_no_art() {
+        let size = Resolution::new(800, 480);
+        let collage: Canvas = artist(NoArt, Layout::Collage).draw(&birds(), "Updated 07:30", size);
+        let list: Canvas = artist(NoArt, Layout::List).draw(&birds(), "Updated 07:30", size);
+        assert_eq!(collage, list);
+        let outlines: Canvas =
+            artist(OutlineArt::new(120), Layout::Collage).draw(&birds(), "Updated 07:30", size);
+        assert_ne!(outlines, list);
+    }
 
     #[test]
     fn mirroring_is_stable_and_mixed() {

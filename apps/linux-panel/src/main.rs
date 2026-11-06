@@ -19,8 +19,7 @@ use std::process::ExitCode;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, fs, thread};
 
-use art_mock::MockArt;
-use art_pack::ArtSource;
+use art_pack::{ArtSource, NoArt};
 use art_webp::ArtFolder;
 use birdnet_client::{BirdnetClient, ClientError, DateWindow, HttpTransport};
 use birdnet_mock::MockTransport;
@@ -98,7 +97,13 @@ fn run(once: bool) -> Result<(), String> {
             eprintln!("linux-panel: {} plates in {}", art.len(), folder.display());
             Box::new(art.with_paper(renderer.paper()))
         }
-        None => Box::new(MockArt::default()),
+        None => {
+            eprintln!(
+                "linux-panel: no ART_DIR; collages are drawn as lists until fugleramme's plates \
+                 are fetched with scripts/fetch-art.sh"
+            );
+            Box::new(NoArt)
+        }
     };
     let style = PageStyle {
         layout: config.layout,

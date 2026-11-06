@@ -18,8 +18,7 @@ use std::process::ExitCode;
 use std::sync::{Arc, Mutex};
 use std::{fs, thread};
 
-use art_mock::MockArt;
-use art_pack::ArtSource;
+use art_pack::{ArtSource, NoArt};
 use art_webp::ArtFolder;
 use birdnet_client::{BirdnetClient, CivilDate, DateWindow};
 use birdnet_mock::MockTransport;
@@ -119,8 +118,14 @@ fn main() -> ExitCode {
                 return ExitCode::FAILURE;
             }
         },
-        // Generated birds, so the server works with nothing else installed.
-        None => Box::new(MockArt::default()),
+        // Without plates the server still runs: collages are drawn as lists.
+        None => {
+            eprintln!(
+                "birdnet-go-frame: no ART_DIR; collages are drawn as lists until fugleramme's \
+                 plates are fetched with scripts/fetch-art.sh"
+            );
+            Box::new(NoArt)
+        }
     };
     let words: PageText = match page_words(&config) {
         Ok(words) => words,

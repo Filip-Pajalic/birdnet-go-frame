@@ -5,8 +5,8 @@ Rust server reads your BirdNET-Go API and renders the birds heard in your garden
 then shows the result on a 13.3" six-colour e-ink panel and runs on battery for months.
 
 > **Status:** early development. The server is done: it serves the illustrated collage (or a
-> text list), drawn with fugleramme's 1800s plates when you fetch them or with generated birds
-> out of the box, logs in to a private BirdNET-Go, and installs on Unraid from a template. The
+> text list), drawn with fugleramme's 1800s plates (fetched once with `scripts/fetch-art.sh`; until then
+> the birds are listed by name), logs in to a private BirdNET-Go, and installs on Unraid from a template. The
 > EE02 firmware (`apps/ee02-thin`) builds for the ESP32-S3 in CI and its logic is tested on any
 > machine, but it has not run on the hardware yet: see
 > [Build and flash the EE02 firmware](docs/how-to/flash-ee02-thin.md), and please report what you
@@ -42,9 +42,9 @@ BIRDNET_URL=mock cargo run --release -p server
 ```
 
 `BIRDNET_URL=mock` uses the built-in simulated station: a garden of 35 European species with a
-dawn chorus, deterministic for a given time. Without artwork the birds are generated pictures
-([example](docs/images/collage-mock.png)). For the real plates, fetch fugleramme's art once
-(about 250 MB, never committed here) and point `ART_DIR` at it:
+dawn chorus, deterministic for a given time. The collage needs fugleramme's plates: fetch them
+once (about 250 MB, never committed here) and point `ART_DIR` at them. Until then the birds are
+listed by name.
 
 ```bash
 scripts/fetch-art.sh                     # downloads art/classic
@@ -145,7 +145,6 @@ driving the panel, or on the ESP32 itself.
 | `crates/lan-http` | Plain HTTP/1.1 client and small server (std only) | Done |
 | `crates/transport-lan` | `HttpTransport` for Linux, macOS and Windows | Done |
 | `crates/art-pack` | `no_std` + `alloc`: bird cut-outs, the `.artp` format, the `ArtSource` trait | Done |
-| `crates/art-mock` | `no_std` + `alloc`: generated bird pictures for any species | Done |
 | `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered | Done |
 | `crates/page-text` | `no_std` + `alloc`: the page's words in a dozen languages, from a translations JSON | Done |
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
@@ -190,7 +189,7 @@ The server is configured with environment variables:
 | `WINDOW_HOURS` | `24` | How far back detections count |
 | `UTC_OFFSET_MINUTES` | `0` | Your time zone, for the date range and the "Updated" time |
 | `REFRESH_SECONDS` | `60` | How often the server asks BirdNET-Go for news |
-| `ART_DIR` | unset | fugleramme art style folder, e.g. `art/classic`; unset draws generated birds |
+| `ART_DIR` | unset | fugleramme art style folder, e.g. `art/classic`; unset lists the birds by name |
 | `LAYOUT` | `collage` | `collage` (pictures packed by outline, sized by body mass) or `list` (names and counts) |
 | `MAX_BIRDS` | `0` | Most birds on a page; `0` for every bird heard |
 | `NAMES` | `true` | Whether the collage writes each bird's name under it |
@@ -223,7 +222,7 @@ docker run -p 8080:8080 -e BIRDNET_URL=http://192.168.1.10:8080 \
 ```
 
 Fill the art folder once with `scripts/fetch-art.sh classic /mnt/user/appdata/birdnet-go-frame/art`
-(or leave out the two art lines for generated birds).
+(without the two art lines the birds are listed by name).
 
 `:edge` follows `main`; version tags (`:0.2.0`, `:0.2`) appear with releases. The image is
 `FROM scratch` with one static binary of about 1.7 MB and runs as an unprivileged user. To build

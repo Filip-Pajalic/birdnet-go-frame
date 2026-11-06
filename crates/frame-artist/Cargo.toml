@@ -20,7 +20,6 @@ open-meteo.workspace = true
 page-text.workspace = true
 
 [dev-dependencies]
-art-mock.workspace = true
 birdnet-mock.workspace = true
 
 [lints]

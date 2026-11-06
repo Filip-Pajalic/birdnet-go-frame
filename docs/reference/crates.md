@@ -9,8 +9,7 @@
 | `birdnet-mock` | yes (alloc) | Simulated station, with seasons, rarities and weather | `MockBirdnet`, `MockTransport` |
 | `lan-http` | no | Plain HTTP/1.1 GET client and small server | `get`, `Server`, `Request`, `Response` |
 | `transport-lan` | no | `HttpTransport` for Linux, macOS, Windows | `LanTransport` |
-| `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, and bundles of them for flash | `ArtImage`, `ArtSource`, `ArtBundle`, `Rgba`, `Subject` |
-| `art-mock` | yes (alloc) | Generated bird pictures for any species | `MockArt` |
+| `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, bundles of them for flash, no art, and plain ovals for tests | `ArtImage`, `ArtSource`, `ArtBundle`, `NoArt`, `OutlineArt`, `Rgba`, `Subject` |
 | `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered | `ArtFolder` |
 | `bird-sizes` | yes | AVONET body masses for BirdNET's species | `BirdSizes` |
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
@@ -31,12 +30,12 @@
 
 | App | Binary | Uses |
 | --- | --- | --- |
-| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + almanac + open-meteo + artist + raster + http + home-assistant |
+| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or none) + page-text + almanac + open-meteo + artist + raster + http + home-assistant |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
-| `apps/linux-panel` | `birdnet-go-frame-panel` (Raspberry Pi) | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + standalone + panel-t133a01 / panel-ed2208 on linux-embedded-hal |
+| `apps/linux-panel` | `birdnet-go-frame-panel` (Raspberry Pi) | client + (transport-lan or mock) + (art-webp or none) + page-text + artist + standalone + panel-t133a01 / panel-ed2208 on linux-embedded-hal |
 | `tools/art-packer` | `art-packer` | art-webp + art-pack + frame-http's zlib: packs plates into a bundle for firmware flash |
 | `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware, EE02 or reTerminal E1002) | panel-wake + panel-setup + transport-esp + glass-esp + frame-core, on esp-hal; its own workspace |
-| `apps/ee02-standalone` | `ee02-standalone` (ESP32-S3 firmware with no server, EE02 or reTerminal E1002) | birdnet-client + frame-standalone + artist + raster + art-pack (a bundle in flash) or art-mock + page-text + transport-esp + glass-esp, on esp-hal; its own workspace |
+| `apps/ee02-standalone` | `ee02-standalone` (ESP32-S3 firmware with no server, EE02 or reTerminal E1002) | birdnet-client + frame-standalone + artist + raster + art-pack (a bundle in flash, or none) + page-text + transport-esp + glass-esp, on esp-hal; its own workspace |
 
 ## Planned
 
