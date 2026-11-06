@@ -13,5 +13,10 @@ frame-artist.workspace = true
 frame-core.workspace = true
 panel-wake.workspace = true
 
+[dev-dependencies]
+art-mock.workspace = true
+art-pack.workspace = true
+frame-raster.workspace = true
+
 [lints]
 workspace = true

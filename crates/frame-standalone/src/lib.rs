@@ -29,11 +29,15 @@ extern crate alloc;
 
 mod birdnet_answer;
 mod birdnet_request;
+mod drawing_resolution;
 mod fingerprint;
 pub mod http_date;
 mod standalone_memory;
+mod standalone_settings;
 
 pub use birdnet_answer::{AnswerError, BirdnetAnswer};
 pub use birdnet_request::birdnet_request;
+pub use drawing_resolution::drawing_resolution;
 pub use fingerprint::Fingerprint;
 pub use standalone_memory::{StandaloneMemory, StandaloneWake};
+pub use standalone_settings::{SettingsError, StandaloneSettings};

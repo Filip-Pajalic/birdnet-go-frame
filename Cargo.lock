@@ -212,9 +212,12 @@ dependencies = [
 name = "frame-standalone"
 version = "0.1.0"
 dependencies = [
+ "art-mock",
+ "art-pack",
  "birdnet-model",
  "frame-artist",
  "frame-core",
+ "frame-raster",
  "panel-wake",
 ]
 
