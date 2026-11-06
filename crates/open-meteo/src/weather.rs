@@ -66,7 +66,10 @@ mod test {
         assert_eq!(weather.sky, Sky::Clear);
         assert!((weather.temperature_c - 5.1).abs() < 0.01);
         assert!((weather.high_c - 6.0).abs() < 0.01 && (weather.low_c - 2.4).abs() < 0.01);
-        assert_eq!((weather.sunrise.as_str(), weather.sunset.as_str()), ("07:19", "15:42"));
+        assert_eq!(
+            (weather.sunrise.as_str(), weather.sunset.as_str()),
+            ("07:19", "15:42")
+        );
     }
 
     #[test]

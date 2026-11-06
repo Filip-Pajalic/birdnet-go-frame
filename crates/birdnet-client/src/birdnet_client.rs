@@ -100,7 +100,8 @@ impl<T: HttpTransport> BirdnetClient<T> {
                 .iter()
                 .map(|name| format!("&species={}", query_escape(name)))
                 .collect();
-            let path: String = format!("/analytics/time/hourly/batch?date={date}{}", names.concat());
+            let path: String =
+                format!("/analytics/time/hourly/batch?date={date}{}", names.concat());
             let body: Vec<u8> = self.fetch(&path)?;
             all.extend(SpeciesHours::parse_batch(&body).map_err(ClientError::Parse)?);
         }

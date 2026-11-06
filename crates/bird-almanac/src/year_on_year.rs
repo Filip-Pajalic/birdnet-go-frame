@@ -65,7 +65,11 @@ mod test {
     #[test]
     fn sorts_gains_from_losses() {
         let now = [bird("Parus major"), bird("Bombycilla garrulus")];
-        let then = [bird("Parus major"), bird("Turdus iliacus"), bird("Pica pica")];
+        let then = [
+            bird("Parus major"),
+            bird("Turdus iliacus"),
+            bird("Pica pica"),
+        ];
         let compared = YearOnYear::new(&now, &then);
         assert_eq!((compared.now, compared.then), (2, 3));
         assert_eq!(compared.gained[0].common_name, "Bombycilla garrulus");

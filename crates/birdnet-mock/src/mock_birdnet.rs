@@ -89,7 +89,9 @@ impl MockBirdnet {
         let hour: u32 = u32::try_from(local.rem_euclid(SECONDS_PER_DAY) / 3_600).unwrap_or(0);
         Day {
             hours: hour + 1,
-            ..self.day(CivilDate::from_days_since_epoch(local.div_euclid(SECONDS_PER_DAY)))
+            ..self.day(CivilDate::from_days_since_epoch(
+                local.div_euclid(SECONDS_PER_DAY),
+            ))
         }
     }
 
@@ -333,7 +335,12 @@ mod test {
         let year: Vec<SpeciesSummary> = client
             .species_summary(DateWindow::year_to_date(DAWN, 0))
             .expect("mock answers");
-        assert!(year.len() > today.len(), "{} vs {}", year.len(), today.len());
+        assert!(
+            year.len() > today.len(),
+            "{} vs {}",
+            year.len(),
+            today.len()
+        );
         let named = |rows: &[SpeciesSummary], name: &str| {
             rows.iter()
                 .find(|row| row.scientific_name.as_str() == name)
@@ -341,10 +348,19 @@ mod test {
         };
         // Swifts are about in summer only, so they are on the year list but not in November.
         let swift: SpeciesSummary = named(&year, "Apus apus").expect("heard in summer");
-        assert!(swift.first_heard.as_deref().is_some_and(|first| first.starts_with("2026-05")));
+        assert!(
+            swift
+                .first_heard
+                .as_deref()
+                .is_some_and(|first| first.starts_with("2026-05"))
+        );
         assert!(named(&today, "Apus apus").is_none());
         let tit: SpeciesSummary = named(&year, "Parus major").expect("a resident");
-        assert!(tit.first_heard.as_deref().is_some_and(|first| first.starts_with("2026-01-01")));
+        assert!(
+            tit.first_heard
+                .as_deref()
+                .is_some_and(|first| first.starts_with("2026-01-01"))
+        );
     }
 
     #[test]
@@ -353,7 +369,10 @@ mod test {
         let today: Vec<SpeciesSummary> = client
             .species_summary(DateWindow::days_back(DAWN, 0, 1))
             .expect("mock answers");
-        let names: Vec<&str> = today.iter().map(|row| row.scientific_name.as_str()).collect();
+        let names: Vec<&str> = today
+            .iter()
+            .map(|row| row.scientific_name.as_str())
+            .collect();
         let date: CivilDate = DateWindow::local_date(DAWN, 0);
         let hours: Vec<SpeciesHours> = client.hourly(date, &names).expect("mock answers");
         assert_eq!(hours.len(), today.len());

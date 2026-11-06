@@ -55,8 +55,7 @@ impl CivilDate {
         let year_of_era: i64 = year.rem_euclid(400);
         let shifted_month: i64 = if month > 2 { month - 3 } else { month + 9 };
         let day_of_year: i64 = (153 * shifted_month + 2) / 5 + i64::from(self.day) - 1;
-        let day_of_era: i64 =
-            year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+        let day_of_era: i64 = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
         era * 146_097 + day_of_era - 719_468
     }
 
@@ -136,7 +135,10 @@ mod test {
     #[test]
     fn counts_days_both_ways() {
         for days in [-800_000, -1, 0, 19_782, 20_398, 400_000] {
-            assert_eq!(CivilDate::from_days_since_epoch(days).days_since_epoch(), days);
+            assert_eq!(
+                CivilDate::from_days_since_epoch(days).days_since_epoch(),
+                days
+            );
         }
     }
 

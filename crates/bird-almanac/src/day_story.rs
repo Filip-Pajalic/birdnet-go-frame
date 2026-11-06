@@ -70,8 +70,12 @@ impl DayStory {
             })
             .and_then(|(hour, _)| u32::try_from(hour).ok());
         Self {
-            first: firsts.into_iter().min_by(|left, right| left.time.cmp(&right.time)),
-            last: lasts.into_iter().max_by(|left, right| left.time.cmp(&right.time)),
+            first: firsts
+                .into_iter()
+                .min_by(|left, right| left.time.cmp(&right.time)),
+            last: lasts
+                .into_iter()
+                .max_by(|left, right| left.time.cmp(&right.time)),
             chorus,
             peak_hour,
         }
@@ -99,10 +103,22 @@ mod test {
     fn finds_first_and_last_singers_of_the_day() {
         let date: CivilDate = CivilDate::parse("2026-11-06").expect("a date");
         let species = [
-            bird("Turdus merula", "2026-11-06T05:05:00+01:00", "2026-11-06T16:55:00+01:00"),
+            bird(
+                "Turdus merula",
+                "2026-11-06T05:05:00+01:00",
+                "2026-11-06T16:55:00+01:00",
+            ),
             // First heard yesterday, so it cannot be today's first.
-            bird("Strix aluco", "2026-11-05T23:05:00+01:00", "2026-11-06T04:55:00+01:00"),
-            bird("Parus major", "2026-11-06T06:05:00+01:00", "2026-11-06T17:55:00+01:00"),
+            bird(
+                "Strix aluco",
+                "2026-11-05T23:05:00+01:00",
+                "2026-11-06T04:55:00+01:00",
+            ),
+            bird(
+                "Parus major",
+                "2026-11-06T06:05:00+01:00",
+                "2026-11-06T17:55:00+01:00",
+            ),
         ];
         let mut hours: [u32; 24] = [0; 24];
         hours[6] = 9;
@@ -113,8 +129,14 @@ mod test {
         }];
         let story = DayStory::new(date, &species, &counts);
         let first: Singer = story.first.expect("a first singer");
-        assert_eq!((first.species.common_name.as_str(), first.time.as_str()), ("Turdus merula", "05:05"));
-        assert_eq!(story.last.map(|singer| singer.time), Some(String::from("17:55")));
+        assert_eq!(
+            (first.species.common_name.as_str(), first.time.as_str()),
+            ("Turdus merula", "05:05")
+        );
+        assert_eq!(
+            story.last.map(|singer| singer.time),
+            Some(String::from("17:55"))
+        );
         assert_eq!(story.peak_hour, Some(6));
     }
 }

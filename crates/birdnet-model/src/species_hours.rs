@@ -53,7 +53,9 @@ impl SpeciesHours {
     /// Returns the detections over the whole day.
     #[must_use]
     pub fn total(&self) -> u32 {
-        self.hours.iter().fold(0, |sum, &count| sum.saturating_add(count))
+        self.hours
+            .iter()
+            .fold(0, |sum, &count| sum.saturating_add(count))
     }
 }
 
@@ -66,7 +68,10 @@ mod test {
         let body = br#"{"Parus major":[{"hour":5,"count":12},{"hour":6,"count":3},{"hour":30,"count":9}],"Pica pica":[]}"#;
         let species: Vec<SpeciesHours> = SpeciesHours::parse_batch(body).expect("parses");
         assert_eq!(species.len(), 2);
-        assert_eq!(species[0].scientific_name, ScientificName::new("parus major"));
+        assert_eq!(
+            species[0].scientific_name,
+            ScientificName::new("parus major")
+        );
         assert_eq!((species[0].hours[5], species[0].total()), (12, 15));
         assert_eq!(species[1].total(), 0);
         assert!(SpeciesHours::parse_batch(b"[]").is_err());
