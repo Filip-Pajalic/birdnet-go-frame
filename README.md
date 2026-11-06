@@ -21,11 +21,24 @@ fugleramme does, and sized as big as the page allows so the cluster reaches its 
 [fugleramme](https://github.com/arnegiacomo/fugleramme), CC BY-SA 4.0 (sources in each style's
 `ATTRIBUTION.md`).*
 
+## Pages
+
+Besides today's birds, a frame can show the week, today's rarest birds, the day's story and the
+year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
+drawn first and biggest, and frames wake every 5 minutes while it is about. Frames report
+battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).
+
+| The day so far | The year so far |
+| --- | --- |
+| ![The story page: first and last singers, the weather, and when each bird sang](docs/images/view-story.png) | ![The season page: species this year, arrivals, this week last year, the year list](docs/images/view-season.png) |
+
 ## Quick start (no BirdNET-Go needed)
 
 ```bash
 BIRDNET_URL=mock cargo run --release -p server
 # open http://localhost:8080/
+# other pages: http://localhost:8080/preview.png?view=story (or week, rarest, season)
+# spring in the simulated garden: MOCK_DATE=2026-05-01
 ```
 
 `BIRDNET_URL=mock` uses the built-in simulated station: a garden of 35 European species with a
@@ -133,9 +146,12 @@ driving the panel, or on the ESP32 itself.
 | `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered | Done |
 | `crates/page-text` | `no_std` + `alloc`: the page's words in a dozen languages, from a translations JSON | Done |
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
-| `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline, out to the page's corners | Collage and text list done |
+| `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline, out to the page's corners; the story chart and season page | Collage, list, story and season done |
+| `crates/bird-almanac` | `no_std` + `alloc`: new birds for the year, arrivals, the rarest, year on year, the day's story | Done |
+| `crates/open-meteo` | `no_std` + `alloc`: today's weather from Open-Meteo, keyless | Done |
+| `crates/home-assistant` | Frames as Home Assistant devices over MQTT discovery, with a small MQTT publisher | Done |
 | `crates/frame-raster` | `no_std` + `alloc`: draws pictures and text, boosts and dithers to six inks | Done |
-| `crates/frame-http` | Serves `/panel`, `/frame.png`, `/preview.png`; a small zlib compressor for them | Done |
+| `crates/frame-http` | Serves `/panel`, `/frame.png`, `/preview.png` per frame and view, `/api/frames` and firmware; a small zlib compressor | Done |
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
 | `crates/panel-t133a01` | `no_std`: the 13.3" panel's two controllers over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
@@ -173,6 +189,13 @@ The server is configured with environment variables:
 | `HEADING` | unset | A heading over the page; the collage has none by default, like fugleramme |
 | `LANGUAGE` | `en` | Language of the page's own words, e.g. `sv`, `nb`, `de` (bird names come from BirdNET-Go) |
 | `TRANSLATIONS` | unset | A translations JSON adding languages or overriding words |
+| `VIEW` | `today` | Page for frames that do not ask: `today`, `week`, `rarest`, `story` or `season` |
+| `FRAMES` | unset | Frames with their own settings, e.g. `hall:layout=collage;desk:layout=list,panel=7.3,view=story` |
+| `LATITUDE`, `LONGITUDE` | unset | Where the garden is, for the weather and sunrise on the story page (Open-Meteo, no key) |
+| `ALERT_POLL_MINUTES` | `5` | How long frames sleep while a bird new for the year is about; `0` for no change |
+| `MQTT_URL` | unset | `mqtt://user:password@host:port`: announce frames' battery and last wake to Home Assistant |
+| `FIRMWARE_DIR` | unset | Folder with `ee02-thin.bin` and `ee02-thin.version`, offered to EE02 frames over Wi-Fi |
+| `MOCK_DATE` | unset | With `BIRDNET_URL=mock`, pretend it is another day, e.g. `2026-05-01` |
 
 The page is redrawn only when the set of species changes (or a new day picks other plates), so
 most panel wakes get a 304. Details, and the translations format, are in

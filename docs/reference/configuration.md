@@ -22,6 +22,40 @@ The server reads environment variables at start-up.
 | `HEADING` | unset | text | A heading over the page. Unset: none on the collage (birds only, like fugleramme), the translated "Heard in the garden" on the list. |
 | `LANGUAGE` | `en` | language code | Language of the page's own words (heading, "No birds heard yet", "Updated 07:30"), e.g. `sv`, `nb`, `de`, `pt-BR`. A regional code falls back to its main language, then to English. Bird names come from BirdNET-Go in its own language setting. |
 | `TRANSLATIONS` | unset | file | A translations JSON adding languages or overriding words; see below. |
+| `VIEW` | `today` | `today`, `week`, `rarest`, `story`, `season` | The page frames show when they do not ask for one with `view=`. See [Pages and views](../explanation/pages-and-views.md). |
+| `FRAMES` | unset | frames | Frames with settings of their own, chosen by `frame=`; see [Frames](#frames). |
+| `LATITUDE`, `LONGITUDE` | unset | degrees | Where the garden is, for the weather and sunrise on the story page, from [Open-Meteo](https://open-meteo.com/) (free, no key). Set both or neither; unset leaves the weather off. With `BIRDNET_URL=mock` the simulated garden has weather of its own. |
+| `WEATHER_URL` | `http://api.open-meteo.com` | URL | Where Open-Meteo is, e.g. a self-hosted copy. Plain HTTP: the server speaks no TLS. |
+| `ALERT_POLL_MINUTES` | `5` | 0 to 255 | Minutes frames sleep while a bird new for the year is about, instead of `POLL_MINUTES`. `0` turns the shorter sleep off; the bird is still featured. |
+| `ALERT_MINUTES` | `60` | minutes | How long after a new bird was last heard the shorter sleep lasts. |
+| `ALMANAC_MINUTES` | `30` | minutes | How often the week, the year, last year's week, the hourly counts and the weather are asked for again. They are also asked for whenever today's birds change. |
+| `MQTT_URL` | unset | `mqtt://user:password@host:port` | An MQTT broker to announce frames to Home Assistant on; the login and port (1883) may be left out. See [Show frames in Home Assistant](../how-to/show-frames-in-home-assistant.md). The password is never printed. |
+| `MQTT_DISCOVERY_PREFIX` | `homeassistant` | text | Home Assistant's MQTT discovery prefix. |
+| `FIRMWARE_DIR` | unset | folder | A folder holding `ee02-thin.bin` and `ee02-thin.version` to offer EE02 frames over Wi-Fi. The version must be the one built into the image. See [Set up and update the EE02 over Wi-Fi](../how-to/set-up-ee02-over-wifi.md). |
+| `MOCK_DATE` | unset | `YYYY-MM-DD` | With `BIRDNET_URL=mock`, the day the simulated garden pretends it is, keeping the time of day: to see spring's arrivals or a rare bird in November. |
+
+## Frames
+
+`FRAMES` names frames and what each shows, so a big collage in the hall and a small list on the
+desk can share one server. Frames are separated by `;`; each is a name (`a-z`, `0-9` and `-`, at
+most 32), `:`, and settings separated by `,`:
+
+```text
+FRAMES=hall:layout=collage;desk:layout=list,panel=7.3,rotation=90,view=story,max_birds=12
+```
+
+| Setting | Values | Default |
+| --- | --- | --- |
+| `layout` | `collage`, `list` | `LAYOUT` |
+| `view` | `today`, `week`, `rarest`, `story`, `season` | `VIEW` |
+| `panel` | `13.3`, `7.3` | `PANEL` |
+| `rotation` | `0`, `90`, `180`, `270` | `ROTATION` |
+| `max_birds` | number, `0` for all | `MAX_BIRDS` |
+| `names` | `true`, `false` | `NAMES` |
+| `heading` | text without `,` or `;` | `HEADING` |
+
+A frame asks with `frame=<name>`, set on its setup page. A frame that gives no name, or a name not
+in `FRAMES`, gets the server's own settings.
 
 ## Translations
 
@@ -49,6 +83,25 @@ file named by `TRANSLATIONS` has the same shape and wins word by word, so it can
 | `more` | Counts species left off the list | `{count}` |
 | `updated` | Foot of the list page | `{time}` |
 | `unreachable` | Heading when BirdNET-Go cannot be reached | |
+| `heading_week`, `heading_rarest` | Headings of the week and rarest pages | |
+| `new_for_year` | Heading when a bird is new for the year | `{name}` |
+| `story_heading` | Heading of the story page | |
+| `first_song`, `last_song` | The day's first and latest singer | `{time}`, `{name}` |
+| `chorus_peak` | The busiest hour | `{time}` |
+| `whole_chorus` | The chart's row of every bird together | |
+| `weather` | The weather line | `{sky}`, `{now}`, `{low}`, `{high}` |
+| `sunrise`, `sunset` | Marks on the chart | |
+| `sky_clear`, `sky_partly_cloudy`, `sky_overcast`, `sky_fog`, `sky_drizzle`, `sky_rain`, `sky_snow`, `sky_thunder`, `sky_unknown` | What the sky is doing | |
+| `season_heading` | Heading of the season page | |
+| `year_count` | Species this year | `{count}` |
+| `arrivals`, `no_arrivals` | The arrivals column, and its line when it is empty | |
+| `last_year`, `now_then` | The year-on-year column, and its first line | `{now}`, `{then}` |
+| `gained`, `missing` | Beside birds heard only now, or only last year | |
+| `year_list` | Title of the year list | |
+| `months` | Month abbreviations, January first, separated by spaces | |
+
+The words of the story and season pages are in English and Swedish; other languages show them in
+English until a translations file adds them.
 
 An invalid value stops the server with a message naming the variable, e.g.
 `ROTATION: cannot read "45": rotation must be 0, 90, 180 or 270`.

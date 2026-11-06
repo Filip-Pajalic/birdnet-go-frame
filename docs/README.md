@@ -20,6 +20,8 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 - [Build and flash the EE02 firmware](how-to/flash-ee02-thin.md)
 - [Set up and update the EE02 over Wi-Fi, and use its buttons](how-to/set-up-ee02-over-wifi.md)
 - [Show the page on an EE02 with fugleramme's MicroPython firmware](how-to/show-on-ee02.md)
+- [Give each frame its own page](how-to/give-each-frame-its-own-page.md)
+- [Show frames in Home Assistant](how-to/show-frames-in-home-assistant.md)
 - [Develop and test without a microphone](how-to/develop-and-test.md)
 
 ## Reference
@@ -34,6 +36,7 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 ## Explanation
 
 - [Architecture: how the pieces fit](explanation/architecture.md)
+- [Pages and views: today, week, rarest, story, season, and the new-bird alert](explanation/pages-and-views.md)
 - [How the image is made](explanation/image-pipeline.md)
 - [Power, polling and refresh](explanation/power-and-refresh.md)
 - [Design decisions](explanation/design-decisions.md)

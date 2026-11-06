@@ -4,9 +4,9 @@
 | --- | --- | --- | --- |
 | `frame-core` | yes | Shared page format, and unpacking it | `Ink`, `Rotation`, `PanelSize`, `Glass` (what every panel driver does), `IndexedImage`, `PageSizeError`, `Crc32`, `panel_bytes::pack`, `inflate_zlib` |
 | `lite-json` | yes (alloc) | A small JSON reader, in place of serde | `Json`, `JsonError` |
-| `birdnet-model` | yes (alloc) | BirdNET-Go response types | `SpeciesSummary`, `Detection`, `ScientificName` |
+| `birdnet-model` | yes (alloc) | BirdNET-Go response types | `SpeciesSummary`, `SpeciesHours`, `Detection`, `ScientificName` |
 | `birdnet-client` | yes (alloc) | API client | `BirdnetClient<T>`, `HttpTransport`, `DateWindow`, `CivilDate` |
-| `birdnet-mock` | yes (alloc) | Simulated station | `MockBirdnet`, `MockTransport` |
+| `birdnet-mock` | yes (alloc) | Simulated station, with seasons, rarities and weather | `MockBirdnet`, `MockTransport` |
 | `lan-http` | no | Plain HTTP/1.1 GET client and small server | `get`, `Server`, `Request`, `Response` |
 | `transport-lan` | no | `HttpTransport` for Linux, macOS, Windows | `LanTransport` |
 | `art-pack` | yes (alloc) | Bird cut-outs and their `.artp` format | `ArtImage`, `ArtSource`, `Rgba`, `Subject` |
@@ -14,10 +14,13 @@
 | `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered | `ArtFolder` |
 | `bird-sizes` | yes | AVONET body masses for BirdNET's species | `BirdSizes` |
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
-| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `ImageBlock`, `TextBlock`, `size_weights` |
+| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
-| `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `panel_bytes` |
-| `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
+| `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, a featured bird, the story and season pages, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `PageView`, `DayFacts`, `YearFacts`, `panel_bytes` |
+| `bird-almanac` | yes (alloc) | What longer windows say: birds new for the year, arrivals after an absence, the rarest of today's birds, this week against last year's, and the day's story | `Almanac`, `Arrival`, `YearOnYear`, `DayStory` |
+| `open-meteo` | yes (alloc) | Today's weather from Open-Meteo's free forecast API, over any `HttpTransport` | `OpenMeteo`, `Weather`, `Sky` |
+| `home-assistant` | no | Announces frames to Home Assistant: just enough MQTT 3.1.1 to publish, and the discovery messages | `mqtt::publish`, `discovery::frame_messages` |
+| `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target`, `FrameLog`, `query_value` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 | `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |
 | `panel-wake` | yes (alloc) | A panel's wake: the request (view, frame name, battery, version), reading the answer, unpacking and checking the page, planning the sleep, button presses, whether and what firmware to install, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `PageRequest`, `PageView`, `Button`, `FirmwareImage`, `FirmwareUpdate`, `battery_millivolts`, `page_request` |
@@ -26,7 +29,7 @@
 
 | App | Binary | Uses |
 | --- | --- | --- |
-| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + raster + http |
+| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + almanac + open-meteo + artist + raster + http + home-assistant |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
 | `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + panel-setup + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
 
