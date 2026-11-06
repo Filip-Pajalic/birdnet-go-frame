@@ -78,6 +78,7 @@ impl StoryPage {
                 footer: &options.footer,
                 sprays: &options.sprays,
                 packed_round: false,
+                widths_em: (0.0, 0.0),
             },
         );
         let line_size: f32 = body.heading_size * 0.5;
