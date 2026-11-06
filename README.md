@@ -6,11 +6,12 @@ then shows the result on a 13.3" six-colour e-ink panel and runs on battery for 
 
 > **Status:** early development. The server is done: it serves the illustrated collage (or a
 > text list), drawn with fugleramme's 1800s plates when you fetch them or with generated birds
-> out of the box, logs in to a private BirdNET-Go, and installs on Unraid from a template. On the
-> panel side, the driver for the 13.3" panel and the logic of each wake are written and tested
-> against mocks and the real server; the ESP32 app that ties them to Wi-Fi and the board comes
-> next and needs the hardware to prove. Until then, fugleramme's MicroPython EE02 firmware needs a
-> few lines changed to read `/panel` (see [Show the page on an EE02](docs/how-to/show-on-ee02.md)).
+> out of the box, logs in to a private BirdNET-Go, and installs on Unraid from a template. The
+> EE02 firmware (`apps/ee02-thin`) builds for the ESP32-S3 in CI and its logic is tested on any
+> machine, but it has not run on the hardware yet: see
+> [Build and flash the EE02 firmware](docs/how-to/flash-ee02-thin.md), and please report what you
+> find. fugleramme's MicroPython firmware also works with a few lines changed
+> ([how](docs/how-to/show-on-ee02.md)).
 
 ![The collage with fugleramme's classic plates](docs/images/collage-classic.jpg)
 
@@ -86,9 +87,9 @@ BirdNET-Go (/api/v2) ──JSON──▶ apps/server  ───/panel or 304─�
 2. **The server** (`apps/server`) is a single static binary (or a `FROM scratch` container). It polls
    BirdNET-Go, builds a collage of the species heard, dithers it to the panel's six inks, and
    serves it at `/panel`. It re-renders only when the set of birds changes.
-3. **The firmware** runs on a Seeed XIAO EE02 (ESP32-S3) board. It wakes on a timer and sends a
-   conditional `GET /panel`. It refreshes the panel only if the image changed, then goes back to
-   deep sleep.
+3. **The firmware** (`apps/ee02-thin`) runs on a Seeed XIAO EE02 (ESP32-S3) board. It wakes on
+   a timer, rejoins the Wi-Fi it remembers, and sends a conditional `GET /panel`. It refreshes
+   the panel only if the image changed, then deep-sleeps for the server's `max-age`.
 
 `/panel` sends the same pixel bytes as fugleramme's `/frame.e6`, without its header and
 compressed, so the radio moves about a quarter of the bytes per new page; see
@@ -130,9 +131,10 @@ driving the panel, or on the ESP32 itself.
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
 | `crates/panel-t133a01` | `no_std`: the 13.3" panel's two controllers over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
-| `crates/panel-wake` | `no_std` + `alloc`: each wake's request, unpacking and checking the page, sleep and back-off, RTC state | Done; tested against the real server |
-| `crates/transport-esp`, `tools/art-packer` | ESP32 networking, art on an SD card | Planned |
-| `apps/ee02-thin` | ESP32 firmware: Wi-Fi, `panel-wake` and `panel-t133a01` on the EE02 | Next; needs the board |
+| `crates/panel-wake` | `no_std` + `alloc`: each wake's request, unpacking and checking the page, sleep and back-off, the RTC memory and Wi-Fi rejoin record | Done; tested against the real server |
+| `crates/transport-esp` | `no_std` + `alloc`: ESP32 Wi-Fi with fast rejoin and one HTTP GET, on `esp-radio` and `embassy-net` | Builds for the ESP32-S3; untried on hardware |
+| `apps/ee02-thin` | ESP32-S3 firmware: `panel-wake`, `transport-esp` and `panel-t133a01` on the EE02, deep sleep between wakes | Builds for the ESP32-S3; untried on hardware |
+| `tools/art-packer` | Art on an SD card for an ESP32 that renders its own page | Planned |
 | `apps/ee02-standalone`, `apps/linux-panel` | ESP32 that draws its own page; a Raspberry Pi panel | Planned |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
 | `deploy/` | Dockerfile, Unraid template | |
@@ -212,12 +214,22 @@ cargo test --workspace
 Contributions are welcome, from forks too: see [CONTRIBUTING.md](CONTRIBUTING.md), the
 [code of conduct](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). CI runs on every pull
 request without secrets: formatting, clippy, tests on Linux, macOS and Windows, the minimum Rust
-version, a bare-metal build of the `no_std` crates, docs and `cargo deny`. Pushing a `v*` tag
+version, a bare-metal build of the `no_std` crates, the ESP32-S3 firmware, docs and `cargo deny`. Pushing a `v*` tag
 builds the release binaries and the container image.
 
-The ESP32 apps will use Espressif's Rust toolchain (`espup install`) and build from their `apps/`
-folder. The panel crates they build on (`panel-t133a01`, `panel-wake`) already build for bare
-metal in CI and test on any machine.
+The firmware uses Espressif's Rust toolchain and builds from its own folder, which has its own
+workspace and lock file so the commands above never need that toolchain:
+
+```bash
+espup install --targets esp32s3 --toolchain-version 1.98.1.0 && . ~/export-esp.sh
+cd apps/ee02-thin
+FRAME_WIFI_SSID=... FRAME_WIFI_PASSWORD=... FRAME_SERVER=192.168.1.20:8081 cargo run --release
+```
+
+See [Build and flash the EE02 firmware](docs/how-to/flash-ee02-thin.md) and
+[the firmware reference](docs/reference/firmware.md). CI builds it and runs clippy on it on every
+push; the crates it builds on (`panel-t133a01`, `panel-wake`) also build for bare metal and test
+on any machine.
 
 ### Code style
 

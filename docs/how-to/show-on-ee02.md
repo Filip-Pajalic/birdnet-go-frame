@@ -1,8 +1,10 @@
-# Show the page on a Seeed EE02 panel
+# Show the page on an EE02 with fugleramme's MicroPython firmware
 
-Until birdnet-go-frame's own Rust firmware is ready, use fugleramme's MicroPython firmware for the
-EE02 with a few lines changed: it was written for `/frame.e6`, and this server sends the same
-pixels at `/panel`, compressed and without the `.e6` header.
+birdnet-go-frame has its own Rust firmware for the EE02: see
+[Build and flash the EE02 firmware](flash-ee02-thin.md). If you already run fugleramme's
+MicroPython firmware, or want to compare, it works too with a few lines changed: it was written
+for `/frame.e6`, and this server sends the same pixels at `/panel`, compressed and without the
+`.e6` header.
 
 ## You need
 

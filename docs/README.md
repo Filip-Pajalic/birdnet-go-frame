@@ -17,7 +17,8 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 
 - [Connect to your BirdNET-Go](how-to/connect-birdnet-go.md)
 - [Run the server in Docker or on Unraid](how-to/run-in-docker-or-unraid.md)
-- [Show the page on a Seeed EE02 panel](how-to/show-on-ee02.md)
+- [Build and flash the EE02 firmware](how-to/flash-ee02-thin.md)
+- [Show the page on an EE02 with fugleramme's MicroPython firmware](how-to/show-on-ee02.md)
 - [Develop and test without a microphone](how-to/develop-and-test.md)
 
 ## Reference
@@ -26,6 +27,7 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 - [HTTP endpoints](reference/http-endpoints.md)
 - [The panel format](reference/panel-format.md)
 - [Crates and apps](reference/crates.md)
+- [The EE02 firmware: settings, wake, memory, pins](reference/firmware.md)
 
 ## Explanation
 

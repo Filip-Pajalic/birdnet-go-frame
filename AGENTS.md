@@ -24,6 +24,12 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
   `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `art-mock`, `bird-sizes`,
   `page-text`, `frame-layout`, `frame-raster`, `panel-t133a01` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
   only crate that decodes images.
+- The ESP32 firmware (`apps/ee02-thin`) and its radio crate (`crates/transport-esp`, `no_std`)
+  build only with Espressif's Xtensa toolchain, so they sit in their own workspace in
+  `apps/ee02-thin` with their own `Cargo.lock`, excluded from the root one. Keep everything that
+  can be tested on a laptop out of them: decisions, parsing and byte layouts belong in
+  `panel-wake`, and `transport-esp` and the app only move bytes and drive the chip. They repeat
+  the workspace's lints in their own `Cargo.toml`; keep those tables in step.
 - Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`,
   `embedded-hal`'s SPI, pin and delay traits),
   not `cfg` branches inside libraries. Prefer generics over `dyn`.
@@ -34,7 +40,8 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
 The server has eleven third-party crates (`fontdue` and `image-webp` with their own); the panel
 side adds `embedded-hal`. Do not add one without a strong reason: read
 [`docs/explanation/dependencies.md`](docs/explanation/dependencies.md), turn off default
-features, add a row there, and make sure `cargo deny check` passes. Small jobs (JSON, HTTP, PNG,
+features, add a row there, and make sure `cargo deny check` passes. The firmware's crates have
+their own table there; prefer what esp-hal and embassy already bring. Small jobs (JSON, HTTP, PNG,
 zlib both ways) are done in-repo on purpose.
 
 ## Commands
@@ -45,11 +52,20 @@ cargo clippy --workspace --all-targets -- -D warnings      # lints, must be clea
 cargo test --workspace                                     # all tests
 BIRDNET_URL=mock cargo run -p server                       # run against the simulated station
 cargo run -p fake-birdnet -- 127.0.0.1:8090                # simulated BirdNET-Go over HTTP
+
+# Firmware, after `espup install --targets esp32s3 --toolchain-version 1.98.1.0`:
+. ~/export-esp.sh
+cd apps/ee02-thin
+export FRAME_WIFI_SSID=ci FRAME_WIFI_PASSWORD=ci-password FRAME_SERVER=192.0.2.1:8080
+cargo +nightly fmt --check && (cd ../../crates/transport-esp && cargo +nightly fmt --check)
+cargo clippy --release --locked -- -D warnings
+cargo build --release --locked
 ```
 
 Run fmt, clippy and tests before every commit; CI runs the same with `--locked`, plus tests on
 Linux, macOS and Windows, the minimum Rust version (1.87, set by fontdue), a bare-metal build of
-the `no_std` crates, `cargo doc` and `cargo deny`.
+the `no_std` crates, `cargo doc` and `cargo deny`, and builds the firmware with the Xtensa
+toolchain. The firmware cannot be tested on the host; prove its logic with tests in `panel-wake`.
 
 ## Code style
 
