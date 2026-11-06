@@ -3,7 +3,7 @@
 ## fugleramme
 
 Parts of this project (the `/frame.e6` image format in `crates/frame-core`, the panel
-command sequence in `firmware/ee02`, and ideas in `crates/frame-render`) are derived from
+command sequence in `crates/panel-t133a01`, and ideas in `crates/frame-layout`) are derived from
 fugleramme: https://github.com/arnegiacomo/fugleramme
 
 Files containing ported code say so in their header comment.

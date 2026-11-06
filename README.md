@@ -14,13 +14,13 @@ exist without that project, its artwork curation and its ESP32 panel work. See
 ## How it works
 
 ```
-BirdNET-Go (/api/v2) ──JSON──▶ frame-server ──/frame.e6 or 304──▶ ESP32-S3 + e-ink panel
+BirdNET-Go (/api/v2) ──JSON──▶ apps/server  ──/frame.e6 or 304──▶ ESP32-S3 + e-ink panel
         (Unraid / any Docker host)                                 (wakes, redraws, sleeps)
 ```
 
 1. **BirdNET-Go** listens to a microphone and identifies birds. You run it already. This project
    only reads its HTTP API.
-2. **`frame-server`** is a single static binary (or a `FROM scratch` container). It polls
+2. **The server** (`apps/server`) is a single static binary (or a `FROM scratch` container). It polls
    BirdNET-Go, builds a collage of the species heard, dithers it to the panel's six inks, and
    serves it at `/frame.e6`. It re-renders only when the set of birds changes.
 3. **The firmware** runs on a Seeed XIAO EE02 (ESP32-S3) board. It wakes on a timer and sends a
@@ -42,18 +42,32 @@ the other.
 
 ## Repository layout
 
+Everything is a library crate. The crates under `apps/` are thin binaries that only choose which
+libraries to wire together, so the same rendering code can run on a server, on a Raspberry Pi
+driving the panel, or on the ESP32 itself.
+
 | Path | What |
 | --- | --- |
-| `crates/frame-core` | `no_std` crate: E6 image format, palette, packing, CRC. Shared by server and firmware |
-| `crates/frame-render` | BirdNET-Go client, collage layout, dithering, text |
-| `crates/frame-server` | HTTP server binary |
-| `firmware/ee02` | ESP32-S3 firmware (`esp-idf-svc`) |
+| `crates/frame-core` | `no_std`: E6 image format, palette, panel geometry, CRC |
+| `crates/birdnet-model` | `no_std` + `alloc`: detection and species types, JSON parsing |
+| `crates/birdnet-client` | `no_std` + `alloc`: BirdNET-Go API client, generic over an HTTP transport |
+| `crates/transport-ureq`, `crates/transport-esp` | HTTP transports for Linux and the ESP32 |
+| `crates/art-pack` | `no_std` + `alloc`: compact pre-decoded artwork format and reader |
+| `crates/frame-layout` | `no_std` + `alloc`: picks art, sizes birds by body mass, packs the page |
+| `crates/frame-raster` | `no_std` + `alloc`: draws art and text, dithers to six inks |
+| `crates/panel-t133a01` | `no_std`: 13.3" Spectra 6 driver on `embedded-hal` 1.0 traits |
+| `crates/frame-http` | Serves `/frame.e6`, `/frame.png`, `/preview.png` |
+| `apps/server` | The server for Unraid / Docker |
+| `apps/ee02-thin` | ESP32 firmware that fetches the finished image (best battery life) |
+| `apps/ee02-standalone` | ESP32 firmware that talks to BirdNET-Go and renders on the device |
+| `apps/linux-panel` | Renders and drives the panel directly from a Raspberry Pi |
+| `tools/art-packer` | Converts the webp artwork into `art-pack` files once |
 | `assets/` | Fonts and small data files, each with its own `ATTRIBUTION.md` |
 | `deploy/` | Dockerfile and Unraid template |
 
 ## Configuration (planned)
 
-`frame-server` is configured with environment variables:
+The server is configured with environment variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -69,13 +83,13 @@ the other.
 ## Development
 
 ```bash
-cargo build -p frame-server --release   # server, stable Rust
+cargo build -p server --release         # server, stable Rust
 cargo +nightly fmt --check              # formatting (Google style options need nightly rustfmt)
 cargo clippy --workspace -- -D warnings
 cargo test --workspace
 ```
 
-The firmware uses Espressif's Rust toolchain (`espup install`) and builds from `firmware/ee02`.
+The ESP32 apps use Espressif's Rust toolchain (`espup install`) and build from their `apps/` folder.
 
 ### Code style
 
