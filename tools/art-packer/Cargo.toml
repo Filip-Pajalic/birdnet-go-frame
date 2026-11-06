@@ -1,0 +1,20 @@
+[package]
+name = "art-packer"
+description = "Packs fugleramme's webp plates into one .artb bundle that ESP32 firmware carries in flash."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+art-pack.workspace = true
+art-webp.workspace = true
+frame-http.workspace = true
+
+[dev-dependencies]
+frame-core.workspace = true
+
+[lints]
+workspace = true

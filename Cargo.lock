@@ -25,6 +25,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "art-packer"
+version = "0.1.0"
+dependencies = [
+ "art-pack",
+ "art-webp",
+ "frame-core",
+ "frame-http",
+]
+
+[[package]]
 name = "art-webp"
 version = "0.1.0"
 dependencies = [

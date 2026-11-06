@@ -3,7 +3,8 @@
 //! [`ArtImage`] is a cut-out with transparency. [`ArtSource`] finds the picture for a species,
 //! wherever pictures come from: generated (`art-mock`), files on disk, or an SD card on the
 //! ESP32. The `.artp` encoding ([`ArtImage::encode`], [`ArtImage::decode`]) is a simple
-//! run-length format that needs no image library to read, so it suits microcontrollers.
+//! run-length format that needs no image library to read, so it suits microcontrollers, and
+//! [`ArtBundle`] keeps many of them, by species, in one file a firmware can carry in flash.
 //! `no_std` with `alloc`.
 //!
 //! ```
@@ -19,12 +20,14 @@
 
 extern crate alloc;
 
+mod art_bundle;
 mod art_error;
 mod art_image;
 mod art_source;
 mod rgba;
 mod subject;
 
+pub use art_bundle::{ArtBundle, BundleEntry};
 pub use art_error::ArtError;
 pub use art_image::ArtImage;
 pub use art_source::ArtSource;

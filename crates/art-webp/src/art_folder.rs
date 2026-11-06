@@ -109,6 +109,26 @@ impl ArtFolder {
         self.stems.is_empty()
     }
 
+    /// Returns the scientific names, in lower case, of every species with a plate, sorted:
+    /// `parus-major` and `parus-major-2` both give `parus major`.
+    #[must_use]
+    pub fn species(&self) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .stems
+            .iter()
+            .map(|stem| {
+                let plain: &str = match stem.rsplit_once('-') {
+                    Some((head, number)) if number.parse::<u32>().is_ok() => head,
+                    _ => stem,
+                };
+                plain.replace('-', " ")
+            })
+            .collect();
+        names.sort_unstable();
+        names.dedup();
+        names
+    }
+
     /// Returns the stems of every plate of the species, the plain one first and then the
     /// numbered ones in order. A hybrid's file (`tetrao-urogallus-x-lagopus-lagopus`) is not a
     /// variant of `tetrao-urogallus`.
@@ -193,6 +213,24 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn lists_each_species_once() {
+        let art: ArtFolder = folder(&[
+            "parus-major",
+            "parus-major-2",
+            "pica-pica-3",
+            "tetrao-urogallus-x-lagopus-lagopus",
+        ]);
+        assert_eq!(
+            art.species(),
+            [
+                "parus major",
+                "pica pica",
+                "tetrao urogallus x lagopus lagopus"
+            ]
+        );
+    }
 
     fn folder(stems: &[&str]) -> ArtFolder {
         ArtFolder {

@@ -86,8 +86,10 @@ impl Token {
     }
 }
 
-/// Returns `data` as a zlib stream (RFC 1950) of dynamic-Huffman deflate blocks.
-pub(crate) fn zlib(data: &[u8]) -> Vec<u8> {
+/// Returns `data` as a zlib stream (RFC 1950) of dynamic-Huffman deflate blocks, as `/panel`
+/// sends pages. [`frame_core::inflate_zlib`] unpacks it.
+#[must_use]
+pub fn zlib(data: &[u8]) -> Vec<u8> {
     let tokens: Vec<Token> = parse(data);
     let mut bits = BitWriter::with_capacity(data.len() / 4 + 64);
     // Window 32 KiB, default level; the check bits make the header a multiple of 31.
