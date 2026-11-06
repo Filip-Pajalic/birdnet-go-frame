@@ -1,3 +1,5 @@
 /target
+# The firmware has its own workspace, so its own build folder.
+/apps/ee02-thin/target
 # Artwork fetched by scripts/fetch-art.sh: CC BY-SA 4.0, never committed.
 /art

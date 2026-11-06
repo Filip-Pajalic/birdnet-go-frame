@@ -1,0 +1,5 @@
+# Bytes of stack one function may take before clippy's `large_stack_frames` objects. The main
+# task runs on the main stack, which gets the internal RAM left after statics and the heap (well
+# over 100 KiB), so 8 KiB per frame is a guard against an accidental page-sized array, not a
+# budget.
+stack-size-threshold = 8192

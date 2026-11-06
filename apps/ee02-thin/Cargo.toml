@@ -1,0 +1,64 @@
+[package]
+name = "ee02-thin"
+description = "Firmware for the Seeed XIAO EE02 (ESP32-S3) and the 13.3-inch Spectra 6 panel: fetch /panel, draw it if it changed, deep-sleep."
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
+publish = false
+
+# Its own workspace, built with Espressif's Xtensa toolchain (rust-toolchain.toml, and the target
+# and build-std in .cargo/config.toml). The root workspace excludes it, so `cargo test --workspace`
+# on a laptop never needs that toolchain.
+[workspace]
+
+[dependencies]
+embassy-executor = { version = "0.10.0", default-features = false }
+embassy-futures = { version = "0.1.2", default-features = false }
+embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp"] }
+embassy-time = { version = "0.5.0", default-features = false }
+esp-alloc = { version = "0.11.0", default-features = false, features = ["compat", "esp32s3", "global-allocator"] }
+esp-backtrace = { version = "0.20.0", default-features = false, features = ["esp32s3", "panic-handler", "println"] }
+esp-bootloader-esp-idf = { version = "0.6.0", default-features = false, features = ["esp32s3"] }
+esp-hal = { version = "~1.2.2", default-features = false, features = ["esp32s3", "rt", "unstable"] }
+# GPIO43 and GPIO44, UART0's pins, switch and select the panel on the EE02, so logs go to the
+# USB serial port only.
+esp-println = { version = "0.18.0", default-features = false, features = ["esp32s3", "jtag-serial"] }
+esp-radio = { version = "1.0.0-beta.1", default-features = false, features = ["esp-alloc", "esp32s3", "unstable", "wifi"] }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["embassy", "esp-alloc", "esp-radio", "esp32s3"] }
+frame-core = { path = "../../crates/frame-core", version = "0.1.0" }
+panel-t133a01 = { path = "../../crates/panel-t133a01", version = "0.1.0" }
+panel-wake = { path = "../../crates/panel-wake", version = "0.1.0" }
+# Atomics that esp-hal lets live in RTC memory through deep sleep, so the memory needs no
+# `unsafe`. Already in the tree through esp-hal.
+portable-atomic = { version = "1.11", default-features = false }
+transport-esp = { path = "../../crates/transport-esp", version = "0.1.0" }
+
+[lints.rust]
+missing_docs = "warn"
+unstable_features = "forbid"
+unsafe_code = "forbid"
+
+[lints.clippy]
+borrowed_box = "deny"
+expect_used = "warn"
+large_stack_frames = "deny"
+len_without_is_empty = "deny"
+mem_forget = "deny"
+missing_panics_doc = "warn"
+new_without_default = "deny"
+ptr_arg = "deny"
+should_implement_trait = "deny"
+unwrap_used = "deny"
+wildcard_imports = "deny"
+wrong_self_convention = "deny"
+
+[profile.dev]
+# Unoptimised code is too slow and too big for the chip.
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = "s"

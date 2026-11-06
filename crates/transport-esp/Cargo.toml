@@ -1,0 +1,36 @@
+[package]
+name = "transport-esp"
+description = "Wi-Fi with fast rejoin and a plain HTTP GET for the ESP32, over esp-radio and embassy-net."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
+publish = false
+
+# Built only with Espressif's Xtensa toolchain, from apps/ee02-thin, so it sits outside the main
+# workspace (see the root Cargo.toml's `exclude`). Its dependency versions are locked in
+# apps/ee02-thin/Cargo.lock.
+[dependencies]
+embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp"] }
+embassy-time = { version = "0.5.0", default-features = false }
+esp-radio = { version = "1.0.0-beta.1", default-features = false, features = ["esp-alloc", "esp32s3", "unstable", "wifi"] }
+panel-wake = { path = "../panel-wake", version = "0.1.0" }
+
+# The workspace's lints, repeated because this crate is not a workspace member.
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+unstable_features = "forbid"
+
+[lints.clippy]
+borrowed_box = "deny"
+expect_used = "warn"
+len_without_is_empty = "deny"
+missing_panics_doc = "warn"
+new_without_default = "deny"
+ptr_arg = "deny"
+should_implement_trait = "deny"
+unwrap_used = "deny"
+wildcard_imports = "deny"
+wrong_self_convention = "deny"
