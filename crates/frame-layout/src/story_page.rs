@@ -68,8 +68,13 @@ impl StoryPage {
         let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
         let line_size: f32 = body.heading_size * 0.5;
         let mut top: i32 = body.top;
+        // Lines that would reach into the footer are left off, the last first.
         for line in &options.lines {
-            top += (line_size * 1.45) as i32;
+            let baseline: i32 = top + (line_size * 1.45) as i32;
+            if baseline > body.bottom {
+                break;
+            }
+            top = baseline;
             page.text.push(TextBlock {
                 text: line.clone(),
                 x: body.margin,
@@ -117,6 +122,10 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
     let tick_size: f32 = (body.heading_size * 0.3).max(16.0);
     let chart_top: i32 = body.top + (tick_size * 1.4) as i32;
     let chart_bottom: i32 = body.bottom - (tick_size * 1.6) as i32;
+    // A page too small for one legible row gets no chart rather than one over the footer.
+    if chart_bottom - chart_top < tick_size as i32 {
+        return;
+    }
     // Rows below a legible height are left off, the last first.
     let fitting: usize = usize::try_from((chart_bottom - chart_top) / (tick_size * 1.7) as i32)
         .unwrap_or(1)
@@ -129,7 +138,9 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
         .map(|row| row.label.chars().count())
         .max()
         .unwrap_or(1);
-    let label_size: f32 = (row_height as f32 * 0.5).clamp(14.0, body.heading_size * 0.42);
+    // On a small page the heading is so small that 14 px is already the larger bound.
+    let label_size: f32 =
+        (row_height as f32 * 0.5).clamp(14.0, (body.heading_size * 0.42).max(14.0));
     let label_width: i32 = ((longest as f32 * AVERAGE_LETTER_WIDTH + 1.0) * label_size) as i32;
     let label_width: i32 = label_width.min((body.width - 2 * body.margin) * 2 / 5);
     let chart_left: i32 = body.margin + label_width;
@@ -282,6 +293,38 @@ mod test {
         assert_eq!(span(&options(rows)), (5, 12));
         // A quiet morning still spans ten hours.
         assert_eq!(span(&options(vec![row("Robin", &[(22, 1)])])), (7, 16));
+    }
+
+    #[test]
+    fn keeps_small_pages_above_their_footer() {
+        let rows = vec![row("Robin", &[(5, 4), (6, 9)])];
+        for resolution in [
+            Resolution::new(64, 64),
+            Resolution::new(296, 128),
+            Resolution::new(400, 300),
+        ] {
+            let mut options: StoryOptions = options(rows.clone());
+            options.footer = String::from("Updated 12:00");
+            options
+                .lines
+                .push(String::from("The chorus peaked at 06:00"));
+            options.lines.push(String::from("Clear, 8°"));
+            let page = StoryPage::layout(resolution, &options);
+            let footer_top: i32 = page
+                .text
+                .iter()
+                .find(|text| text.text == options.footer)
+                .map_or(i32::MAX, |text| text.baseline_y - text.size_px as i32);
+            for text in page.text.iter().filter(|text| text.text != options.footer) {
+                assert!(text.baseline_y <= footer_top, "{resolution:?} {text:?}");
+            }
+            for shape in &page.shapes {
+                assert!(
+                    shape.y + shape.height <= footer_top,
+                    "{resolution:?} {shape:?}"
+                );
+            }
+        }
     }
 
     #[test]

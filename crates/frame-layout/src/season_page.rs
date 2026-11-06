@@ -82,19 +82,29 @@ impl SeasonPage {
                 bottom = bottom.max(push_column(
                     &mut page.text,
                     column,
-                    left,
-                    top,
-                    width,
+                    Place {
+                        left,
+                        top,
+                        width,
+                        bottom: body.bottom,
+                    },
                     line_size,
                 ));
             }
             top = bottom;
         } else {
             for column in columns {
-                top = push_column(&mut page.text, column, body.margin, top, inner, line_size);
+                let place = Place {
+                    left: body.margin,
+                    top,
+                    width: inner,
+                    bottom: body.bottom,
+                };
+                top = push_column(&mut page.text, column, place, line_size);
             }
         }
-        if !options.list.is_empty() {
+        // The year list needs a title and a row of names above the footer.
+        if !options.list.is_empty() && top + (line_size * 3.5) as i32 <= body.bottom {
             top += (line_size * 1.6) as i32;
             page.text
                 .push(title(&options.list_title, body.margin, top, line_size));
@@ -122,22 +132,36 @@ fn title(text: &str, x: i32, baseline_y: i32, size_px: f32) -> TextBlock {
     }
 }
 
-/// Adds `column` at `left`, `top`, and returns where it ends.
-fn push_column(
-    text: &mut Vec<TextBlock>,
-    column: &SeasonColumn,
+/// Where a column goes: its left edge, top and width, and the lowest baseline it may use.
+#[derive(Clone, Copy, Debug)]
+struct Place {
     left: i32,
     top: i32,
     width: i32,
-    size: f32,
-) -> i32 {
+    bottom: i32,
+}
+
+/// Adds `column` at `place`, leaving off lines below its bottom, and returns where it ends.
+fn push_column(text: &mut Vec<TextBlock>, column: &SeasonColumn, place: Place, size: f32) -> i32 {
+    let Place {
+        left,
+        top,
+        width,
+        bottom,
+    } = place;
     if column.title.is_empty() && column.lines.is_empty() {
         return top;
     }
     let step: i32 = (size * 1.35) as i32;
     let mut baseline: i32 = top + (size * 1.6) as i32;
+    if baseline > bottom {
+        return top;
+    }
     text.push(title(&column.title, left, baseline, size));
     for (main, detail) in column.lines.iter().take(COLUMN_LINES) {
+        if baseline + step > bottom {
+            break;
+        }
         baseline += step;
         let detail_width: i32 = if detail.is_empty() {
             0
@@ -295,6 +319,31 @@ mod test {
         assert!(page.text.iter().any(|block| block.text.ends_with("more")));
         for block in &page.text {
             assert!(block.baseline_y <= 480, "{block:?}");
+        }
+    }
+
+    #[test]
+    fn keeps_small_pages_above_their_footer() {
+        for resolution in [
+            Resolution::new(296, 128),
+            Resolution::new(400, 300),
+            Resolution::new(128, 296),
+        ] {
+            let mut options: SeasonOptions = options(40);
+            options.footer = String::from("Updated 12:00");
+            let page = SeasonPage::layout(resolution, &options);
+            let footer_top: i32 = page
+                .text
+                .iter()
+                .find(|block| block.text == options.footer)
+                .map_or(i32::MAX, |block| block.baseline_y - block.size_px as i32);
+            for block in page
+                .text
+                .iter()
+                .filter(|block| block.text != options.footer)
+            {
+                assert!(block.baseline_y <= footer_top, "{resolution:?} {block:?}");
+            }
         }
     }
 }
