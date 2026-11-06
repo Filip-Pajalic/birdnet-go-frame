@@ -1,5 +1,6 @@
 /target
-# The firmware has its own workspace, so its own build folder.
+# Each firmware has its own workspace, so its own build folder.
 /apps/ee02-thin/target
+/apps/ee02-standalone/target
 # Artwork fetched by scripts/fetch-art.sh: CC BY-SA 4.0, never committed.
 /art
