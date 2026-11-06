@@ -15,6 +15,8 @@ pub struct ResponseHead {
     pub content_length: Option<usize>,
     /// Seconds to sleep before asking again, from `Cache-Control: max-age`.
     pub max_age: Option<u32>,
+    /// The firmware version the server offers, from `X-Frame-Firmware`.
+    pub firmware: Option<String>,
 }
 
 impl ResponseHead {
@@ -51,6 +53,8 @@ impl ResponseHead {
                     .split(',')
                     .filter_map(|directive| directive.trim().strip_prefix("max-age="))
                     .find_map(|seconds| seconds.parse().ok());
+            } else if name.eq_ignore_ascii_case("x-frame-firmware") {
+                head.firmware = Some(value.to_string()).filter(|version| !version.is_empty());
             }
         }
         Some(head)
@@ -105,7 +109,7 @@ mod test {
         let head = ResponseHead::parse(
             b"HTTP/1.1 200 OK\r\nContent-Length: 216303\r\nContent-Type: application/octet-stream\r\n\
               Cache-Control: max-age=900\r\nETag: \"b35332bb-z\"\r\nVary: Accept-Encoding\r\n\
-              Content-Encoding: deflate\r\n\r\n",
+              Content-Encoding: deflate\r\nX-Frame-Firmware: 0.2.0\r\n\r\n",
         )
         .expect("HTTP");
         assert_eq!(head.status, 200);
@@ -113,6 +117,7 @@ mod test {
         assert_eq!(head.content_length, Some(216_303));
         assert_eq!(head.max_age, Some(900));
         assert_eq!(head.page_crc(), Some(0xb353_32bb));
+        assert_eq!(head.firmware.as_deref(), Some("0.2.0"));
 
         let unchanged =
             ResponseHead::parse(b"HTTP/1.1 304 Not Modified\r\nCache-Control: no-cache")

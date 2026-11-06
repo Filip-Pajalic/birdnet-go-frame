@@ -46,6 +46,7 @@ fn head(status: u16, page: &[u8], deflate: bool) -> ResponseHead {
         deflate,
         content_length: None,
         max_age: Some(900),
+        ..ResponseHead::default()
     }
 }
 
@@ -228,6 +229,7 @@ fn a_wake_from_rtc_words_to_rtc_words() {
     let words: [u32; SleepMemory::WORDS] = SleepMemory {
         wake: wake.state,
         rejoin: Some(rejoin),
+        ..SleepMemory::default()
     }
     .to_words();
     let next = SleepMemory::from_words(&words);

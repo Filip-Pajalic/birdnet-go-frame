@@ -2,16 +2,24 @@
 
 use frame_core::Crc32;
 
+use crate::button::Button;
+use crate::firmware_update::FirmwareUpdate;
+use crate::page_view::PageView;
 use crate::rejoin::Rejoin;
 use crate::wake_state::WakeState;
 
-/// Bytes of state before the checksum: the wake state, a flag and the rejoin record.
-const STATE_BYTES: usize = WakeState::BYTES + 1 + Rejoin::BYTES;
+/// Where each part sits in the bytes before the checksum.
+const REJOIN_FLAG: usize = WakeState::BYTES;
+const REJOIN_AT: usize = REJOIN_FLAG + 1;
+const VIEW_AT: usize = REJOIN_AT + Rejoin::BYTES;
+const UPDATE_AT: usize = VIEW_AT + 1;
+/// Bytes of state before the checksum.
+const STATE_BYTES: usize = UPDATE_AT + FirmwareUpdate::BYTES;
 /// Words of state, rounded up.
 const STATE_WORDS: usize = STATE_BYTES.div_ceil(4);
 
-/// What the panel keeps between wakes: the [`WakeState`] and, after a good wake, the
-/// [`Rejoin`] record.
+/// What the panel keeps between wakes: the [`WakeState`], after a good wake the [`Rejoin`]
+/// record, the [`PageView`] the buttons chose, and the [`FirmwareUpdate`] record.
 ///
 /// RTC memory can hold anything after a power cut or a reset in the middle of a write, so the
 /// words carry a CRC-32 and memory that fails it reads as a first boot.
@@ -21,7 +29,7 @@ const STATE_WORDS: usize = STATE_BYTES.div_ceil(4);
 ///
 /// let memory = SleepMemory {
 ///     wake: WakeState::default().with_etag(Some("\"b35332bb-z\"")),
-///     rejoin: None,
+///     ..SleepMemory::default()
 /// };
 /// let words: [u32; SleepMemory::WORDS] = memory.to_words();
 /// assert_eq!(SleepMemory::from_words(&words), memory);
@@ -33,11 +41,38 @@ pub struct SleepMemory {
     pub wake: WakeState,
     /// How to join the Wi-Fi quickly, if the last wake reached the server.
     pub rejoin: Option<Rejoin>,
+    /// The page to ask for.
+    pub view: PageView,
+    /// Failed tries at the firmware the server offers.
+    pub update: FirmwareUpdate,
 }
 
 impl SleepMemory {
     /// Words [`to_words`](Self::to_words) gives: the state, then its CRC-32.
     pub const WORDS: usize = STATE_WORDS + 1;
+
+    /// Returns the memory after `button` woke the panel: [`Button::Refresh`] forgets the page on
+    /// the glass, so the next answer is drawn whether it changed or not; the other two step the
+    /// view. Either way the failures in a row are forgotten, so the wake is not a long back-off.
+    #[must_use]
+    pub fn after_press(self, button: Button) -> Self {
+        match button {
+            Button::Refresh => Self {
+                wake: WakeState::default(),
+                ..self
+            },
+            Button::Previous => Self {
+                wake: self.wake.with_etag(self.wake.etag()),
+                view: self.view.previous(),
+                ..self
+            },
+            Button::Next => Self {
+                wake: self.wake.with_etag(self.wake.etag()),
+                view: self.view.next(),
+                ..self
+            },
+        }
+    }
 
     /// The memory as little-endian words, the last one a CRC-32 of the rest.
     #[must_use]
@@ -45,9 +80,11 @@ impl SleepMemory {
         let mut bytes: [u8; STATE_WORDS * 4] = [0; STATE_WORDS * 4];
         bytes[..WakeState::BYTES].copy_from_slice(&self.wake.to_bytes());
         if let Some(rejoin) = self.rejoin {
-            bytes[WakeState::BYTES] = 1;
-            bytes[WakeState::BYTES + 1..STATE_BYTES].copy_from_slice(&rejoin.to_bytes());
+            bytes[REJOIN_FLAG] = 1;
+            bytes[REJOIN_AT..VIEW_AT].copy_from_slice(&rejoin.to_bytes());
         }
+        bytes[VIEW_AT] = self.view.to_byte();
+        bytes[UPDATE_AT..STATE_BYTES].copy_from_slice(&self.update.to_bytes());
         let mut words: [u32; Self::WORDS] = [0; Self::WORDS];
         for (word, chunk) in words.iter_mut().zip(bytes.chunks_exact(4)) {
             *word = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
@@ -70,14 +107,18 @@ impl SleepMemory {
         let mut wake: [u8; WakeState::BYTES] = [0; WakeState::BYTES];
         wake.copy_from_slice(&bytes[..WakeState::BYTES]);
         let mut rejoin: [u8; Rejoin::BYTES] = [0; Rejoin::BYTES];
-        rejoin.copy_from_slice(&bytes[WakeState::BYTES + 1..STATE_BYTES]);
+        rejoin.copy_from_slice(&bytes[REJOIN_AT..VIEW_AT]);
+        let mut update: [u8; FirmwareUpdate::BYTES] = [0; FirmwareUpdate::BYTES];
+        update.copy_from_slice(&bytes[UPDATE_AT..STATE_BYTES]);
         Self {
             wake: WakeState::from_bytes(&wake),
-            rejoin: if bytes[WakeState::BYTES] == 1 {
+            rejoin: if bytes[REJOIN_FLAG] == 1 {
                 Rejoin::from_bytes(&rejoin)
             } else {
                 None
             },
+            view: PageView::from_byte(bytes[VIEW_AT]),
+            update: FirmwareUpdate::from_bytes(&update),
         }
     }
 }
@@ -89,7 +130,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn keeps_both_parts_and_rejects_damage() {
+    fn keeps_every_part_and_rejects_damage() {
         let memory = SleepMemory {
             wake: WakeState::default().with_etag(Some("\"0000abcd-z\"")),
             rejoin: Some(Rejoin {
@@ -99,10 +140,30 @@ mod test {
                 prefix_len: 16,
                 gateway: None,
             }),
+            view: PageView::Story,
+            update: FirmwareUpdate::default().failed("0.3.0"),
         };
         let mut words: [u32; SleepMemory::WORDS] = memory.to_words();
         assert_eq!(SleepMemory::from_words(&words), memory);
         words[3] ^= 0x100;
         assert_eq!(SleepMemory::from_words(&words), SleepMemory::default());
+    }
+
+    #[test]
+    fn buttons_redraw_or_step_the_view() {
+        let memory = SleepMemory {
+            wake: WakeState::default().with_etag(Some("\"0000abcd-z\"")),
+            ..SleepMemory::default()
+        };
+        let refreshed: SleepMemory = memory.after_press(Button::Refresh);
+        assert_eq!(
+            (refreshed.wake.etag(), refreshed.view),
+            (None, PageView::Today)
+        );
+        let next: SleepMemory = memory.after_press(Button::Next);
+        assert_eq!(next.view, PageView::Week);
+        assert_eq!(next.wake.etag(), Some("\"0000abcd-z\""));
+        assert_eq!(next.after_press(Button::Previous).view, PageView::Today);
+        assert_eq!(memory.after_press(Button::Previous).view, PageView::Season);
     }
 }
