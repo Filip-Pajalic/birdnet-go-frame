@@ -45,6 +45,22 @@ pub(crate) struct Furniture<'a> {
     /// Whether the body is packed round the sprays, so they need not keep to the heading's
     /// and footer's corners.
     pub(crate) packed_round: bool,
+    /// The heading's and the fact's widths at a size of one pixel, when the page knows them:
+    /// a line then sits in the middle of the page, moved aside only as far as its corner's
+    /// spray needs. 0 for a line centred in the span the spray leaves.
+    pub(crate) widths_em: (f32, f32),
+}
+
+/// Returns where to centre a line `text_width` wide that must stay within `span` on a page
+/// `page_width` wide: the middle of the page when it fits there, else as near it as the span
+/// allows. A width of 0 (unknown) or one wider than the span centres it in the span.
+fn centre_in(span: (i32, i32), page_width: i32, text_width: f32) -> i32 {
+    let room: i32 = span.1 - span.0;
+    let half: i32 = libm::ceilf(text_width / 2.0) as i32;
+    if half <= 0 || 2 * half > room {
+        return (span.0 + span.1) / 2;
+    }
+    (page_width / 2).clamp(span.0 + half, span.1 - half)
 }
 
 /// Adds the heading, fact, footer and border to `page` and returns the space left between
@@ -59,6 +75,7 @@ pub(crate) fn frame(page: &mut PageLayout, words: &Furniture<'_>) -> Body {
         footer,
         sprays,
         packed_round,
+        widths_em: (heading_em, fact_em),
     } = *words;
     let width: i32 = i32::try_from(page.resolution.width).unwrap_or(i32::MAX);
     let height: i32 = i32::try_from(page.resolution.height).unwrap_or(i32::MAX);
@@ -113,14 +130,15 @@ pub(crate) fn frame(page: &mut PageLayout, words: &Furniture<'_>) -> Body {
         Some(placed) => (margin, placed.block.x - margin / 2),
         None => (margin, width - margin),
     };
-    let (heading_x, heading_room): (i32, i32) = (
-        (heading_span.0 + heading_span.1) / 2,
-        heading_span.1 - heading_span.0,
-    );
-    let (footer_x, footer_room): (i32, i32) = (
-        (footer_span.0 + footer_span.1) / 2,
-        footer_span.1 - footer_span.0,
-    );
+    let footer_room: i32 = footer_span.1 - footer_span.0;
+    let heading_x: i32 = centre_in(heading_span, width, heading_em * heading_size);
+    let footer_x: i32 = centre_in(footer_span, width, 0.0);
+    let fact_x: i32 = centre_in(footer_span, width, fact_em * fact_size);
+    // The room either side of a line's centre, so a line moved off the span's middle still
+    // cannot be drawn into the spray.
+    let room = |span: (i32, i32), x: i32| 2 * (x - span.0).min(span.1 - x);
+    let heading_room: i32 = room(heading_span, heading_x);
+    let fact_room: i32 = room(footer_span, fact_x);
     let mut placed_sprays: Vec<PlacedSpray> = Vec::new();
     for placed in placed_top.into_iter().chain(placed_bottom) {
         page.images.push(placed.block);
@@ -151,10 +169,10 @@ pub(crate) fn frame(page: &mut PageLayout, words: &Furniture<'_>) -> Body {
     if !fact.is_empty() {
         page.text.push(TextBlock {
             text: String::from(fact),
-            x: footer_x,
+            x: fact_x,
             baseline_y: fact_baseline,
             size_px: fact_size,
-            max_width: Some(footer_room.max(1)),
+            max_width: Some(fact_room.max(1)),
             align: Align::Centre,
             style: TextStyle::Footer,
         });
@@ -181,4 +199,31 @@ pub(crate) fn nothing_heard(page: &mut PageLayout, body: &Body, message: &str) {
         align: Align::Centre,
         style: TextStyle::Detail,
     });
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn a_line_sits_mid_page_unless_the_spray_pushes_it_aside() {
+        // A page 1000 wide whose spray leaves 50..700.
+        let span: (i32, i32) = (50, 700);
+        assert_eq!(centre_in(span, 1000, 300.0), 500, "fits in the middle");
+        assert_eq!(
+            centre_in(span, 1000, 600.0),
+            400,
+            "moved only as far as needed"
+        );
+        assert_eq!(
+            centre_in(span, 1000, 0.0),
+            375,
+            "unknown width: the span's middle"
+        );
+        assert_eq!(
+            centre_in(span, 1000, 900.0),
+            375,
+            "too wide: the span's middle"
+        );
+    }
 }

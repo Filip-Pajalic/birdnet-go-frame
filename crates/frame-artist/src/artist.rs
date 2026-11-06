@@ -545,6 +545,8 @@ impl<A: ArtSource> Artist<A> {
         let options = CollageOptions {
             heading: heading.to_owned(),
             fact: fact.to_owned(),
+            heading_width_em: self.renderer.measure(heading, 1.0),
+            fact_width_em: self.renderer.measure(fact, 1.0),
             sprays,
             empty: self.style.words.nothing_heard.clone(),
             names: self.style.names,

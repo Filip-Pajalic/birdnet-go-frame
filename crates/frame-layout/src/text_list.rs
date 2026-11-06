@@ -68,6 +68,7 @@ impl TextList {
                 footer: &options.footer,
                 sprays: &options.sprays,
                 packed_round: false,
+                widths_em: (0.0, 0.0),
             },
         );
         if species.is_empty() {

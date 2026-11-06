@@ -82,6 +82,12 @@ pub struct CollageOptions {
     pub sprays: CornerSprays,
     /// A line about the main bird, over the footer. Empty for none, the default.
     pub fact: String,
+    /// The heading's width at a size of one pixel, so it can sit in the middle of the page
+    /// clear of the border's top spray. 0, the default, centres it beside the spray.
+    pub heading_width_em: f32,
+    /// The fact's width at a size of one pixel, so it can sit in the middle of the page clear
+    /// of the border's bottom spray. 0, the default, centres it beside the spray.
+    pub fact_width_em: f32,
     /// The line shown when nothing has been heard.
     pub empty: String,
     /// Whether to write each bird's name under it.
@@ -98,6 +104,8 @@ impl Default for CollageOptions {
             heading: String::new(),
             footer: String::new(),
             fact: String::new(),
+            heading_width_em: 0.0,
+            fact_width_em: 0.0,
             sprays: CornerSprays::default(),
             empty: String::from("No birds heard yet"),
             names: true,
@@ -143,6 +151,7 @@ impl Collage {
                 footer: &options.footer,
                 sprays: &options.sprays,
                 packed_round: true,
+                widths_em: (options.heading_width_em, options.fact_width_em),
             },
         );
         if birds.is_empty() {
