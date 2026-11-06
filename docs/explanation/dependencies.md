@@ -10,6 +10,7 @@ SPI, pin and delay traits every embedded Rust HAL implements. `panel-t133a01` is
 it, so the same driver runs on the ESP32 and against the mock bus in its tests. The server does
 not link it.
 
+The Raspberry Pi app adds one more, for Linux only: see [The Raspberry Pi app](#the-raspberry-pi-app).
 The ESP32 firmware has its own list: see [The firmware](#the-firmware).
 
 ## What is used
@@ -48,6 +49,22 @@ vulnerability, and here it only parses the font embedded in our own binary, neve
 the network, so `deny.toml` accepts it with that reason. If fontdue does not move to a maintained
 parser, the options are a fork of fontdue on `skrifa`, or pre-rendering the glyphs the pages use
 into a small bitmap font at build time, which would remove all eight of fontdue's crates.
+
+## The Raspberry Pi app
+
+`apps/linux-panel` drives the panel through Linux's spidev and GPIO character devices, which
+takes `ioctl` calls, and the workspace forbids `unsafe`. It uses `linux-embedded-hal`, the
+embedded Rust working group's `embedded-hal` 1.0 implementation for Linux, with only its `spi`
+and `gpio_cdev` features, on Linux targets only (elsewhere the app still draws pages into a
+file).
+
+| Crate | Why | Licence |
+| --- | --- | --- |
+| `linux-embedded-hal` | SPI and GPIO for the panel drivers on a Raspberry Pi | MIT OR Apache-2.0 |
+| `spidev`, `gpio-cdev`, `nix`, `libc`, `bitflags`, `cast`, `nb`, `cfg-if`, `cfg_aliases` | its own dependencies: the two device interfaces and their system calls | MIT / Apache-2.0 |
+
+`gpio-cdev` and `spidev` pin different `nix` releases (0.27 and 0.29), so `deny.toml` lets
+`nix` 0.27 in twice, with that reason. Only this app links them.
 
 ## The firmware
 

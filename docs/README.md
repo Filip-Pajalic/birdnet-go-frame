@@ -19,6 +19,7 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 - [Run the server in Docker or on Unraid](how-to/run-in-docker-or-unraid.md)
 - [Build and flash the EE02 firmware](how-to/flash-ee02-thin.md)
 - [Set up and update the EE02 over Wi-Fi, and use its buttons](how-to/set-up-ee02-over-wifi.md)
+- [Run the frame on a Raspberry Pi, with no server](how-to/run-on-raspberry-pi.md)
 - [Show the page on an EE02 with fugleramme's MicroPython firmware](how-to/show-on-ee02.md)
 - [Give each frame its own page](how-to/give-each-frame-its-own-page.md)
 - [Show frames in Home Assistant](how-to/show-frames-in-home-assistant.md)

@@ -27,6 +27,11 @@ allow = [
 [bans]
 multiple-versions = "deny"
 wildcards = "deny"
+skip = [
+    # linux-embedded-hal's GPIO (gpio-cdev) and SPI (spidev) crates pin different nix releases.
+    # Only the Raspberry Pi app links them; drop this when gpio-cdev moves to nix 0.29.
+    { crate = "nix@0.27.1", reason = "gpio-cdev and spidev pin different nix releases" },
+]
 
 [sources]
 unknown-registry = "deny"

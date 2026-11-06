@@ -39,6 +39,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: rustup target add ${{ matrix.target }}
       - run: cargo build --release --locked --target ${{ matrix.target }} -p server -p fake-birdnet
+      # The Raspberry Pi app drives a panel through Linux's spidev, so it ships for Linux only.
+      - if: matrix.musl
+        run: cargo build --release --locked --target ${{ matrix.target }} -p linux-panel
       - name: Package
         shell: bash
         run: |
@@ -46,6 +49,9 @@ jobs:
           mkdir "$name"
           cp "target/${{ matrix.target }}/release/birdnet-go-frame${{ matrix.exe }}" "$name/"
           cp "target/${{ matrix.target }}/release/fake-birdnet${{ matrix.exe }}" "$name/"
+          if [ "${{ matrix.musl }}" = "true" ]; then
+            cp "target/${{ matrix.target }}/release/birdnet-go-frame-panel" "$name/"
+          fi
           cp README.md LICENSE NOTICE.md "$name/"
           if [ "${{ matrix.exe }}" = ".exe" ]; then
             7z a "$name.zip" "$name" > /dev/null

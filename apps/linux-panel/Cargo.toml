@@ -1,0 +1,37 @@
+[package]
+name = "linux-panel"
+description = "A Raspberry Pi that reads BirdNET-Go, draws the page and drives a Spectra 6 panel over SPI, with no server."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "birdnet-go-frame-panel"
+path = "src/main.rs"
+
+[dependencies]
+art-mock.workspace = true
+art-pack.workspace = true
+art-webp.workspace = true
+birdnet-client.workspace = true
+birdnet-mock.workspace = true
+birdnet-model.workspace = true
+embedded-hal.workspace = true
+frame-artist.workspace = true
+frame-core.workspace = true
+frame-raster.workspace = true
+frame-standalone.workspace = true
+page-text.workspace = true
+panel-ed2208.workspace = true
+panel-t133a01.workspace = true
+transport-lan.workspace = true
+
+# SPI through spidev and GPIO through the character device, for embedded-hal 1.0. Linux only;
+# elsewhere the app can still draw pages into a file.
+[target.'cfg(target_os = "linux")'.dependencies]
+linux-embedded-hal = { version = "0.5", default-features = false, features = ["gpio_cdev", "spi"] }
+
+[lints]
+workspace = true

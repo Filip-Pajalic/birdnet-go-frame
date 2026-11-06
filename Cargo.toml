@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "apps/fake-birdnet",
+    "apps/linux-panel",
     "apps/server",
     "crates/art-mock",
     "crates/art-pack",
@@ -114,4 +115,10 @@ opt-level = 2
 opt-level = 2
 
 [profile.dev.package.image-webp]
+opt-level = 2
+
+[profile.dev.package.art-mock]
+opt-level = 2
+
+[profile.dev.package.fontdue]
 opt-level = 2

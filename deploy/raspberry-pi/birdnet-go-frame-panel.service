@@ -1,0 +1,22 @@
+# systemd unit for the Raspberry Pi app. Copy to /etc/systemd/system/, put your settings in
+# /etc/birdnet-go-frame-panel.env, then: sudo systemctl enable --now birdnet-go-frame-panel
+# See docs/how-to/run-on-raspberry-pi.md.
+[Unit]
+Description=birdnet-go-frame on a Spectra 6 panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/birdnet-go-frame-panel.env
+ExecStart=/usr/local/bin/birdnet-go-frame-panel
+Restart=on-failure
+RestartSec=60
+# Only the SPI device and GPIO chip are needed: run as a user in the spi and gpio groups.
+User=birdnet-frame
+SupplementaryGroups=spi gpio
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

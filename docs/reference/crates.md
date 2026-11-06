@@ -32,6 +32,8 @@
 | --- | --- | --- |
 | `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + almanac + open-meteo + artist + raster + http + home-assistant |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
+| `apps/linux-panel` | `birdnet-go-frame-panel` (Raspberry Pi) | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + standalone + panel-t133a01 / panel-ed2208 on linux-embedded-hal |
+| `tools/art-packer` | `art-packer` | art-webp + art-pack + frame-http's zlib: packs plates into a bundle for firmware flash |
 | `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + panel-setup + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
 
 ## Planned
@@ -39,5 +41,3 @@
 | Crate or app | Purpose |
 | --- | --- |
 | `apps/ee02-standalone` | ESP32 firmware that renders the page itself |
-| `apps/linux-panel` | Raspberry Pi that renders and drives the panel |
-| `tools/art-packer` | Converts fugleramme's webp art to `.artp`, so the ESP32 can read plates from an SD card |

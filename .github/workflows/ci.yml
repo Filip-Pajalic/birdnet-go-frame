@@ -152,7 +152,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: rustup target add x86_64-unknown-linux-musl
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --locked --target x86_64-unknown-linux-musl -p server -p fake-birdnet
+      - run: cargo build --release --locked --target x86_64-unknown-linux-musl -p server -p fake-birdnet -p linux-panel
       - name: Report sizes
         run: |
           ls -l target/x86_64-unknown-linux-musl/release/birdnet-go-frame target/x86_64-unknown-linux-musl/release/fake-birdnet
@@ -174,3 +174,7 @@ jobs:
           downloaded="$(curl -fsS --compressed -o inflated.bin -w '%{size_download}' http://127.0.0.1:8080/panel)"
           test "$downloaded" -lt 480000
           cmp panel.bin inflated.bin
+      - name: Smoke test the Raspberry Pi app, writing its page to a file
+        run: |
+          BIRDNET_URL=mock PANEL_OUT=pi.bin target/x86_64-unknown-linux-musl/release/birdnet-go-frame-panel --once
+          test "$(stat -c %s pi.bin)" = "960000"
