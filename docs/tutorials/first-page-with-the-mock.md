@@ -56,13 +56,15 @@ in the panel's native landscape orientation.
 ## 3. Ask for the page the way a panel does
 
 ```bash
-curl -s -D - -o frame.e6 http://localhost:8080/frame.e6 | grep -i etag
+curl -s --compressed -D - -o panel.bin -w "%{size_download} bytes on the wire\n" http://localhost:8080/panel
 ```
 
-Note the ETag, then ask again with it:
+The headers show `Content-Encoding: deflate`: about 215,000 bytes travel, and `panel.bin`
+holds the 960,000 the panel's controllers take. `Cache-Control: max-age=900` tells the panel to
+sleep 15 minutes. Note the `ETag`, then ask again with it:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" -H 'If-None-Match: "<the etag>"' http://localhost:8080/frame.e6
+curl -s --compressed -o /dev/null -w "%{http_code}\n" -H 'If-None-Match: "<the etag>"' http://localhost:8080/panel
 ```
 
 The answer is `304`: the page has not changed, so a panel would go straight back to sleep.

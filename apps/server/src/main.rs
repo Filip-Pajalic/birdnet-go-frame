@@ -1,7 +1,7 @@
 //! birdnet-go-frame's server.
 //!
 //! Reads BirdNET-Go's API, draws the birds heard onto pages for Spectra 6 panels (13.3" by
-//! default, 7.3" on request) and screens of any size, and serves them at `/frame.e6` (for the
+//! default, 7.3" on request) and screens of any size, and serves them at `/panel` (for the
 //! ESP32), `/frame.png` and `/preview.png`. Configured with
 //! environment variables; see the README. `BIRDNET_URL=mock` runs against a built-in
 //! simulated station, so it works out of the box.

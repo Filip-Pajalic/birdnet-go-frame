@@ -8,8 +8,8 @@ birdnet-go-frame renders the birds heard by a [BirdNET-Go](https://github.com/tp
 station onto a 13.3" Spectra 6 e-ink panel. A Rust server reads BirdNET-Go's HTTP API and serves
 a finished page; an ESP32 fetches it, redraws only on change, and deep-sleeps. It is a Rust
 re-implementation of the server/panel idea from
-[fugleramme](https://github.com/arnegiacomo/fugleramme) (MIT), and its `/frame.e6` output is
-byte-compatible with fugleramme's.
+[fugleramme](https://github.com/arnegiacomo/fugleramme) (MIT); the pixel bytes `/panel` serves
+are those of fugleramme's `/frame.e6`, without its header and zlib-compressed.
 
 Read [`docs/README.md`](docs/README.md) first; [`docs/explanation/architecture.md`](docs/explanation/architecture.md)
 and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) explain the moving parts.
@@ -58,7 +58,7 @@ often get wrong:
 
 - One `use` per module path, no nested `::` in braces, no glob imports (except `use super::*` in
   test modules), no preludes. Types and traits used unqualified; free functions called through
-  their module (`e6::encode`, `frame_raster::dither`).
+  their module (`panel_bytes::pack`, `frame_raster::dither`).
 - `lib.rs` contains only `mod` declarations and re-exports. One file per abstraction, named after
   its main item.
 - No `unwrap()`. `expect("why")` only for true invariants, marked with
@@ -77,7 +77,7 @@ often get wrong:
   in README and NOTICE only, never on the rendered page.
 - Add a JSON fixture under `crates/birdnet-model/tests/fixtures/` when BirdNET-Go sends a shape
   the parser mishandles.
-- `crates/frame-core/tests/e6_golden.rs` guards byte compatibility with fugleramme. Never update
+- `crates/frame-core/tests/panel_bytes_golden.rs` guards byte compatibility with fugleramme. Never update
   its expected bytes to make a change pass; a failure there means the panel format broke.
 - Test files may panic on failed assumptions and start with `#![allow(clippy::expect_used)]`.
 

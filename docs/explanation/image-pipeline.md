@@ -19,7 +19,8 @@ flowchart TD
     art -->|pictures| canvas
     layout -->|"frame-raster<br/>Renderer::render"| canvas["Canvas<br/>full-colour RGB, as it hangs"]
     canvas -->|"frame-raster<br/>pop, then dither"| page["IndexedImage<br/>one of six inks per pixel"]
-    page -->|"frame-core<br/>e6::encode"| e6["/frame.e6<br/>header + 960,000 bytes"]
+    page -->|"frame-core<br/>panel_bytes::pack"| bytes["960,000 bytes"]
+    bytes -->|"frame-http<br/>zlib"| panel["/panel<br/>about 216,000 bytes"]
     canvas -->|frame-http| preview["/preview.png"]
     page -->|"frame-http<br/>rotated to the glass"| framepng["/frame.png"]
 ```
@@ -152,7 +153,7 @@ colours. These are fugleramme's blend of the panel's saturated and desaturated p
 ## 6. Pack for the panel (`frame-core`)
 
 The 13.3" glass is driven by two T133A01 controllers, each handling one half of every row, in the
-glass's own orientation. `e6::encode` therefore:
+glass's own orientation. `panel_bytes::pack` therefore:
 
 ```mermaid
 flowchart LR
@@ -160,19 +161,21 @@ flowchart LR
     land -->|"quarter turn clockwise"| glass["Controller orientation<br/>1200x1600"]
     glass -->|"split every row in half"| halves["Left halves (controller 1)<br/>then right halves (controller 2)"]
     halves -->|"two pixels per byte,<br/>left pixel in the high nibble"| bytes["960,000 bytes"]
-    bytes -->|"length + CRC-32"| header["20-byte header in front"]
+    bytes -->|"zlib, for clients that accept deflate"| wire["about 216,000 bytes"]
 ```
 
-The result is byte-for-byte what fugleramme's `/frame.e6` produces for the same page (checked by
-golden tests in `crates/frame-core/tests/e6_golden.rs`), so firmware written for either works with
-both. The exact layout is in [The E6F1 page format](../reference/e6-format.md).
+The bytes are what fugleramme's `/frame.e6` carries after its header for the same page (checked by
+golden tests in `crates/frame-core/tests/panel_bytes_golden.rs`). `frame-http` then compresses them
+with its own zlib encoder: dithered pictures repeat a lot, so the panel downloads about a quarter
+of the bytes. The exact layout, and why fugleramme's header is not needed, are in
+[The panel format](../reference/panel-format.md).
 
 ## The three outputs
 
 | Endpoint | Made from | Orientation | Colours |
 | --- | --- | --- | --- |
-| `/frame.e6` | dithered page | controller orientation | 4-bit controller codes |
+| `/panel` | dithered page | controller orientation | 4-bit controller codes, zlib-compressed |
 | `/frame.png` | dithered page | native landscape | six nominal ink colours |
 | `/preview.png` | canvas before the boost and dithering | as it hangs | full colour |
 
-All three share one ETag, derived from the E6F1 bytes, so they change together.
+All three share one ETag, derived from the panel's bytes, so they change together.

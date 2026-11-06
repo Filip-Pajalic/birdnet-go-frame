@@ -1,6 +1,6 @@
 [package]
 name = "frame-core"
-description = "The panel page format shared by the server and the firmware: inks, geometry, E6F1."
+description = "The panel page format shared by the server and the firmware: inks, geometry, controller bytes."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

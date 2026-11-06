@@ -7,7 +7,8 @@ then shows the result on a 13.3" six-colour e-ink panel and runs on battery for 
 > **Status:** early development. The server runs and serves the illustrated collage (or a text
 > list) that the panel can show, drawn with fugleramme's 1800s plates when you fetch them, or
 > with generated birds out of the box. The Rust ESP32 firmware comes next; until then,
-> fugleramme's MicroPython EE02 firmware can show this server's `/frame.e6`.
+> fugleramme's MicroPython EE02 firmware needs a few lines changed to read `/panel` (see
+> [Show the page on an EE02](docs/how-to/show-on-ee02.md)).
 
 ![The collage with fugleramme's classic plates](docs/images/collage-classic.jpg)
 
@@ -51,7 +52,7 @@ BIRDNET_URL=http://192.168.1.10:8080 UTC_OFFSET_MINUTES=60 cargo run --release -
 | Endpoint | What |
 | --- | --- |
 | `/` | A page showing the preview |
-| `/frame.e6` | The page for the panel (E6F1, ETag, 304 when unchanged) |
+| `/panel` | The page as the panel's controllers take it, zlib-compressed (about 215 KB instead of 960 KB), ETag, 304 when unchanged |
 | `/frame.png` | Six-colour PNG in the panel's native orientation |
 | `/preview.png` | Full-colour PNG as it hangs |
 | `/healthz` | `ok` once a page exists |
@@ -74,7 +75,7 @@ made (with diagrams).
 ## How it works
 
 ```
-BirdNET-Go (/api/v2) ──JSON──▶ apps/server  ──/frame.e6 or 304──▶ ESP32-S3 + e-ink panel
+BirdNET-Go (/api/v2) ──JSON──▶ apps/server  ───/panel or 304───▶ ESP32-S3 + e-ink panel
         (Unraid / any Docker host)                                 (wakes, redraws, sleeps)
 ```
 
@@ -82,13 +83,14 @@ BirdNET-Go (/api/v2) ──JSON──▶ apps/server  ──/frame.e6 or 304─�
    only reads its HTTP API.
 2. **The server** (`apps/server`) is a single static binary (or a `FROM scratch` container). It polls
    BirdNET-Go, builds a collage of the species heard, dithers it to the panel's six inks, and
-   serves it at `/frame.e6`. It re-renders only when the set of birds changes.
+   serves it at `/panel`. It re-renders only when the set of birds changes.
 3. **The firmware** runs on a Seeed XIAO EE02 (ESP32-S3) board. It wakes on a timer and sends a
-   conditional `GET /frame.e6`. It refreshes the panel only if the image changed, then goes back to
+   conditional `GET /panel`. It refreshes the panel only if the image changed, then goes back to
    deep sleep.
 
-The `/frame.e6` format is byte-compatible with fugleramme's, so either side can be swapped for
-the other.
+`/panel` sends the same pixel bytes as fugleramme's `/frame.e6`, without its header and
+compressed, so the radio moves about a quarter of the bytes per new page; see
+[The panel format](docs/reference/panel-format.md).
 
 ## Hardware
 
@@ -108,7 +110,7 @@ driving the panel, or on the ESP32 itself.
 
 | Path | What | State |
 | --- | --- | --- |
-| `crates/frame-core` | `no_std`: E6 image format, inks, panel geometry, CRC-32 | Done; byte-compatible with fugleramme |
+| `crates/frame-core` | `no_std`: inks, panel geometry, the controllers' byte layout, CRC-32 | Done; pixel bytes match fugleramme's |
 | `crates/lite-json` | `no_std` + `alloc`: a small JSON reader, in place of serde | Done |
 | `crates/birdnet-model` | `no_std` + `alloc`: BirdNET-Go response types | Done |
 | `crates/birdnet-client` | `no_std` + `alloc`: API client, generic over an `HttpTransport` | Done (no private-mode login yet) |
@@ -122,7 +124,7 @@ driving the panel, or on the ESP32 itself.
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
 | `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline | Collage and text list done |
 | `crates/frame-raster` | `no_std` + `alloc`: draws pictures and text, boosts and dithers to six inks | Done |
-| `crates/frame-http` | Serves `/frame.e6`, `/frame.png`, `/preview.png`; writes PNGs | Done |
+| `crates/frame-http` | Serves `/panel`, `/frame.png`, `/preview.png`; a small zlib compressor for them | Done |
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
 | `crates/transport-esp`, `crates/panel-t133a01`, `tools/art-packer` | ESP32 networking, panel driver, art on an SD card | Planned |
@@ -142,7 +144,7 @@ The server is configured with environment variables:
 | `LISTEN` | `0.0.0.0:8080` | Address to serve on |
 | `PANEL` | `13.3` | Panel for clients that do not name one: `13.3` or `7.3` |
 | `ROTATION` | `0` | `0`, `90`, `180` or `270`, counter-clockwise from landscape |
-| `POLL_MINUTES` | `15` | How long the panel sleeps between checks (sent in the page header) |
+| `POLL_MINUTES` | `15` | How long the panel sleeps between checks (sent as `Cache-Control: max-age` on `/panel`) |
 | `WINDOW_HOURS` | `24` | How far back detections count |
 | `UTC_OFFSET_MINUTES` | `0` | Your time zone, for the date range and the "Updated" time |
 | `REFRESH_SECONDS` | `60` | How often the server asks BirdNET-Go for news |
@@ -213,7 +215,7 @@ Formatting and the lints it names are enforced in CI (see `rustfmt.toml` and the
 ## Credits
 
 - **[fugleramme](https://github.com/arnegiacomo/fugleramme)** by Arne Giacomo Munthe-Kaas: the
-  concept, the `/frame.e6` format, the EE02 panel driving sequence, the collage (spiral packing
+  concept, the controllers' pixel layout, the EE02 panel driving sequence, the collage (spiral packing
   by outline, names tucked under each bird, mass-based sizing), the paper-halo blending and
   panel boost, and the curated 1800s bird artwork this server draws. Code under the MIT License;
   artwork under CC BY-SA 4.0. Credit appears here and in `NOTICE.md`, never on the page itself.

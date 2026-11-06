@@ -1,11 +1,13 @@
 #![allow(clippy::expect_used)] // Tests may panic on failed assumptions (Google Rust Style Guide).
 
-//! Byte-compatibility with fugleramme's `/frame.e6`.
+//! Byte-compatibility with the payload of fugleramme's `/frame.e6`.
 //!
 //! The expected bytes come from an independent Python reference that packs pages with PIL's
 //! transposes exactly as fugleramme's `e6.py` does, over the same test pattern as below.
 
-use frame_core::{IndexedImage, Ink, Resolution, Rotation, e6};
+use frame_core::{IndexedImage, Ink, PanelSize, Resolution, Rotation, panel_bytes};
+
+const BIG: PanelSize = PanelSize::Inches13Point3;
 
 fn pattern(resolution: Resolution) -> IndexedImage {
     let mut pixels: Vec<Ink> = Vec::with_capacity(resolution.area());
@@ -22,20 +24,16 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn check(rotation: Rotation, poll_minutes: u8, header: &str, head: &str, tail: &str) {
-    let page = pattern(e6::page_resolution(rotation));
-    let packed: Vec<u8> = e6::encode(&page, rotation, poll_minutes).expect("page fits the panel");
-    assert_eq!(packed.len(), 960_020);
-    assert_eq!(hex(&packed[..20]), header, "header for {rotation:?}");
-    assert_eq!(
-        hex(&packed[20..52]),
-        head,
-        "first payload bytes for {rotation:?}"
-    );
+fn check(rotation: Rotation, head: &str, tail: &str) {
+    let page = pattern(panel_bytes::page_resolution(BIG, rotation));
+    let packed: Vec<u8> = panel_bytes::pack(BIG, &page, rotation).expect("page fits the panel");
+    assert_eq!(packed.len(), 960_000);
+    assert_eq!(packed.len(), panel_bytes::len(BIG));
+    assert_eq!(hex(&packed[..32]), head, "first bytes for {rotation:?}");
     assert_eq!(
         hex(&packed[packed.len() - 16..]),
         tail,
-        "last payload bytes for {rotation:?}"
+        "last bytes for {rotation:?}"
     );
 }
 
@@ -43,8 +41,6 @@ fn check(rotation: Rotation, poll_minutes: u8, header: &str, head: &str, tail: &
 fn landscape() {
     check(
         Rotation::Degrees0,
-        15,
-        "453646310100010fb004400600a60e0009586664",
         "6532106532106532106532106532106532106532106532106532106532106532",
         "23333355555666660000011111222223",
     );
@@ -54,8 +50,6 @@ fn landscape() {
 fn portrait_quarter_turn() {
     check(
         Rotation::Degrees90,
-        30,
-        "453646310100011eb004400600a60e00de21f540",
         "0123560123560123560123560123560123560123560123560123560123560123",
         "33322222111110000066666555553333",
     );
@@ -65,8 +59,6 @@ fn portrait_quarter_turn() {
 fn upside_down() {
     check(
         Rotation::Degrees180,
-        0,
-        "4536463101000100b004400600a60e00bddfcfff",
         "3222221111100000666665555533333222221111100000666665555533333222",
         "56012356012356012356012356012356",
     );
@@ -76,50 +68,34 @@ fn upside_down() {
 fn portrait_three_quarter_turn() {
     check(
         Rotation::Degrees270,
-        255,
-        "45364631010001ffb004400600a60e00c3adc13c",
         "3333555556666600000111112222233333555556666600000111112222233333",
         "10653210653210653210653210653210",
     );
 }
 
 #[test]
-fn header_verifies_its_payload() {
-    let page = pattern(e6::page_resolution(Rotation::Degrees0));
-    let packed: Vec<u8> = e6::encode(&page, Rotation::Degrees0, 5).expect("page fits the panel");
-    let header = frame_core::E6Header::parse(&packed).expect("header parses");
-    assert_eq!(header.verify_payload(&packed[20..]), Ok(()));
-    let mut damaged: Vec<u8> = packed[20..].to_vec();
-    damaged[1234] ^= 0x10;
-    assert!(header.verify_payload(&damaged).is_err());
-}
-
-#[test]
 fn rejects_a_page_of_the_wrong_size() {
     let page = IndexedImage::new(Resolution::new(800, 480), Ink::White);
-    assert!(e6::encode(&page, Rotation::Degrees0, 5).is_err());
+    assert!(panel_bytes::pack(BIG, &page, Rotation::Degrees0).is_err());
 }
 
 #[test]
 fn seven_inch_pages_are_native_rows_for_one_controller() {
-    use frame_core::PanelSize;
-
     let panel = PanelSize::Inches7Point3;
     assert_eq!(
-        e6::page_resolution_for(panel, Rotation::Degrees90),
+        panel_bytes::page_resolution(panel, Rotation::Degrees90),
         Resolution::new(480, 800)
     );
     let page = pattern(Resolution::new(800, 480));
-    let packed: Vec<u8> = e6::encode_for(panel, &page, Rotation::Degrees0, 5).expect("fits");
-    assert_eq!(packed.len(), 20 + 800 * 480 / 2);
-    let header = frame_core::E6Header::parse(&packed).expect("header parses");
-    assert_eq!((header.width, header.height), (800, 480));
+    let packed: Vec<u8> = panel_bytes::pack(panel, &page, Rotation::Degrees0).expect("fits");
+    assert_eq!(packed.len(), 800 * 480 / 2);
+    assert_eq!(packed.len(), panel_bytes::len(panel));
     // The first byte is the first two pixels of the top row, left one high.
     let first: u8 = (page.pixels()[0].controller_code() << 4) | page.pixels()[1].controller_code();
-    assert_eq!(packed[20], first);
+    assert_eq!(packed[0], first);
     // The second row starts 400 bytes in: no split between controllers.
     let row: u8 =
         (page.pixels()[800].controller_code() << 4) | page.pixels()[801].controller_code();
-    assert_eq!(packed[20 + 400], row);
-    assert!(e6::encode_for(panel, &page, Rotation::Degrees90, 5).is_err());
+    assert_eq!(packed[400], row);
+    assert!(panel_bytes::pack(panel, &page, Rotation::Degrees90).is_err());
 }

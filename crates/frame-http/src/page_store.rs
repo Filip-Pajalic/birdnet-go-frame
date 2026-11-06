@@ -150,7 +150,10 @@ mod test {
         let first = store.page(small).expect("drawn");
         let again = store.page(small).expect("kept");
         assert!(Arc::ptr_eq(&first, &again));
-        assert_eq!(first.e6.as_ref().map(Vec::len), Some(20 + 192_000));
+        assert_eq!(
+            first.panel.as_ref().map(|body| body.plain.len()),
+            Some(192_000)
+        );
         assert!(store.get().is_some());
         assert_eq!(draws.load(Ordering::SeqCst), 2);
 
@@ -160,6 +163,6 @@ mod test {
         let canvas = store
             .page(Target::Canvas(Resolution::new(320, 200)))
             .expect("drawn");
-        assert!(canvas.e6.is_none());
+        assert!(canvas.panel.is_none());
     }
 }

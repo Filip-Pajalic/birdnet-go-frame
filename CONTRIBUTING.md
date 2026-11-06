@@ -30,7 +30,7 @@ cargo test --workspace
 - Keep dependencies minimal. A new third-party crate needs a reason good enough to write in
   [docs/explanation/dependencies.md](docs/explanation/dependencies.md); `cargo deny` checks
   licences, advisories and duplicates.
-- Add or update tests with the change. The E6 golden tests must keep passing byte for byte.
+- Add or update tests with the change. The panel-bytes golden tests must keep passing byte for byte.
 - Update the docs in `docs/` when settings or behaviour change.
 
 ## Licensing

@@ -1,6 +1,6 @@
 [package]
 name = "frame-http"
-description = "Serves rendered pages to panels and browsers: /frame.e6, /frame.png, /preview.png."
+description = "Serves rendered pages to panels and browsers: /panel, /frame.png, /preview.png."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

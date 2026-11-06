@@ -34,7 +34,7 @@ impl Request {
         &self.method
     }
 
-    /// Returns the path and query, e.g. `/frame.e6?x=1`.
+    /// Returns the path and query, e.g. `/panel?x=1`.
     #[must_use]
     pub fn target(&self) -> &str {
         &self.target

@@ -1,6 +1,6 @@
 //! Which page a client asks for: a panel, or a canvas of any size.
 
-use frame_core::{PanelSize, Resolution, Rotation, e6};
+use frame_core::{PanelSize, Resolution, Rotation, panel_bytes};
 
 /// The smallest and largest canvas side a client may ask for, in pixels.
 const SIDES: core::ops::RangeInclusive<usize> = 64..=3840;
@@ -10,7 +10,7 @@ const MOST_PIXELS: usize = 3840 * 2160;
 /// What a page is drawn for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Target {
-    /// An e-ink panel hung at a rotation; served as `/frame.e6` too.
+    /// An e-ink panel hung at a rotation; served as `/panel` too.
     Panel {
         /// The panel.
         panel: PanelSize,
@@ -26,7 +26,7 @@ impl Target {
     #[must_use]
     pub fn resolution(self) -> Resolution {
         match self {
-            Self::Panel { panel, rotation } => e6::page_resolution_for(panel, rotation),
+            Self::Panel { panel, rotation } => panel_bytes::page_resolution(panel, rotation),
             Self::Canvas(resolution) => resolution,
         }
     }

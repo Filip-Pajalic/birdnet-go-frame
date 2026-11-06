@@ -2,18 +2,19 @@
 
 use std::fmt;
 
-use frame_core::{Crc32, E6Error, IndexedImage, PanelSize, Rotation, e6};
+use frame_core::{Crc32, IndexedImage, PageSizeError, PanelSize, Rotation, panel_bytes};
 use frame_raster::Canvas;
 
-use crate::png_writer;
+use crate::panel_body::PanelBody;
 use crate::target::Target;
+use crate::{deflate, png_writer};
 
 /// Why a page could not be packed.
 #[derive(Debug)]
 #[must_use]
 pub enum RenderError {
-    /// The page does not fit the E6F1 panel.
-    E6(E6Error),
+    /// The page is not the size its target needs.
+    PageSize(PageSizeError),
     /// The page is too large for PNG.
     PngTooLarge,
 }
@@ -21,7 +22,7 @@ pub enum RenderError {
 impl fmt::Display for RenderError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::E6(error) => write!(formatter, "cannot pack /frame.e6: {error}"),
+            Self::PageSize(error) => error.fmt(formatter),
             Self::PngTooLarge => formatter.write_str("page too large for PNG"),
         }
     }
@@ -32,14 +33,17 @@ impl std::error::Error for RenderError {}
 /// A page packed for every endpoint, with one ETag for all of them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderedPage {
-    /// The E6F1 page; `None` for a canvas, which no panel shows.
-    pub e6: Option<Vec<u8>>,
+    /// What `/panel` sends; `None` for a canvas, which no panel shows.
+    pub panel: Option<PanelBody>,
     /// Six-colour PNG: in the panel's native orientation, or as the viewer sees a canvas.
     pub frame_png: Vec<u8>,
     /// Full-colour PNG as the viewer sees it.
     pub preview_png: Vec<u8>,
-    /// Quoted ETag derived from the E6F1 bytes, or a canvas's six-colour PNG.
+    /// The quoted CRC-32, in hex, of the panel's bytes (a canvas's six-colour PNG). Panels may
+    /// check a download against it, so it stays a CRC-32.
     pub etag: String,
+    /// Minutes a panel should sleep before asking again; 0 for as soon as it likes.
+    pub poll_minutes: u8,
 }
 
 impl RenderedPage {
@@ -77,18 +81,19 @@ impl RenderedPage {
         poll_minutes: u8,
     ) -> Result<Self, RenderError> {
         let preview_png: Vec<u8> = png_writer::rgb_png(preview).ok_or(RenderError::PngTooLarge)?;
-        let (e6, frame_png): (Option<Vec<u8>>, Vec<u8>) = match target {
+        let (panel, frame_png): (Option<PanelBody>, Vec<u8>) = match target {
             Target::Panel { panel, rotation } => {
-                let e6: Vec<u8> =
-                    e6::encode_for(panel, page, rotation, poll_minutes).map_err(RenderError::E6)?;
+                let plain: Vec<u8> =
+                    panel_bytes::pack(panel, page, rotation).map_err(RenderError::PageSize)?;
+                let zlib: Vec<u8> = deflate::zlib(&plain);
                 let glass: IndexedImage = page.rotated(rotation);
                 let png: Vec<u8> =
                     png_writer::indexed_png(&glass).ok_or(RenderError::PngTooLarge)?;
-                (Some(e6), png)
+                (Some(PanelBody { plain, zlib }), png)
             }
             Target::Canvas(resolution) => {
                 if page.resolution() != resolution {
-                    return Err(RenderError::E6(E6Error::WrongResolution));
+                    return Err(RenderError::PageSize(PageSizeError));
                 }
                 (
                     None,
@@ -96,13 +101,14 @@ impl RenderedPage {
                 )
             }
         };
-        let tagged: &[u8] = e6.as_deref().unwrap_or(&frame_png);
+        let tagged: &[u8] = panel.as_ref().map_or(&frame_png, |body| &body.plain);
         let etag: String = format!("\"{:08x}\"", Crc32::checksum(tagged));
         Ok(Self {
-            e6,
+            panel,
             frame_png,
             preview_png,
             etag,
+            poll_minutes,
         })
     }
 }

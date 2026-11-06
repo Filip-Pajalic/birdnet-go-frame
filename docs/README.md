@@ -24,7 +24,7 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 
 - [Configuration](reference/configuration.md)
 - [HTTP endpoints](reference/http-endpoints.md)
-- [The E6F1 page format](reference/e6-format.md)
+- [The panel format](reference/panel-format.md)
 - [Crates and apps](reference/crates.md)
 
 ## Explanation

@@ -19,7 +19,7 @@ flowchart LR
         esp -- SPI --> panel
     end
 
-    srv -- "/frame.e6<br/>or 304 Not Modified" --> esp
+    srv -- "/panel (zlib)<br/>or 304 Not Modified" --> esp
     srv -- "/preview.png" --> browser([Browser])
 ```
 
@@ -51,13 +51,13 @@ sequenceDiagram
     end
 
     Note over P: deep sleep for POLL_MINUTES
-    P->>S: GET /frame.e6 (If-None-Match: last ETag)
+    P->>S: GET /panel (If-None-Match: last ETag, Accept-Encoding: deflate)
     alt page unchanged
         S-->>P: 304 Not Modified
         Note over P: back to sleep within seconds
     else new page
-        S-->>P: 200, 20-byte header + 960,000 bytes
-        P->>P: check CRC-32, Wi-Fi off, refresh panel (~20-30 s)
+        S-->>P: 200, about 216,000 zlib bytes (960,000 inflated)
+        P->>P: inflate and check, Wi-Fi off, refresh panel (~20-30 s)
         Note over P: back to sleep
     end
 ```

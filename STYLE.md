@@ -19,7 +19,7 @@ review covers the rest.
 ## Review checklist
 
 - [ ] One `use` per module; types and traits imported and used unqualified; top-level functions
-      called through their module (`e6::encode`); traits imported in the function that uses them
+      called through their module (`panel_bytes::pack`); traits imported in the function that uses them
       unless used throughout the file. No preludes, no globs except `use super::*` in tests.
 - [ ] Small crates, one file per abstraction, file named after its main item. `lib.rs` and other
       non-leaf modules hold only `mod` declarations and re-exports.

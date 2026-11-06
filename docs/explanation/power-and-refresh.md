@@ -9,9 +9,9 @@ much the processor computes. Every design choice around refreshing follows from 
 flowchart LR
     sleep["Deep sleep<br/>microamps"] --> wake[Wake on timer]
     wake --> wifi["Join Wi-Fi<br/>radio on"]
-    wifi --> get["GET /frame.e6<br/>If-None-Match"]
+    wifi --> get["GET /panel<br/>If-None-Match"]
     get -->|304| off[Wi-Fi off] --> sleep
-    get -->|200| dl["Download 960 KB<br/>check CRC-32"] --> off2[Wi-Fi off] --> refresh["Panel refresh<br/>~20-30 s"] --> sleep
+    get -->|200| dl["Download ~215 KB<br/>inflate to 960 KB"] --> off2[Wi-Fi off] --> refresh["Panel refresh<br/>~20-30 s"] --> sleep
 ```
 
 - Most wakes end at the 304: the server only changes the page when the set of species changes.
@@ -34,15 +34,31 @@ So the panel polls, and the server makes polling cheap:
 | --- | --- | --- |
 | ETag and 304 | server | An unchanged page costs a few hundred bytes |
 | Redraw only on a new species set | server | Most polls are unchanged |
-| Poll interval in the page header | server | `POLL_MINUTES` tells the panel when to come back; the server can lengthen it at night (planned) |
-| CRC-32 before refresh | panel | A damaged download never reaches the glass |
+| Poll interval as `Cache-Control: max-age` | server | `POLL_MINUTES` tells the panel when to come back; the server can lengthen it at night (planned) |
+| zlib-compressed page | server | A new page moves about a quarter of the bytes |
+| Length and Adler-32 checked before refresh | panel | A damaged or mismatched download never reaches the glass |
 | Wi-Fi off during refresh | panel | The radio is only on while it is needed |
 
 For a frame on USB power, a long-poll mode (the panel holds a request open and the server answers
 when the page changes) is planned as an option.
 
-## Why compression is optional
+## Why the page is compressed
 
-Compressing the payload would shorten downloads, but downloads only happen on the few wakes a day
-where the birds changed, and those are dominated by the panel refresh. Compression will be added
-behind the header's encoding byte only if measurements show it is worth it.
+A 13.3" page is 960,000 bytes of controller codes. Dithered birds compress well: the server's
+zlib stream for a busy collage is about 216,000 bytes (7.3": 192,000 to about 45,000), within 7
+percent of zlib's best level.
+
+| | Uncompressed | Compressed |
+| --- | --- | --- |
+| Bytes on the wire, 13.3" | 960,000 | about 216,000 |
+| Radio time at a typical 1 to 2 MB/s on an ESP32-S3 | about 0.5 to 1 s | about 0.1 to 0.2 s |
+| Extra work on the panel | none | inflating, about 50 to 100 ms of CPU (the S3 has an inflater in ROM) |
+
+The CPU is cheaper than the radio by a wide margin, so compressing always wins, but by less than
+it sounds: the saving is roughly half a second of radio per new page, against a 20 to 30 second
+refresh and the Wi-Fi join. It matters most on a weak signal, where throughput falls to a few
+hundred kilobytes a second and the saving grows to several seconds. A 304 wake, which is most
+wakes, is unchanged. These are estimates until the power milestone measures them.
+
+Clients that do not send `Accept-Encoding: deflate` still get the plain bytes, which makes the
+endpoint easy to test with any HTTP tool.

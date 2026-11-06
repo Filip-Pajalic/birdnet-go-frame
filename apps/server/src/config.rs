@@ -48,7 +48,7 @@ pub struct Config {
     pub panel: PanelSize,
     /// How the panel hangs, for clients that do not say.
     pub rotation: Rotation,
-    /// Minutes the panel sleeps between checks, sent in the page header.
+    /// Minutes the panel sleeps between checks, sent as `Cache-Control: max-age` on `/panel`.
     pub poll_minutes: u8,
     /// How far back detections count.
     pub window_hours: u32,

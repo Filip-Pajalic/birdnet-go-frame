@@ -49,5 +49,5 @@ when a real station sends something the parser gets wrong.
 
 ## Checking the panel format
 
-`crates/frame-core/tests/e6_golden.rs` compares our `/frame.e6` with bytes from a reference
-implementation of fugleramme's packing. Any change that breaks byte compatibility fails it.
+`crates/frame-core/tests/panel_bytes_golden.rs` compares the bytes `/panel` serves with bytes
+from a reference implementation of fugleramme's packing. Any change that breaks byte compatibility fails it.

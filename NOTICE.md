@@ -4,7 +4,7 @@
 
 Parts of this project are derived from fugleramme: https://github.com/arnegiacomo/fugleramme
 
-- the `/frame.e6` image format in `crates/frame-core`;
+- the controllers' pixel layout from the `/frame.e6` format, in `crates/frame-core/src/panel_bytes.rs`;
 - the collage in `crates/frame-layout` (`collage.rs`, `footprint.rs`, `spiral.rs`), ported from
   `render/collage.py` and `render/packing.py`;
 - the paper-halo blending in `crates/art-webp/src/halo.rs`, from `render/paper.py`, and the

@@ -51,7 +51,7 @@ The first version used 42 third-party crates. They were replaced with code sized
 | `serde`, `serde_json` (+ `syn`, `quote`, `proc-macro2`, …) | `lite-json`, about 250 lines | Two response shapes read once a minute, plus `geometry.json` and translations at start-up. No proc macros means faster builds too. |
 | `ureq` (+ `http`, `httparse`, `base64`, …) | `lan-http::get` | One plain-HTTP GET on the LAN, with chunked bodies. BirdNET-Go is not reached over TLS. |
 | `tiny_http` (+ `ascii`, `chunked_transfer`, …) | `lan-http::Server` | Five GET routes, one request per connection, for a panel and a browser. |
-| `png` (+ `flate2`, `miniz_oxide`, `fdeflate`, `crc32fast`, …) | `frame-http`'s PNG writer with a small deflate | Previews compress to the same size; the CRC-32 was already in `frame-core`. |
+| `png` (+ `flate2`, `miniz_oxide`, `fdeflate`, `crc32fast`, …) | `frame-http`'s PNG writer and a small zlib encoder (hash chains, lazy matching, dynamic Huffman) | Panel pages and PNGs come within 7 percent of zlib's best level; the CRC-32 was already in `frame-core`. |
 
 The server binary went from 1.96 MB to 1.51 MB with the collage and the 158 KB size table
 added; the webp decoder, spiral packing and translations bring it to 1.70 MB. Each replacement has tests, including round trips over real sockets and a check that the

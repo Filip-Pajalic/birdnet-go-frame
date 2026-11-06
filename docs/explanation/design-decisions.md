@@ -71,11 +71,16 @@ A library uses the standard library only if its job needs an operating system (`
 `transport-lan`, `frame-http`). Everything else is `no_std` with `alloc`, so it also compiles for the ESP32. That
 keeps an ESP32 that renders the page itself, with no server, a realistic option.
 
-## Byte compatibility with fugleramme
+## fugleramme's pixels, without the `.e6` header
 
-The `/frame.e6` format is fugleramme's, verified by golden tests. Either project's server works with
-either project's panel firmware, which also let the server be tested on real hardware before our
-own firmware existed.
+The pixel bytes `/panel` serves are fugleramme's controller layout, verified by golden tests. The
+20-byte `.e6` header around them is gone: fugleramme needed it because its MicroPython firmware
+cannot decode a PNG and had nowhere else to read the panel size, a checksum and the poll time.
+Over HTTP the request names the panel, the inflated length catches a mismatch, zlib carries a
+checksum, and `Cache-Control: max-age` gives the poll time. Without the header the body can be
+compressed, so a new page moves about a quarter of the bytes. The cost is that fugleramme's EE02
+firmware needs a few lines changed to read `/panel`
+([how](../how-to/show-on-ee02.md)); a Rust firmware reads it directly.
 
 ## Built-in mocks
 

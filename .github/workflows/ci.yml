@@ -116,6 +116,8 @@ jobs:
             curl -fsS http://127.0.0.1:8080/healthz && break
             sleep 1
           done
-          curl -fsS -o frame.e6 http://127.0.0.1:8080/frame.e6
-          test "$(head -c 4 frame.e6)" = "E6F1"
-          test "$(stat -c %s frame.e6)" = "960020"
+          curl -fsS -o panel.bin http://127.0.0.1:8080/panel
+          test "$(stat -c %s panel.bin)" = "960000"
+          downloaded="$(curl -fsS --compressed -o inflated.bin -w '%{size_download}' http://127.0.0.1:8080/panel)"
+          test "$downloaded" -lt 480000
+          cmp panel.bin inflated.bin
