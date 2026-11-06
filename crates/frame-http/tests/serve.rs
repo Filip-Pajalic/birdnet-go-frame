@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use frame_core::{Crc32, IndexedImage, Ink, PanelSize, Rgb, Rotation, panel_bytes};
-use frame_http::{FrameServer, PageStore, RenderedPage, Target};
+use frame_core::{Crc32, IndexedImage, Ink, PanelSize, Resolution, Rgb, Rotation, panel_bytes};
+use frame_http::{FrameLog, FrameServer, FrameVisit, PageStore, RenderedPage, Target};
 use frame_raster::Canvas;
 
 fn raw_bytes(address: &str, request: &str) -> Vec<u8> {
@@ -226,4 +226,82 @@ fn a_sleep_plan_sets_the_panels_max_age() {
     }));
     let head: String = raw(&address, "GET /panel HTTP/1.1\r\n\r\n");
     assert!(head.contains("Cache-Control: max-age=7200"), "{head}");
+}
+
+#[test]
+fn frames_get_their_views_log_their_wakes_and_find_firmware() {
+    let desk = Target::Panel {
+        panel: PanelSize::Inches7Point3,
+        rotation: Rotation::Degrees90,
+    };
+    let store: Arc<PageStore> = Arc::new(PageStore::new(Target::Panel {
+        panel: PanelSize::Inches7Point3,
+        rotation: Rotation::Degrees0,
+    }));
+    let folder = std::env::temp_dir().join(format!("frame-http-firmware-{}", std::process::id()));
+    std::fs::create_dir_all(&folder).expect("a folder");
+    std::fs::write(folder.join("ee02-thin.bin"), b"\xe9firmware").expect("written");
+    std::fs::write(folder.join("ee02-thin.version"), "0.3.0\n").expect("written");
+    let log: Arc<FrameLog> = Arc::new(FrameLog::new());
+    let server = FrameServer::bind("127.0.0.1:0", Arc::clone(&store))
+        .expect("bind")
+        .with_frame_log(Arc::clone(&log))
+        .with_firmware(folder.clone())
+        .with_router(move |query| {
+            let view: String = frame_http::query_value(query, "view")
+                .unwrap_or("today")
+                .to_owned();
+            match frame_http::query_value(query, "frame") {
+                Some("desk") => Ok((Target::from_query(query, desk)?, format!("desk/{view}"))),
+                _ => Ok((
+                    Target::from_query(query, Target::Canvas(Resolution::new(80, 80)))?,
+                    view,
+                )),
+            }
+        });
+    let address: String = server.local_addr().expect("address").to_string();
+    thread::spawn(move || server.run());
+    // Each view is painted its own ink, so their pages differ.
+    store.publish_views(Box::new(|target: Target, view: &str| {
+        let resolution = target.resolution();
+        let ink: Ink = if view.ends_with("week") {
+            Ink::Red
+        } else {
+            Ink::White
+        };
+        let page = IndexedImage::new(resolution, ink);
+        let preview = Canvas::new(resolution, Rgb::WHITE);
+        RenderedPage::for_target(target, &page, &preview, 15).ok()
+    }));
+
+    let today: String = raw(
+        &address,
+        "GET /panel?frame=desk HTTP/1.1\r\nX-Frame-Battery-mV: 3900\r\nX-Frame-Firmware: 0.2.0\r\n\r\n",
+    );
+    let week: String = raw(&address, "GET /panel?frame=desk&view=week HTTP/1.1\r\n\r\n");
+    let etag = |reply: &str| {
+        reply
+            .lines()
+            .find_map(|line| line.strip_prefix("ETag: "))
+            .map(str::to_owned)
+    };
+    assert!(today.starts_with("HTTP/1.1 200"), "{today}");
+    assert_ne!(etag(&today), etag(&week));
+    assert!(today.contains("X-Frame-Firmware: 0.3.0"), "{today}");
+
+    let visit: FrameVisit = log.visit("desk").expect("the desk frame woke");
+    assert_eq!(visit.view, "week");
+    assert_eq!(visit.wakes, 2);
+    let frames: String = raw(&address, "GET /api/frames/desk HTTP/1.1\r\n\r\n");
+    assert!(frames.contains(r#""frame":"desk""#), "{frames}");
+
+    let reply: Vec<u8> = raw_bytes(&address, "GET /firmware/ee02-thin.bin HTTP/1.1\r\n\r\n");
+    let (head, body) = split(&reply);
+    assert!(head.contains("Content-Length: 9"), "{head}");
+    assert_eq!(body, b"\xe9firmware");
+    for refused in ["/firmware/../secret.bin", "/firmware/ee02-thin.version"] {
+        let reply: String = raw(&address, &format!("GET {refused} HTTP/1.1\r\n\r\n"));
+        assert!(reply.starts_with("HTTP/1.1 404"), "{refused}: {reply}");
+    }
+    std::fs::remove_dir_all(&folder).ok();
 }

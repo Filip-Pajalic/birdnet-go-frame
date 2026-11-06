@@ -8,8 +8,14 @@ use crate::target::Target;
 /// Draws the current page for a target, or returns `None` when it cannot.
 pub type PageMaker = dyn Fn(Target) -> Option<RenderedPage> + Send + Sync;
 
-/// Most pages kept at once: a few panels and screens, not every size a client could ask for.
-const MOST_PAGES: usize = 8;
+/// Draws the current page for a target and a view, or returns `None` when it cannot. A view is
+/// the app's own name for one way of drawing the page, e.g. a frame and its page mode; the
+/// store only tells views apart.
+pub type ViewMaker = dyn Fn(Target, &str) -> Option<RenderedPage> + Send + Sync;
+
+/// Most pages kept at once: a few frames in a few views, and screens, not every size a client
+/// could ask for.
+const MOST_PAGES: usize = 24;
 
 /// Holds the current page for every target asked for.
 ///
@@ -26,8 +32,8 @@ pub struct PageStore {
 struct Inner {
     /// Counts publishes, so a page drawn from an old maker is not cached after a new one.
     generation: u64,
-    maker: Option<Arc<PageMaker>>,
-    pages: Vec<(Target, Arc<RenderedPage>)>,
+    maker: Option<Arc<ViewMaker>>,
+    pages: Vec<((Target, String), Arc<RenderedPage>)>,
 }
 
 impl PageStore {
@@ -46,8 +52,15 @@ impl PageStore {
         self.default
     }
 
-    /// Replaces what is served with pages drawn by `maker`, forgetting every page drawn so far.
+    /// Replaces what is served with pages drawn by `maker`, the same page in every view,
+    /// forgetting every page drawn so far.
     pub fn publish(&self, maker: Box<PageMaker>) {
+        self.publish_views(Box::new(move |target, _view| maker(target)));
+    }
+
+    /// Replaces what is served with pages drawn by `maker` for each target and view,
+    /// forgetting every page drawn so far.
+    pub fn publish_views(&self, maker: Box<ViewMaker>) {
         // A poisoned lock means a thread panicked mid-update; its contents are not trusted
         // and the pages are simply not replaced.
         if let Ok(mut inner) = self.inner.lock() {
@@ -78,26 +91,37 @@ impl PageStore {
         self.page(self.default)
     }
 
-    /// Returns `target`'s page, drawing it if this is the first request since the last publish.
-    /// `None` before the first publish, or when the page cannot be drawn.
+    /// Returns `target`'s page in the default view, drawing it if this is the first request
+    /// since the last publish. `None` before the first publish, or when the page cannot be
+    /// drawn.
     #[must_use]
     pub fn page(&self, target: Target) -> Option<Arc<RenderedPage>> {
-        let (generation, maker): (u64, Arc<PageMaker>) = {
+        self.view(target, "")
+    }
+
+    /// Returns `target`'s page in `view`, drawing it if this is the first request since the
+    /// last publish. `None` before the first publish, or when the page cannot be drawn.
+    #[must_use]
+    pub fn view(&self, target: Target, view: &str) -> Option<Arc<RenderedPage>> {
+        let found = |kept: &(Target, String)| kept.0 == target && kept.1 == view;
+        let (generation, maker): (u64, Arc<ViewMaker>) = {
             let inner = self.inner.lock().ok()?;
-            if let Some((_, page)) = inner.pages.iter().find(|(kept, _)| *kept == target) {
+            if let Some((_, page)) = inner.pages.iter().find(|(kept, _)| found(kept)) {
                 return Some(Arc::clone(page));
             }
             (inner.generation, Arc::clone(inner.maker.as_ref()?))
         };
         // Drawn without the lock, so other targets are served meanwhile.
-        let page: Arc<RenderedPage> = Arc::new(maker(target)?);
+        let page: Arc<RenderedPage> = Arc::new(maker(target, view)?);
         if let Ok(mut inner) = self.inner.lock() {
             let current: bool = inner.generation == generation;
-            if current && !inner.pages.iter().any(|(kept, _)| *kept == target) {
+            if current && !inner.pages.iter().any(|(kept, _)| found(kept)) {
                 if inner.pages.len() >= MOST_PAGES {
                     inner.pages.remove(0);
                 }
-                inner.pages.push((target, Arc::clone(&page)));
+                inner
+                    .pages
+                    .push(((target, String::from(view)), Arc::clone(&page)));
             }
         }
         Some(page)
@@ -164,5 +188,31 @@ mod test {
             .page(Target::Canvas(Resolution::new(320, 200)))
             .expect("drawn");
         assert!(canvas.panel.is_none());
+    }
+
+    #[test]
+    fn keeps_each_view_apart() {
+        let default = Target::Panel {
+            panel: PanelSize::Inches7Point3,
+            rotation: Rotation::Degrees0,
+        };
+        let store = PageStore::new(default);
+        let views: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let seen: Arc<Mutex<Vec<String>>> = Arc::clone(&views);
+        store.publish_views(Box::new(move |target, view| {
+            seen.lock().ok()?.push(String::from(view));
+            draw(target)
+        }));
+        let week = store.view(default, "desk/week").expect("drawn");
+        let today = store.view(default, "desk/today").expect("drawn");
+        assert!(!Arc::ptr_eq(&week, &today));
+        assert!(Arc::ptr_eq(
+            &week,
+            &store.view(default, "desk/week").expect("kept")
+        ));
+        assert_eq!(
+            views.lock().map(|views| views.clone()).ok(),
+            Some(vec![String::from("desk/week"), String::from("desk/today")])
+        );
     }
 }

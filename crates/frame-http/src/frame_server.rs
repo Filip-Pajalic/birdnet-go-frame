@@ -1,24 +1,46 @@
 //! The blocking HTTP server.
 
-use std::io;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::{fs, io};
 
 use lan_http::{Request, Response, Server};
 
+use crate::frame_log::{self, FrameLog};
 use crate::page_store::PageStore;
 use crate::panel_body::PanelBody;
+use crate::query;
 use crate::rendered_page::RenderedPage;
 use crate::target::Target;
 
 /// Seconds a panel should sleep if asked now, given the page's own poll time in seconds.
 pub type SleepPlan = dyn Fn(u32) -> u32 + Send + Sync;
 
+/// Reads a page request's query (everything after `?`) into the target to draw for and the
+/// view to draw, or a message for the client when it cannot be read.
+pub type Router = dyn Fn(&str) -> Result<(Target, String), String> + Send + Sync;
+
+/// The firmware the EE02 frame runs, offered from [`FrameServer::with_firmware`]'s folder.
+pub const FIRMWARE: &str = "ee02-thin";
+
+/// Everything the request handler reads, shared by the connection threads.
+struct Shared {
+    store: Arc<PageStore>,
+    sleep: Arc<SleepPlan>,
+    router: Arc<Router>,
+    log: Arc<FrameLog>,
+    firmware: Option<PathBuf>,
+}
+
 /// Serves the pages in a [`PageStore`].
 pub struct FrameServer {
     server: Server,
     store: Arc<PageStore>,
     sleep: Arc<SleepPlan>,
+    router: Arc<Router>,
+    log: Arc<FrameLog>,
+    firmware: Option<PathBuf>,
 }
 
 impl std::fmt::Debug for FrameServer {
@@ -38,11 +60,42 @@ impl FrameServer {
     ///
     /// Returns an error when the address cannot be bound.
     pub fn bind(address: &str, store: Arc<PageStore>) -> io::Result<Self> {
+        let default: Target = store.default_target();
         Ok(Self {
             server: Server::bind(address)?,
             store,
             sleep: Arc::new(|poll_seconds| poll_seconds),
+            router: Arc::new(move |query| Ok((Target::from_query(query, default)?, String::new()))),
+            log: Arc::new(FrameLog::new()),
+            firmware: None,
         })
+    }
+
+    /// Reads page requests with `router` instead of [`Target::from_query`] alone, so the app
+    /// can offer views (`frame=`, `view=`) and give each frame its own default target.
+    #[must_use]
+    pub fn with_router(
+        mut self,
+        router: impl Fn(&str) -> Result<(Target, String), String> + Send + Sync + 'static,
+    ) -> Self {
+        self.router = Arc::new(router);
+        self
+    }
+
+    /// Notes each panel's wakes in `log` instead of a log of its own.
+    #[must_use]
+    pub fn with_frame_log(mut self, log: Arc<FrameLog>) -> Self {
+        self.log = log;
+        self
+    }
+
+    /// Offers firmware from `folder`: `/firmware/<name>.bin` serves a file there, and when
+    /// `ee02-thin.bin` and `ee02-thin.version` are both there, `/panel` answers carry
+    /// `X-Frame-Firmware` with the version, so frames on another version fetch the file.
+    #[must_use]
+    pub fn with_firmware(mut self, folder: PathBuf) -> Self {
+        self.firmware = Some(folder);
+        self
     }
 
     /// Decides how long panels sleep, e.g. longer at night: `sleep` gets the page's poll time
@@ -64,15 +117,36 @@ impl FrameServer {
 
     /// Answers requests until the process exits.
     pub fn run(&self) {
-        let store: Arc<PageStore> = Arc::clone(&self.store);
-        let sleep: Arc<SleepPlan> = Arc::clone(&self.sleep);
-        self.server
-            .run(move |request| answer(&store, sleep.as_ref(), request));
+        let shared = Shared {
+            store: Arc::clone(&self.store),
+            sleep: Arc::clone(&self.sleep),
+            router: Arc::clone(&self.router),
+            log: Arc::clone(&self.log),
+            firmware: self.firmware.clone(),
+        };
+        self.server.run(move |request| answer(&shared, request));
     }
 }
 
-fn answer(store: &PageStore, sleep: &SleepPlan, request: &Request) -> Response {
+fn answer(shared: &Shared, request: &Request) -> Response {
+    let store: &PageStore = &shared.store;
     let path: &str = request.path();
+    if path == "/api/frames" {
+        return Response::new(200, shared.log.to_json())
+            .with_header("Content-Type", "application/json")
+            .with_header("Cache-Control", no_cache());
+    }
+    if let Some(frame) = path.strip_prefix("/api/frames/") {
+        return match shared.log.visit(frame) {
+            Some(visit) => Response::new(200, visit.to_json())
+                .with_header("Content-Type", "application/json")
+                .with_header("Cache-Control", no_cache()),
+            None => Response::text(404, "no frame by that name has woken yet"),
+        };
+    }
+    if let Some(file) = path.strip_prefix("/firmware/") {
+        return firmware_file(shared.firmware.as_ref(), file);
+    }
     if path == "/" {
         return Response::new(200, INDEX).with_header("Content-Type", "text/html; charset=utf-8");
     }
@@ -90,8 +164,8 @@ fn answer(store: &PageStore, sleep: &SleepPlan, request: &Request) -> Response {
         .target()
         .split_once('?')
         .map_or("", |(_, query)| query);
-    let target: Target = match Target::from_query(query, store.default_target()) {
-        Ok(target) => target,
+    let (target, view): (Target, String) = match (shared.router)(query) {
+        Ok(routed) => routed,
         Err(problem) => return Response::text(400, &problem),
     };
     if path == "/panel" && matches!(target, Target::Canvas(_)) {
@@ -100,12 +174,31 @@ fn answer(store: &PageStore, sleep: &SleepPlan, request: &Request) -> Response {
     if !store.is_ready() {
         return Response::text(503, "no page rendered yet");
     }
-    let Some(page) = store.page(target) else {
+    if path == "/panel" {
+        let battery: Option<u32> = request
+            .header("X-Frame-Battery-mV")
+            .and_then(|millivolts| millivolts.trim().parse().ok());
+        shared.log.record(
+            frame_log::frame_name(query::query_value(query, "frame")),
+            query::query_value(query, "view")
+                .filter(|view| view.len() <= frame_log::MOST_NAME_BYTES)
+                .unwrap_or_default(),
+            battery,
+            request.header("X-Frame-Firmware"),
+        );
+    }
+    let Some(page) = store.view(target, &view) else {
         return Response::text(500, "the page could not be drawn");
     };
     match path {
         "/panel" => match &page.panel {
-            Some(body) => panel(request, &page, body, sleep),
+            Some(body) => {
+                let response: Response = panel(request, &page, body, shared.sleep.as_ref());
+                match offered_version(shared.firmware.as_ref()) {
+                    Some(version) => response.with_header("X-Frame-Firmware", version),
+                    None => response,
+                }
+            }
             None => Response::text(500, "the page could not be packed"),
         },
         "/frame.png" => cached(
@@ -128,9 +221,45 @@ fn answer(store: &PageStore, sleep: &SleepPlan, request: &Request) -> Response {
 const INDEX: &str = "<!doctype html><meta charset=utf-8><title>birdnet-go-frame</title>\
 <style>body{font-family:sans-serif;margin:2rem;background:#eee}img{max-width:100%;box-shadow:0 2px 8px #0003}</style>\
 <h1>birdnet-go-frame</h1><p><a href=/frame.png>/frame.png</a> · <a href=/preview.png>/preview.png</a> · \
-<a href=/panel>/panel</a> (for the panel's firmware) · other sizes: \
+<a href=/panel>/panel</a> (for the panel's firmware) · <a href=/api/frames>/api/frames</a> · views: \
+<a href='/preview.png?view=week'>week</a>, <a href='/preview.png?view=rarest'>rarest</a>, \
+<a href='/preview.png?view=story'>story</a>, <a href='/preview.png?view=season'>season</a> · other sizes: \
 <a href='/preview.png?panel=7.3'>?panel=7.3</a>, \
 <a href='/preview.png?w=1920&amp;h=1080'>?w=1920&amp;h=1080</a></p><img src=/preview.png alt='Current page'>";
+
+/// Returns the version of the EE02 firmware on offer, when both its files are in `folder`.
+fn offered_version(folder: Option<&PathBuf>) -> Option<String> {
+    let folder: &PathBuf = folder?;
+    if !folder.join(format!("{FIRMWARE}.bin")).is_file() {
+        return None;
+    }
+    let version: String = fs::read_to_string(folder.join(format!("{FIRMWARE}.version"))).ok()?;
+    let version: &str = version.trim();
+    let printable: bool = version.bytes().all(|byte| byte.is_ascii_graphic());
+    (!version.is_empty() && version.len() <= frame_log::MOST_NAME_BYTES && printable)
+        .then(|| String::from(version))
+}
+
+/// Serves `/firmware/<file>`: a `.bin` file named in `[a-z0-9-._]` from the firmware folder.
+fn firmware_file(folder: Option<&PathBuf>, file: &str) -> Response {
+    let Some(folder) = folder else {
+        return Response::text(404, "no firmware is offered: set FIRMWARE_DIR");
+    };
+    let named: bool = file.ends_with(".bin")
+        && !file.starts_with('.')
+        && file.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"-._".contains(&byte)
+        });
+    if !named || file.contains("..") {
+        return Response::text(404, "not found");
+    }
+    match fs::read(folder.join(file)) {
+        Ok(bytes) => Response::new(200, bytes)
+            .with_header("Content-Type", "application/octet-stream")
+            .with_header("Cache-Control", no_cache()),
+        Err(_) => Response::text(404, "not found"),
+    }
+}
 
 /// Sends the panel's bytes, compressed when the client accepts `deflate`, with how long it
 /// should sleep as the time the page stays fresh.
