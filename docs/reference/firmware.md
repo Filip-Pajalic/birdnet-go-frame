@@ -2,7 +2,8 @@
 
 `apps/ee02-thin`: firmware for the Seeed XIAO EE02 (ESP32-S3, 8 MB octal PSRAM) and the 13.3"
 Spectra 6 panel. [Build and flash the EE02 firmware](../how-to/flash-ee02-thin.md) shows how to
-install it.
+install it, and
+[Supported hardware](supported-hardware.md) which other boards and panels work.
 
 ## Build-time settings
 

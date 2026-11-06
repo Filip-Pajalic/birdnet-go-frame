@@ -105,6 +105,10 @@ compressed, so the radio moves about a quarter of the bytes per new page; see
 | Frame | IKEA RÖDALM 21x30 (A4) |
 | Server | Anything that runs Docker or a Linux binary and can reach BirdNET-Go (e.g. Unraid) |
 
+The server also serves the 7.3" Spectra 6 panel and PNGs at any size. See
+[Supported hardware](docs/reference/supported-hardware.md) for which panels, ESP32 models and
+combinations work today.
+
 ## Repository layout
 
 Everything is a library crate. The crates under `apps/` are thin binaries that only choose which

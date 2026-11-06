@@ -28,6 +28,7 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 - [The panel format](reference/panel-format.md)
 - [Crates and apps](reference/crates.md)
 - [The EE02 firmware: settings, wake, memory, pins](reference/firmware.md)
+- [Supported hardware: panels, ESP32 models and combinations](reference/supported-hardware.md)
 
 ## Explanation
 
