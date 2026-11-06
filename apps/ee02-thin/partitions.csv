@@ -1,0 +1,8 @@
+# The EE02's flash: two app slots for over-the-air updates and one sector for the frame's
+# settings. Fits the 8 MB and 16 MB XIAO ESP32-S3 modules alike.
+# Name,   Type, SubType,   Offset,   Size
+nvs,      data, nvs,       0x9000,   0x5000
+otadata,  data, ota,       0xe000,   0x2000
+ota_0,    app,  ota_0,     0x10000,  0x3c0000
+ota_1,    app,  ota_1,     0x3d0000, 0x3c0000
+frame,    data, undefined, 0x790000, 0x1000

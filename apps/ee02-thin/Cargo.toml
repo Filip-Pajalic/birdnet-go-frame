@@ -1,7 +1,7 @@
 [package]
 name = "ee02-thin"
-description = "Firmware for the Seeed XIAO EE02 (ESP32-S3) and the 13.3-inch Spectra 6 panel: fetch /panel, draw it if it changed, deep-sleep."
-version = "0.1.0"
+description = "Firmware for the Seeed XIAO EE02 (ESP32-S3) and the 13.3-inch Spectra 6 panel: fetch /panel, draw it if it changed, deep-sleep; set up over its own hotspot and update over Wi-Fi."
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
@@ -15,7 +15,7 @@ publish = false
 [dependencies]
 embassy-executor = { version = "0.10.0", default-features = false }
 embassy-futures = { version = "0.1.2", default-features = false }
-embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp"] }
+embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp", "udp"] }
 embassy-time = { version = "0.5.0", default-features = false }
 esp-alloc = { version = "0.11.0", default-features = false, features = ["compat", "esp32s3", "global-allocator"] }
 esp-backtrace = { version = "0.20.0", default-features = false, features = ["esp32s3", "panic-handler", "println"] }
@@ -27,6 +27,7 @@ esp-println = { version = "0.18.0", default-features = false, features = ["esp32
 esp-radio = { version = "1.0.0-beta.1", default-features = false, features = ["esp-alloc", "esp32s3", "unstable", "wifi"] }
 esp-rtos = { version = "0.4.0", default-features = false, features = ["embassy", "esp-alloc", "esp-radio", "esp32s3"] }
 frame-core = { path = "../../crates/frame-core", version = "0.1.0" }
+panel-setup = { path = "../../crates/panel-setup", version = "0.1.0" }
 panel-t133a01 = { path = "../../crates/panel-t133a01", version = "0.1.0" }
 panel-wake = { path = "../../crates/panel-wake", version = "0.1.0" }
 # Atomics that esp-hal lets live in RTC memory through deep sleep, so the memory needs no

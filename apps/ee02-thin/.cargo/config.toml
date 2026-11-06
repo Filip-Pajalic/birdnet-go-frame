@@ -1,5 +1,7 @@
 [target.xtensa-esp32s3-none-elf]
-runner = "espflash flash --monitor --chip esp32s3"
+# The partition table gives the firmware two slots for over-the-air updates and a sector for its
+# settings. Erasing otadata makes the board boot what was just flashed, not an older update.
+runner = "espflash flash --monitor --chip esp32s3 --partition-table partitions.csv --erase-parts otadata"
 
 [build]
 target = "xtensa-esp32s3-none-elf"
