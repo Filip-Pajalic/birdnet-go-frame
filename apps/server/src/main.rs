@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::{fs, thread};
 
 use art_pack::{ArtSource, NoArt};
-use art_webp::ArtFolder;
+use art_webp::{ArtFolder, BorderSprays};
 use birdnet_client::{BirdnetClient, CivilDate, DateWindow};
 use birdnet_mock::MockTransport;
 use frame_artist::{Artist, PageStyle, PageView};
@@ -145,8 +145,9 @@ fn main() -> ExitCode {
         southern: config.place.is_some_and(|place| place.latitude < 0.0),
     };
     let poller_store: Arc<PageStore> = Arc::clone(&store);
-    let artist: SharedArtist<Box<dyn ArtSource + Send>> =
-        Arc::new(Mutex::new(Artist::new(renderer, art, style)));
+    let artist: SharedArtist<Box<dyn ArtSource + Send>> = Arc::new(Mutex::new(
+        Artist::new(renderer, art, style).with_sprays(Box::new(BorderSprays::bundled())),
+    ));
     if let Some(mqtt) = config.mqtt.clone() {
         let log: Arc<FrameLog> = Arc::clone(&log);
         thread::spawn(move || home_assistant::run(&mqtt, &log));

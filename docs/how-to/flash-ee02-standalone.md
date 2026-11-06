@@ -42,7 +42,8 @@ cargo run --release -p art-packer -- art/classic frame-art.artb --species my-bir
 last year. Each species takes about 30 KB, and the firmware has room for about 5 MB of art, so
 about 150 species; without `--species` every species in the style is packed, which may not fit.
 `--day N` picks which plate of a species with several (the frame shows the same plate every
-day, unlike the server).
+day, unlike the server). The bundle also carries the border's plants (about 500 KB for all
+seven borders), so the frame's pages wear the season's border.
 
 ## 2. Set the settings and build
 

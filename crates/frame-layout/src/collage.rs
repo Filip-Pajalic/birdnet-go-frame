@@ -3,17 +3,19 @@
 //! Ported from fugleramme's `render/collage.py` (MIT, © 2026 Arne Giacomo Munthe-Kaas).
 
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use frame_core::Resolution;
 
 use crate::align::Align;
+use crate::corner_sprays::{CornerSprays, PlacedSpray};
 use crate::footprint::{Anchors, Footprint};
 use crate::image_block::ImageBlock;
 use crate::page_frame::{self, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::silhouette::Silhouette;
-use crate::spiral;
+use crate::spiral::{self, Blocked};
 use crate::text_block::TextBlock;
 use crate::text_style::TextStyle;
 
@@ -47,6 +49,8 @@ const NAME_REFINE: usize = 3;
 const NAME_SPACE: f32 = 0.6;
 /// Space between a bird and its name, in ems.
 const NAME_GAP: f32 = 0.35;
+/// Paper kept between a border's plant and the birds, in pack pixels.
+const SPRAY_GAP: usize = 10;
 
 /// One bird to place.
 #[derive(Clone, Debug, PartialEq)]
@@ -74,6 +78,8 @@ pub struct CollageOptions {
     pub heading: String,
     /// A small line at the foot, e.g. when the page was drawn. Empty for none.
     pub footer: String,
+    /// The border, if any.
+    pub sprays: CornerSprays,
     /// A line about the main bird, over the footer. Empty for none, the default.
     pub fact: String,
     /// The line shown when nothing has been heard.
@@ -92,6 +98,7 @@ impl Default for CollageOptions {
             heading: String::new(),
             footer: String::new(),
             fact: String::new(),
+            sprays: CornerSprays::default(),
             empty: String::from("No birds heard yet"),
             names: true,
             margin: 0.04,
@@ -134,6 +141,8 @@ impl Collage {
                 heading: &options.heading,
                 fact: &options.fact,
                 footer: &options.footer,
+                sprays: &options.sprays,
+                packed_round: true,
             },
         );
         if birds.is_empty() {
@@ -174,12 +183,18 @@ impl Collage {
             .min(pack.0.min(pack.1) * MAX_SHARE / heaviest);
         let name_px: f32 = (pack.0.min(pack.1) * options.name_size).max(SMALLEST_NAME);
 
+        let blocked: Vec<Blocked> = body
+            .sprays
+            .iter()
+            .map(|placed| keep_clear(placed, scale, &window))
+            .collect();
         let packer = Packer {
             birds,
             weights: &weights,
             order: &order,
             base,
             window: &window,
+            blocked: &blocked,
         };
         let packed: Option<Packed> = options
             .names
@@ -228,6 +243,41 @@ impl Collage {
 /// Packed sprites, their corners, and the name size they were packed with.
 type Packed = (Vec<Sprite>, Vec<(usize, usize)>, f32);
 
+/// Returns the pixels `placed` covers, in the window's pack pixels, widened by [`SPRAY_GAP`].
+fn keep_clear(placed: &PlacedSpray, scale: f32, window: &Window) -> Blocked {
+    let block = &placed.block;
+    let (source_width, source_height) = (
+        usize::try_from(block.width).unwrap_or(0).max(1),
+        usize::try_from(block.height).unwrap_or(0).max(1),
+    );
+    let gap: usize = SPRAY_GAP;
+    let width: usize = (block.width as f32 / scale) as usize + 1;
+    let height: usize = (block.height as f32 / scale) as usize + 1;
+    let (padded_width, padded_height) = (width + 2 * gap, height + 2 * gap);
+    let mut cells: Vec<bool> = vec![false; padded_width * padded_height];
+    for y in 0..height {
+        let source_y: usize = (y * source_height / height).min(source_height - 1);
+        for x in 0..width {
+            let source_x: usize = (x * source_width / width).min(source_width - 1);
+            if !placed.opaque[source_y * source_width + source_x] {
+                continue;
+            }
+            // A square of gap round each covered pixel: cheap enough for a corner's plant.
+            for row in y..=y + 2 * gap {
+                let start: usize = row * padded_width + x;
+                cells[start..=start + 2 * gap].fill(true);
+            }
+        }
+    }
+    Blocked {
+        x: libm::roundf(block.x as f32 / scale - window.left) as i32 - gap as i32,
+        y: libm::roundf(block.y as f32 / scale - window.top) as i32 - gap as i32,
+        width: padded_width,
+        height: padded_height,
+        cells,
+    }
+}
+
 /// The name size `packed` used, or none when names are off.
 fn packed_name(packed: &Packed, name_px: Option<f32>) -> Option<f32> {
     name_px.map(|_| packed.2)
@@ -247,6 +297,8 @@ struct Packer<'a> {
     order: &'a [usize],
     base: f32,
     window: &'a Window,
+    /// The border's plants, which birds are packed round.
+    blocked: &'a [Blocked],
 }
 
 impl Packer<'_> {
@@ -327,12 +379,18 @@ impl Packer<'_> {
             .iter()
             .map(|sprite| sprite.footprint.clone())
             .collect();
-        let corners = spiral::pack(&footprints, self.window.width, self.window.height)?;
-        Some((
-            sprites,
-            self.centred(&footprints, corners),
-            name_px.unwrap_or(0.0),
-        ))
+        let (width, height) = (self.window.width, self.window.height);
+        let corners = spiral::pack(&footprints, width, height, self.blocked)?;
+        // Centring the cluster may move a bird onto a border's plant; it then stays put.
+        let centred: Vec<(usize, usize)> = self.centred(&footprints, corners.clone());
+        let corners: Vec<(usize, usize)> = if self.blocked.is_empty()
+            || spiral::clear(&footprints, &centred, width, height, self.blocked)
+        {
+            centred
+        } else {
+            corners
+        };
+        Some((sprites, corners, name_px.unwrap_or(0.0)))
     }
 
     /// The longest side bird `index` is drawn with at `shrink`, in pack pixels.
@@ -417,6 +475,7 @@ impl Packer<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::corner_sprays::Spray;
 
     /// A bird-ish outline: an ellipse filling most of a `width` by `height` picture.
     fn outline(width: usize, height: usize) -> Silhouette {
@@ -524,5 +583,78 @@ mod test {
         let page = Collage::layout(&garden(4), Resolution::new(1600, 1200), &options);
         assert_eq!(page.images.len(), 4);
         assert!(page.text.is_empty());
+    }
+
+    /// Sprays filling a square: a solid triangle from the corner they sit in.
+    fn sprays(first_art: usize) -> CornerSprays {
+        let side: usize = 100;
+        let corner = |top_left: bool| -> Spray {
+            let alpha: Vec<u8> = (0..side * side)
+                .map(|index| {
+                    let (x, y) = (index % side, index / side);
+                    let solid: bool = if top_left {
+                        x + y < side
+                    } else {
+                        x + y >= side
+                    };
+                    if solid { 255 } else { 0 }
+                })
+                .collect();
+            Spray {
+                art: first_art + usize::from(!top_left),
+                silhouette: Silhouette::new(Resolution::new(side, side), &alpha).expect("sizes"),
+            }
+        };
+        CornerSprays {
+            top_left: Some(corner(true)),
+            bottom_right: Some(corner(false)),
+        }
+    }
+
+    #[test]
+    fn birds_are_packed_round_the_borders_plants() {
+        for resolution in [Resolution::new(1600, 1200), Resolution::new(800, 480)] {
+            for count in [3, 30] {
+                let options = CollageOptions {
+                    fact: String::from("Great Tit: found as far north as 71° N"),
+                    sprays: sprays(count),
+                    ..CollageOptions::default()
+                };
+                let page = Collage::layout(&garden(count), resolution, &options);
+                assert_eq!(page.images.len(), count + 2, "every bird and both sprays");
+                let plants: Vec<ImageBlock> = page
+                    .images
+                    .iter()
+                    .filter(|image| image.art >= count)
+                    .copied()
+                    .collect();
+                assert_eq!(plants.len(), 2);
+                let (top, bottom) = (plants[0], plants[1]);
+                assert!(top.x < 30 && top.y < 30, "{top:?} hangs from the top-left");
+                let (width, height) = (resolution.width as i32, resolution.height as i32);
+                assert!(width - (bottom.x + bottom.width) < 30, "{bottom:?}");
+                assert!(height - (bottom.y + bottom.height) < 30, "{bottom:?}");
+                // The plants are triangles in their corners: a bird's box may reach into the
+                // square, but not past the diagonal into the plant.
+                for bird in page.images.iter().filter(|image| image.art < count) {
+                    let (centre_x, centre_y) = (bird.x + bird.width / 2, bird.y + bird.height / 2);
+                    let in_top: bool = (centre_x - top.x) + (centre_y - top.y) < top.width;
+                    let in_bottom: bool = (bottom.x + bottom.width - centre_x)
+                        + (bottom.y + bottom.height - centre_y)
+                        < bottom.width;
+                    assert!(!in_top && !in_bottom, "{bird:?} sits on a plant");
+                }
+                let fact = page
+                    .text
+                    .iter()
+                    .find(|block| block.text.starts_with("Great Tit:"))
+                    .expect("the fact");
+                let room: i32 = fact.max_width.expect("a width");
+                assert!(
+                    fact.x + room / 2 <= bottom.x,
+                    "the fact line clears the plant"
+                );
+            }
+        }
     }
 }

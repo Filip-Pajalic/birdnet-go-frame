@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use frame_core::{Ink, Resolution};
 
 use crate::align::Align;
+use crate::corner_sprays::CornerSprays;
 use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::shape_block::ShapeBlock;
@@ -45,6 +46,8 @@ pub struct StoryOptions {
     pub heading: String,
     /// A small line at the foot. Empty for none.
     pub footer: String,
+    /// The border, if any.
+    pub sprays: CornerSprays,
     /// Lines about the day, e.g. the first and last singers and the weather.
     pub lines: Vec<String>,
     /// The chart's rows, top to bottom.
@@ -73,6 +76,8 @@ impl StoryPage {
                 heading: &options.heading,
                 fact: "",
                 footer: &options.footer,
+                sprays: &options.sprays,
+                packed_round: false,
             },
         );
         let line_size: f32 = body.heading_size * 0.5;
@@ -315,6 +320,7 @@ mod test {
         StoryOptions {
             heading: String::from("The day so far"),
             footer: String::new(),
+            sprays: CornerSprays::default(),
             lines: vec![String::from("First song 05:05, Eurasian Blackbird")],
             rows,
             marks: vec![ChartMark {

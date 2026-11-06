@@ -67,7 +67,8 @@ pub fn page(
         border: settings.border,
         southern: false,
     };
-    let mut artist: Artist<Box<dyn ArtSource>> = Artist::new(renderer, art(), style);
+    let mut artist: Artist<Box<dyn ArtSource>> =
+        Artist::new(renderer, art(), style).with_sprays(sprays());
     artist.start_day(local_day(now, settings.utc_offset_minutes));
     let footer: String = artist
         .words()
@@ -96,6 +97,15 @@ fn art() -> Box<dyn ArtSource> {
             println!("standalone: the art bundle: {error}; drawing lists");
             Box::new(NoArt)
         }
+    }
+}
+
+/// The border's plants, which `tools/art-packer` puts in the art bundle with the birds. A
+/// firmware built without art has no border.
+fn sprays() -> Box<dyn ArtSource + Send> {
+    match ArtBundle::parse(ART) {
+        Ok(bundle) => Box::new(bundle),
+        Err(_) => Box::new(NoArt),
     }
 }
 

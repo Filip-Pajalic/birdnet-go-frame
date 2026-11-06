@@ -4,8 +4,8 @@
 //! drawn by `frame-raster` on any target. The pages offered: [`Collage`], every bird heard
 //! packed by its outline as fugleramme does; [`TextList`], names and counts only;
 //! [`StoryPage`], the day so far with a chart of when each bird sang; and [`SeasonPage`], the
-//! year so far. [`SeasonBorder`] engraves a seasonal or holiday border ([`BorderTheme`]) round
-//! any of them. `no_std` with `alloc`.
+//! year so far. Any of them may wear a border of [`CornerSprays`], plants from botanical plates
+//! chosen by the season or holiday ([`BorderTheme`]). `no_std` with `alloc`.
 
 #![no_std]
 
@@ -15,14 +15,11 @@ mod align;
 mod border;
 mod border_theme;
 mod collage;
-mod engraver;
+mod corner_sprays;
 mod footprint;
 mod image_block;
 mod page_frame;
 mod page_layout;
-mod pen_mark;
-mod point;
-mod season_border;
 mod season_page;
 mod shape_block;
 mod silhouette;
@@ -37,11 +34,9 @@ pub use align::Align;
 pub use border::{Border, ParseBorderError};
 pub use border_theme::{BorderTheme, ParseBorderThemeError};
 pub use collage::{Collage, CollageBird, CollageOptions};
+pub use corner_sprays::{CornerSprays, Spray};
 pub use image_block::ImageBlock;
 pub use page_layout::PageLayout;
-pub use pen_mark::PenMark;
-pub use point::Point;
-pub use season_border::SeasonBorder;
 pub use season_page::{SeasonColumn, SeasonOptions, SeasonPage};
 pub use shape_block::ShapeBlock;
 pub use silhouette::Silhouette;

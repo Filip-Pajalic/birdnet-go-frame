@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use bird_almanac::{Almanac, Arrival, YearOnYear};
 use birdnet_client::{CivilDate, DateWindow};
 use birdnet_model::SpeciesSummary;
-use frame_layout::{SeasonColumn, SeasonOptions};
+use frame_layout::{CornerSprays, SeasonColumn, SeasonOptions};
 use page_text::PageText;
 
 use crate::day_facts::label;
@@ -104,6 +104,7 @@ impl YearFacts {
         SeasonOptions {
             heading: words.season_heading.clone(),
             footer: String::from(footer),
+            sprays: CornerSprays::default(),
             headline: words
                 .year_count
                 .replace("{count}", &format!("{}", self.almanac.year_list().len())),

@@ -59,7 +59,7 @@ out.
 
 ## The season
 
-![The season page on 1 May in spring's blossom border: 39 species this year, three spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
+![The season page on 1 May in spring's border of bird cherry and wood anemone: 39 species this year, three spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
 
 - **Just arrived** lists the birds heard in the last 21 days that were not heard in the 60 days
   before: spring's migrants, autumn's winter thrushes, and rarities.
@@ -70,7 +70,7 @@ out.
 
 ## A fact about the main bird
 
-![Today's collage in autumn's border, with a line about the great tit at its foot](../images/view-today.jpg)
+![Today's collage in autumn's border of rowan and oak, with a line about the great tit at its foot](../images/view-today.jpg)
 
 Today's, the week's and the rarest page end with one line about their main bird, the one drawn
 first: a bird new for the year, the rarest, or else the most heard. Each species has up to ten
@@ -98,25 +98,30 @@ turns the line off.
 
 ## Seasonal borders
 
-![The seven borders on a portrait page: frost, blossom, meadow, autumn, Christmas, Easter and Midsummer](../images/borders.jpg)
+![The seven borders on a portrait page: frost, blossom, meadow, autumn, Christmas, Easter and Midsummer, each a plant from a botanical plate in the top-left and bottom-right corners](../images/borders.jpg)
 
-Every page wears a border engraved like the plates: a double hairline rule and, along it, motifs
-outlined in black and hatched in the panel's other inks. It changes with the date:
+Every page wears a border of the season's plants: a spray hanging from the top-left corner and
+one rising from the bottom-right, cut from the hand-coloured plates of Thomé's *Flora von
+Deutschland, Österreich und der Schweiz* (1885), the same kind of period plate as the birds.
+They are public domain and built into the program (`assets/borders/`, credited in its
+`ATTRIBUTION.md`); nothing in the border is drawn by code. It changes with the date:
 
-| Border | When | Drawn in |
-| --- | --- | --- |
-| Frost | December to February | Blue snow crystals and frost ferns creeping from the corners |
-| Blossom | March to May | A flowering branch from two corners, petals drifting along the edges |
-| Meadow | June to August | Grasses, daisies, cornflowers and poppies along the foot, butterflies above |
-| Autumn | September to November | Falling leaves in red, yellow and green, acorns in the corners |
-| Christmas | 13 December (Lucia) to 6 January | Holly and red berries |
-| Easter | Palm Sunday to Easter Monday | Birch twigs hung with coloured feathers, eggs in the grass |
-| Midsummer | 19 to 25 June | A garland of flowers and birch leaves |
+| Border | When | Top left | Bottom right |
+| --- | --- | --- | --- |
+| Frost | December to February | Mistletoe | Christmas rose |
+| Blossom | March to May | Bird cherry in flower | Wood anemone |
+| Meadow | June to August | Cornflower | Ox-eye daisy |
+| Autumn | September to November | Rowan berries | Oak and acorns |
+| Christmas | 13 December (Lucia) to 6 January | Holly | Mistletoe |
+| Easter | Palm Sunday to Easter Monday | Pussy willow | Wood anemone |
+| Midsummer | 19 to 25 June | Ox-eye daisy | Cornflower |
 
-The border is drawn procedurally (`crates/frame-layout/src/season_border.rs`), stays in the page's
-outer few percent, and is drawn under the birds and the words. South of the equator (a negative
-`LATITUDE`) the seasons come round half a year apart and Midsummer is not kept in June.
-`BORDER=off` leaves it off; a theme's name keeps that one all year.
+On the collage the birds are packed round the plants, by their outlines, as they are round each
+other. On the list, story and season pages each spray fits the corner beside the heading or the
+footer, which narrow to clear it. South of the equator (a negative `LATITUDE`) the seasons come
+round half a year apart and Midsummer is not kept in June. `BORDER=off` leaves it off; a theme's
+name keeps that one all year. The standalone ESP32 firmware carries the plants in its art bundle,
+so a firmware built without art has no border.
 
 ## What it costs BirdNET-Go
 

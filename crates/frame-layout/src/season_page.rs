@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use frame_core::Resolution;
 
 use crate::align::Align;
+use crate::corner_sprays::CornerSprays;
 use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::text_block::TextBlock;
@@ -32,6 +33,8 @@ pub struct SeasonOptions {
     pub heading: String,
     /// A small line at the foot. Empty for none.
     pub footer: String,
+    /// The border, if any.
+    pub sprays: CornerSprays,
     /// One large line, e.g. how many species have been heard this year.
     pub headline: String,
     /// The left column, e.g. recent arrivals.
@@ -62,6 +65,8 @@ impl SeasonPage {
                 heading: &options.heading,
                 fact: "",
                 footer: &options.footer,
+                sprays: &options.sprays,
+                packed_round: false,
             },
         );
         let headline_size: f32 = body.heading_size * 0.75;
@@ -280,6 +285,7 @@ mod test {
         SeasonOptions {
             heading: String::from("The year so far"),
             footer: String::new(),
+            sprays: CornerSprays::default(),
             headline: String::from("87 species this year"),
             left: SeasonColumn {
                 title: String::from("Arrivals"),

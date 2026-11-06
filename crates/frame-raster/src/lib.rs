@@ -9,7 +9,6 @@ extern crate alloc;
 mod canvas;
 mod dither;
 mod draw_image;
-mod draw_mark;
 mod font_error;
 mod pop;
 mod renderer;

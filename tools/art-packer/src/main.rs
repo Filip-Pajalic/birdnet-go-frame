@@ -11,13 +11,16 @@
 //! default size. `--species` names a file with one scientific name a line, to
 //! keep the bundle to the birds of one garden; without it every species is packed. `--day`
 //! picks which plate of a species with several (days since 1970; 0 by default).
+//!
+//! The border's plants ([`art_webp::BorderSprays`]) go in too, by their names (`frost-top`
+//! and so on), at the same size, so the firmware's pages wear the season's border.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::{env, fs};
 
 use art_pack::{ArtBundle, ArtImage, ArtSource, BundleEntry, Rgba};
-use art_webp::ArtFolder;
+use art_webp::{ArtFolder, BorderSprays};
 
 /// Plates are shrunk to this many pixels on their longest side by default: enough for the
 /// largest bird on the half-size page an ESP32 draws for the 13.3" panel.
@@ -85,6 +88,14 @@ fn pack(options: &Options) -> Result<(usize, usize), String> {
         let artp: Vec<u8> = rounded(&picture).encode();
         packed.push((name, frame_http::zlib(&artp), artp.len()));
     }
+    let species: usize = packed.len();
+    let mut sprays: BorderSprays = BorderSprays::bundled().with_max_side(options.max_side);
+    for name in BorderSprays::names() {
+        if let Some(picture) = sprays.art_for(name) {
+            let artp: Vec<u8> = rounded(&picture).encode();
+            packed.push((name.to_owned(), frame_http::zlib(&artp), artp.len()));
+        }
+    }
     let bytes: Vec<u8> =
         ArtBundle::encode(packed.iter().map(|(name, zlib, unpacked_len)| BundleEntry {
             name,
@@ -93,7 +104,7 @@ fn pack(options: &Options) -> Result<(usize, usize), String> {
         }));
     fs::write(&options.out, &bytes)
         .map_err(|error| format!("{}: {error}", options.out.display()))?;
-    Ok((packed.len(), bytes.len()))
+    Ok((species, bytes.len()))
 }
 
 /// Returns `picture` with its colours rounded to 32 levels and its transparency to 16, so runs

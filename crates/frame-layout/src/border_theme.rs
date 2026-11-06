@@ -1,24 +1,24 @@
-//! Which ornament the page's border wears.
+//! Which plants the page's border wears.
 
 use core::fmt;
 use core::str::FromStr;
 
-/// A seasonal or holiday border, drawn by [`crate::SeasonBorder`].
+/// A seasonal or holiday border: which plants' [`crate::CornerSprays`] the page wears.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BorderTheme {
-    /// Winter: snow crystals and frost ferns, in blue.
+    /// Winter: mistletoe and Christmas rose.
     Frost,
-    /// Spring: a blossoming branch.
+    /// Spring: bird cherry in flower and wood anemone.
     Blossom,
-    /// Summer: grasses, daisies and cornflowers along the foot.
+    /// Summer: cornflower and ox-eye daisy.
     Meadow,
-    /// Autumn: falling leaves in red, yellow and green.
+    /// Autumn: rowan berries, oak and acorns.
     Autumn,
-    /// From Lucia (13 December) to Epiphany (6 January): holly and berries.
+    /// From Lucia (13 December) to Epiphany (6 January): holly and mistletoe.
     Christmas,
-    /// From Palm Sunday to Easter Monday: birch twigs with coloured feathers, and eggs.
+    /// From Palm Sunday to Easter Monday: pussy willow and wood anemone.
     Easter,
-    /// Midsummer, 19 to 25 June: a garland of flowers and birch leaves.
+    /// Midsummer, 19 to 25 June: ox-eye daisy and cornflower.
     Midsummer,
 }
 

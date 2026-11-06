@@ -20,7 +20,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, fs, thread};
 
 use art_pack::{ArtSource, NoArt};
-use art_webp::ArtFolder;
+use art_webp::{ArtFolder, BorderSprays};
 use birdnet_client::{BirdnetClient, ClientError, DateWindow, HttpTransport};
 use birdnet_mock::MockTransport;
 use birdnet_model::SpeciesSummary;
@@ -116,7 +116,8 @@ fn run(once: bool) -> Result<(), String> {
         border: config.border,
         southern: false,
     };
-    let artist: Artist<Box<dyn ArtSource>> = Artist::new(renderer, art, style);
+    let artist: Artist<Box<dyn ArtSource>> =
+        Artist::new(renderer, art, style).with_sprays(Box::new(BorderSprays::bundled()));
     let mut frame = Frame {
         artist,
         sink,

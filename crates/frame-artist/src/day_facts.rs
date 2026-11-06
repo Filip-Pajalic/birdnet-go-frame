@@ -7,7 +7,7 @@ use bird_almanac::{DayStory, Singer};
 use birdnet_client::CivilDate;
 use birdnet_model::{SpeciesHours, SpeciesSummary};
 use frame_core::Ink;
-use frame_layout::{ChartMark, ChorusRow, StoryOptions};
+use frame_layout::{ChartMark, ChorusRow, CornerSprays, StoryOptions};
 use open_meteo::Weather;
 use page_text::PageText;
 
@@ -154,6 +154,7 @@ impl DayFacts {
         StoryOptions {
             heading: words.story_heading.clone(),
             footer: String::from(footer),
+            sprays: CornerSprays::default(),
             lines,
             rows,
             marks,

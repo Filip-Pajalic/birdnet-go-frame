@@ -83,6 +83,12 @@ CC BY-NC-SA 4.0: https://github.com/tphakala/birdnet-go
   (see the `ATTRIBUTION.md` there for the changes made).
 - OpenFauna scientific-name aliases: https://github.com/tphakala/openfauna, CC BY-SA 4.0.
 
+## Border plants
+
+The border's plants in `assets/borders/` are cut from the hand-coloured plates of Otto Wilhelm
+Thomé's *Flora von Deutschland, Österreich und der Schweiz* (1885), as scanned on Wikimedia
+Commons. Public domain; see `assets/borders/ATTRIBUTION.md` for each plate.
+
 ## Fonts
 
 Fonts in `assets/fonts/` are licensed under the SIL Open Font License 1.1. Each font folder

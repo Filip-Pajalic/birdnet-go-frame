@@ -1,6 +1,7 @@
 //! Draws pages: picks the layout, finds each bird's picture and size, renders.
 
 use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -12,8 +13,8 @@ use birdnet_client::CivilDate;
 use birdnet_model::{ScientificName, SpeciesSummary};
 use frame_core::{Resolution, Rgb};
 use frame_layout::{
-    BorderTheme, Collage, CollageBird, CollageOptions, PageLayout, SeasonBorder, SeasonPage,
-    Silhouette, StoryPage, TextList, TextListOptions, size_weights,
+    BorderTheme, Collage, CollageBird, CollageOptions, CornerSprays, PageLayout, SeasonPage,
+    Silhouette, Spray, StoryPage, TextList, TextListOptions, size_weights,
 };
 use frame_raster::{Canvas, Renderer};
 use page_text::PageText;
@@ -37,6 +38,23 @@ struct Picture {
     silhouette: Silhouette,
 }
 
+impl Picture {
+    /// Returns `art` with its outline, or `None` when it has no opaque pixel.
+    fn of(art: ArtImage) -> Option<Self> {
+        let alpha: Vec<u8> = art.pixels().iter().map(|pixel| pixel.alpha).collect();
+        let silhouette: Silhouette = Silhouette::new(art.resolution(), &alpha)?;
+        Some(Self { art, silhouette })
+    }
+}
+
+/// Where a border's plants come from, and the pictures of the current day's.
+struct Border {
+    /// Finds a theme's sprays by `<theme>-top` and `<theme>-bottom`, e.g. `frost-top`.
+    sprays: Box<dyn ArtSource + Send>,
+    /// The current border's top-left and bottom-right sprays.
+    pictures: Option<(BorderTheme, Option<Picture>, Option<Picture>)>,
+}
+
 /// Draws pages with one font, one source of pictures and one style.
 pub struct Artist<A: ArtSource> {
     renderer: Renderer,
@@ -46,6 +64,7 @@ pub struct Artist<A: ArtSource> {
     sizes: BirdSizes<'static>,
     facts: BirdFacts<'static>,
     style: PageStyle,
+    border: Option<Border>,
 }
 
 impl<A: ArtSource> Artist<A> {
@@ -61,7 +80,21 @@ impl<A: ArtSource> Artist<A> {
             sizes: BirdSizes::bundled(),
             facts: BirdFacts::bundled(),
             style,
+            border: None,
         }
+    }
+
+    /// Returns the artist with `sprays`, the plants its borders are drawn from: the pictures
+    /// named `<theme>-top` and `<theme>-bottom` (e.g. `frost-top`) hang from the top-left corner
+    /// and rise from the bottom-right. Without them pages have no border.
+    #[must_use]
+    pub fn with_sprays(mut self, sprays: Box<dyn ArtSource + Send>) -> Self {
+        self.border = Some(Border {
+            sprays,
+            pictures: None,
+        });
+        self.refresh_border();
+        self
     }
 
     /// Returns the paper pages are drawn on.
@@ -85,6 +118,7 @@ impl<A: ArtSource> Artist<A> {
     /// Sets pages out with `style` from now on, e.g. another frame's. Pictures stay cached.
     pub fn set_style(&mut self, style: PageStyle) {
         self.style = style;
+        self.refresh_border();
     }
 
     /// Starts day `day` (days since 1970, in the garden's time zone): art sources may pick
@@ -94,6 +128,7 @@ impl<A: ArtSource> Artist<A> {
         if self.day != Some(day) {
             self.pictures.clear();
             self.day = Some(day);
+            self.refresh_border();
         }
     }
 
@@ -183,20 +218,22 @@ impl<A: ArtSource> Artist<A> {
     /// bird sang.
     #[must_use]
     pub fn draw_story(&self, day: &DayFacts, footer: &str, resolution: Resolution) -> Canvas {
-        let mut layout: PageLayout =
-            StoryPage::layout(resolution, &day.story_options(&self.style.words, footer));
-        self.decorate(&mut layout);
-        self.renderer.render(&layout, &[])
+        let (sprays, art): (CornerSprays, Vec<ArtImage>) = self.sprays(0);
+        let mut options = day.story_options(&self.style.words, footer);
+        options.sprays = sprays;
+        let layout: PageLayout = StoryPage::layout(resolution, &options);
+        self.renderer.render(&layout, &art)
     }
 
     /// Draws the year so far: how many species, the latest arrivals, this week against the
     /// same week last year, and the year list.
     #[must_use]
     pub fn draw_season(&self, year: &YearFacts, footer: &str, resolution: Resolution) -> Canvas {
-        let mut layout: PageLayout =
-            SeasonPage::layout(resolution, &year.season_options(&self.style.words, footer));
-        self.decorate(&mut layout);
-        self.renderer.render(&layout, &[])
+        let (sprays, art): (CornerSprays, Vec<ArtImage>) = self.sprays(0);
+        let mut options = year.season_options(&self.style.words, footer);
+        options.sprays = sprays;
+        let layout: PageLayout = SeasonPage::layout(resolution, &options);
+        self.renderer.render(&layout, &art)
     }
 
     /// Draws `view` of `data` in the current style: the one place the server, the Raspberry Pi
@@ -291,11 +328,52 @@ impl<A: ArtSource> Artist<A> {
             .theme(date.year, date.month, date.day, self.style.southern)
     }
 
-    /// Adds the day's border to `layout`.
-    fn decorate(&self, layout: &mut PageLayout) {
-        if let Some(theme) = self.border_theme() {
-            layout.ornament = SeasonBorder::layout(theme, layout.resolution);
+    /// Fetches the current border's sprays, if the day or style changed it.
+    fn refresh_border(&mut self) {
+        let theme: Option<BorderTheme> = self.border_theme();
+        let Some(border) = self.border.as_mut() else {
+            return;
+        };
+        let Some(theme) = theme else {
+            border.pictures = None;
+            return;
+        };
+        if border
+            .pictures
+            .as_ref()
+            .is_some_and(|(current, _, _)| *current == theme)
+        {
+            return;
         }
+        let mut spray = |corner: &str| {
+            let name: String = alloc::format!("{}-{corner}", theme.name());
+            border.sprays.art_for(&name).and_then(Picture::of)
+        };
+        let (top, bottom) = (spray("top"), spray("bottom"));
+        border.pictures = Some((theme, top, bottom));
+    }
+
+    /// Returns the current border's sprays, their pictures numbered from `first_art` on, and
+    /// the pictures to draw them with.
+    fn sprays(&self, first_art: usize) -> (CornerSprays, Vec<ArtImage>) {
+        let mut sprays = CornerSprays::default();
+        let mut art: Vec<ArtImage> = Vec::new();
+        let Some((_, top, bottom)) = self.border.as_ref().and_then(|b| b.pictures.as_ref()) else {
+            return (sprays, art);
+        };
+        for (picture, slot) in [
+            (top, &mut sprays.top_left),
+            (bottom, &mut sprays.bottom_right),
+        ] {
+            if let Some(picture) = picture {
+                *slot = Some(Spray {
+                    art: first_art + art.len(),
+                    silhouette: picture.silhouette.clone(),
+                });
+                art.push(picture.art.clone());
+            }
+        }
+        (sprays, art)
     }
 
     fn draw_list(
@@ -306,8 +384,10 @@ impl<A: ArtSource> Artist<A> {
         footer: &str,
         resolution: Resolution,
     ) -> Canvas {
+        let (sprays, art): (CornerSprays, Vec<ArtImage>) = self.sprays(0);
         let options = TextListOptions {
             heading: heading.to_owned(),
+            sprays,
             footer: footer.to_owned(),
             fact: fact.to_owned(),
             max_species: match self.style.max_birds {
@@ -317,9 +397,8 @@ impl<A: ArtSource> Artist<A> {
             empty: self.style.words.nothing_heard.clone(),
             more: self.style.words.more.clone(),
         };
-        let mut layout: PageLayout = TextList::layout(species, resolution, &options);
-        self.decorate(&mut layout);
-        self.renderer.render(&layout, &[])
+        let layout: PageLayout = TextList::layout(species, resolution, &options);
+        self.renderer.render(&layout, &art)
     }
 
     /// Draws the collage of `species`, the first drawn bigger when `featured`, with `fact`
@@ -374,15 +453,17 @@ impl<A: ArtSource> Artist<A> {
             });
             art.push(picture.art.clone());
         }
+        let (sprays, spray_art): (CornerSprays, Vec<ArtImage>) = self.sprays(art.len());
+        art.extend(spray_art);
         let options = CollageOptions {
             heading: heading.to_owned(),
             fact: fact.to_owned(),
+            sprays,
             empty: self.style.words.nothing_heard.clone(),
             names: self.style.names,
             ..CollageOptions::default()
         };
-        let mut layout: PageLayout = Collage::layout(&birds, resolution, &options);
-        self.decorate(&mut layout);
+        let layout: PageLayout = Collage::layout(&birds, resolution, &options);
         self.renderer.render(&layout, &art)
     }
 
@@ -391,11 +472,7 @@ impl<A: ArtSource> Artist<A> {
         if self.pictures.contains_key(scientific_name) {
             return;
         }
-        let picture: Option<Picture> = self.art.art_for(scientific_name).and_then(|art| {
-            let alpha: Vec<u8> = art.pixels().iter().map(|pixel| pixel.alpha).collect();
-            let silhouette: Silhouette = Silhouette::new(art.resolution(), &alpha)?;
-            Some(Picture { art, silhouette })
-        });
+        let picture: Option<Picture> = self.art.art_for(scientific_name).and_then(Picture::of);
         self.pictures.insert(scientific_name.to_owned(), picture);
     }
 }

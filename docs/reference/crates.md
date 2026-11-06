@@ -10,11 +10,11 @@
 | `lan-http` | no | Plain HTTP/1.1 GET client and small server | `get`, `Server`, `Request`, `Response` |
 | `transport-lan` | no | `HttpTransport` for Linux, macOS, Windows | `LanTransport` |
 | `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, bundles of them for flash, no art, and plain ovals for tests | `ArtImage`, `ArtSource`, `ArtBundle`, `NoArt`, `OutlineArt`, `Rgba`, `Subject` |
-| `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered | `ArtFolder` |
+| `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered; the border's plants, built in | `ArtFolder`, `BorderSprays` |
 | `bird-sizes` | yes | AVONET body masses for BirdNET's species, and the name-keyed table they and the facts are read with | `BirdSizes`, `NameTable` |
 | `bird-facts` | yes | A few facts per species (AVONET and Wikidata, built in), one told a day about a page's main bird | `BirdFacts`, `Fact` |
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
-| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline; the seasonal border, engraved as pen marks | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `SeasonBorder`, `BorderTheme`, `Border`, `PenMark`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
+| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline, round the border's plants; which border a date wears | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `CornerSprays`, `Spray`, `BorderTheme`, `Border`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
 | `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, a featured bird, the story and season pages, which page each view shows, the fact line and the border, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `PageView`, `ViewData`, `DayFacts`, `YearFacts`, `fun_fact`, `panel_bytes` |
 | `bird-almanac` | yes (alloc) | What longer windows say: birds new for the year, arrivals after an absence, the rarest of today's birds, this week against last year's, and the day's story | `Almanac`, `Arrival`, `YearOnYear`, `DayStory` |
@@ -34,7 +34,7 @@
 | `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or none) + page-text + almanac + open-meteo + artist + raster + http + home-assistant |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
 | `apps/linux-panel` | `birdnet-go-frame-panel` (Raspberry Pi) | client + (transport-lan or mock) + (art-webp or none) + page-text + artist + standalone + panel-t133a01 / panel-ed2208 on linux-embedded-hal |
-| `tools/art-packer` | `art-packer` | art-webp + art-pack + frame-http's zlib: packs plates into a bundle for firmware flash |
+| `tools/art-packer` | `art-packer` | art-webp + art-pack + frame-http's zlib: packs plates, and the border's plants, into a bundle for firmware flash |
 | `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware, EE02 or reTerminal E1002) | panel-wake + panel-setup + transport-esp + glass-esp + frame-core, on esp-hal; its own workspace |
 | `apps/ee02-standalone` | `ee02-standalone` (ESP32-S3 firmware with no server, EE02 or reTerminal E1002) | birdnet-client + frame-standalone + artist + raster + art-pack (a bundle in flash, or none) + page-text + transport-esp + glass-esp, on esp-hal; its own workspace |
 

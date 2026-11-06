@@ -157,15 +157,59 @@ impl Page {
     }
 }
 
-/// Places every footprint, largest first as given, with no overlap and wholly inside a
-/// `width` by `height` area, each as near the middle as it fits. Returns the top-left corners,
-/// or `None` when one does not fit.
+/// Part of the area nothing may be packed over, e.g. a border's plant: a grid of taken pixels
+/// whose top-left corner is at `(x, y)`, which may lie outside the area.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Blocked {
+    pub(crate) x: i32,
+    pub(crate) y: i32,
+    pub(crate) width: usize,
+    pub(crate) height: usize,
+    /// Taken pixels, row by row.
+    pub(crate) cells: Vec<bool>,
+}
+
+impl Page {
+    /// Takes every pixel of `blocked` that lies inside the page.
+    fn block(&mut self, blocked: &Blocked) {
+        for row in 0..blocked.height {
+            let Ok(y) = usize::try_from(i64::from(blocked.y) + row as i64) else {
+                continue;
+            };
+            if y >= self.height {
+                break;
+            }
+            for column in 0..blocked.width {
+                let Ok(x) = usize::try_from(i64::from(blocked.x) + column as i64) else {
+                    continue;
+                };
+                if x < self.width && blocked.cells[row * blocked.width + column] {
+                    self.take(y, x, x + 1);
+                }
+            }
+        }
+    }
+
+    /// A page `width` by `height` with `blocked` already taken.
+    fn around(width: usize, height: usize, blocked: &[Blocked]) -> Self {
+        let mut page = Self::new(width, height);
+        for part in blocked {
+            page.block(part);
+        }
+        page
+    }
+}
+
+/// Places every footprint, largest first as given, with no overlap, clear of `blocked` and
+/// wholly inside a `width` by `height` area, each as near the middle as it fits. Returns the
+/// top-left corners, or `None` when one does not fit.
 pub(crate) fn pack(
     footprints: &[Footprint],
     width: usize,
     height: usize,
+    blocked: &[Blocked],
 ) -> Option<Vec<(usize, usize)>> {
-    let mut page = Page::new(width, height);
+    let mut page = Page::around(width, height, blocked);
     let mut corners: Vec<(usize, usize)> = Vec::with_capacity(footprints.len());
     for footprint in footprints {
         let shape = Shape::new(footprint);
@@ -174,6 +218,27 @@ pub(crate) fn pack(
         corners.push((x, y));
     }
     Some(corners)
+}
+
+/// Whether footprints at `corners` all lie inside the area, clear of each other and of
+/// `blocked`.
+pub(crate) fn clear(
+    footprints: &[Footprint],
+    corners: &[(usize, usize)],
+    width: usize,
+    height: usize,
+    blocked: &[Blocked],
+) -> bool {
+    let mut page = Page::around(width, height, blocked);
+    footprints.iter().zip(corners).all(|(footprint, &(x, y))| {
+        let shape = Shape::new(footprint);
+        let inside: bool = x + shape.width <= width && y + shape.height <= height;
+        let fits: bool = inside && page.fits(&shape, x, y);
+        if fits {
+            page.place(&shape, x, y);
+        }
+        fits
+    })
 }
 
 #[cfg(test)]
@@ -187,7 +252,7 @@ mod test {
     #[test]
     fn biggest_goes_in_the_middle_and_none_overlap() {
         let footprints: Vec<Footprint> = vec![square(40), square(20), square(20), square(20)];
-        let corners = pack(&footprints, 120, 100).expect("room enough");
+        let corners = pack(&footprints, 120, 100, &[]).expect("room enough");
         assert_eq!(corners[0], (40, 30));
         let mut page = Page::new(120, 100);
         for (footprint, &(x, y)) in footprints.iter().zip(&corners) {
@@ -200,7 +265,7 @@ mod test {
     #[test]
     fn a_wide_page_fills_sideways() {
         let footprints: Vec<Footprint> = (0..12).map(|_| square(20)).collect();
-        let corners = pack(&footprints, 300, 100).expect("room enough");
+        let corners = pack(&footprints, 300, 100, &[]).expect("room enough");
         let (left, right) = corners
             .iter()
             .fold((usize::MAX, 0), |(low, high), &(x, _)| {
@@ -220,8 +285,34 @@ mod test {
 
     #[test]
     fn reports_when_nothing_fits() {
-        assert!(pack(&[square(50), square(50)], 60, 60).is_none());
-        assert!(pack(&[square(70)], 60, 60).is_none());
+        assert!(pack(&[square(50), square(50)], 60, 60, &[]).is_none());
+        assert!(pack(&[square(70)], 60, 60, &[]).is_none());
+    }
+
+    #[test]
+    fn keeps_clear_of_what_is_blocked() {
+        // The middle is taken, so the square goes beside it.
+        let blocked = Blocked {
+            x: 30,
+            y: 20,
+            width: 60,
+            height: 60,
+            cells: vec![true; 3600],
+        };
+        let footprints: Vec<Footprint> = vec![square(20)];
+        let corners =
+            pack(&footprints, 120, 100, core::slice::from_ref(&blocked)).expect("room beside it");
+        let (x, y) = corners[0];
+        let overlaps: bool = x + 20 > 30 && x < 90 && y + 20 > 20 && y < 80;
+        assert!(!overlaps, "packed at {x},{y}, over the blocked square");
+        assert!(clear(
+            &footprints,
+            &corners,
+            120,
+            100,
+            core::slice::from_ref(&blocked)
+        ));
+        assert!(!clear(&footprints, &[(50, 40)], 120, 100, &[blocked]));
     }
 
     #[test]

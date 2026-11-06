@@ -26,9 +26,9 @@ fugleramme does, and sized as big as the page allows so the cluster reaches its 
 Besides today's birds, a frame can show the week, today's rarest birds, the day's story and the
 year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
 drawn first and biggest, and frames wake every 5 minutes while it is about. The bird pages end
-with a fun fact about their main bird (from a table built in, no cloud), and every page wears an
-engraved seasonal border: frost, blossom, a summer meadow, autumn leaves, and holly, Easter
-feathers or a Midsummer garland on those holidays. On every ESP32 frame the previous and next
+with a fun fact about their main bird (from a table built in, no cloud), and every page wears a
+seasonal border of plants cut from 1885 botanical plates: mistletoe, blossom, meadow flowers,
+rowan and oak, and holly, pussy willow or Midsummer daisies on those holidays. On every ESP32 frame the previous and next
 buttons step through all five pages. Frames report battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).
 
 | The day so far | The year so far |
@@ -148,7 +148,7 @@ driving the panel, or on the ESP32 itself.
 | `crates/lan-http` | Plain HTTP/1.1 client and small server (std only) | Done |
 | `crates/transport-lan` | `HttpTransport` for Linux, macOS and Windows | Done |
 | `crates/art-pack` | `no_std` + `alloc`: bird cut-outs, the `.artp` format, the `ArtSource` trait | Done |
-| `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered | Done |
+| `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered; the border's plants | Done |
 | `crates/page-text` | `no_std` + `alloc`: the page's words in a dozen languages, from a translations JSON | Done |
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
 | `crates/bird-facts` | `no_std`: a few facts per species from AVONET and Wikidata, one told a day | Done |
@@ -199,7 +199,7 @@ The server is configured with environment variables:
 | `NAMES` | `true` | Whether the collage writes each bird's name under it |
 | `HEADING` | unset | A heading over the page; the collage has none by default, like fugleramme |
 | `FACTS` | `true` | Whether today's, the week's and the rarest page end with a line about their main bird |
-| `BORDER` | `season` | The engraved border: `season` (by date and holiday), `off`, or one theme, e.g. `frost` |
+| `BORDER` | `season` | The border of period plant plates: `season` (by date and holiday), `off`, or one theme, e.g. `frost` |
 | `LANGUAGE` | `en` | Language of the page's own words, e.g. `sv`, `nb`, `de` (bird names come from BirdNET-Go) |
 | `TRANSLATIONS` | unset | A translations JSON adding languages or overriding words |
 | `VIEW` | `today` | Page for frames that do not ask: `today`, `week`, `rarest`, `story` or `season` |
@@ -289,6 +289,9 @@ Formatting and the lints it names are enforced in CI (see `rustfmt.toml` and the
   by outline, names tucked under each bird, mass-based sizing), the paper-halo blending and
   panel boost, and the curated 1800s bird artwork this server draws. Code under the MIT License;
   artwork under CC BY-SA 4.0. Credit appears here and in `NOTICE.md`, never on the page itself.
+- **Otto Wilhelm Thomé**, *Flora von Deutschland, Österreich und der Schweiz* (1885): the
+  hand-coloured plates the border's plants are cut from, public domain, via Wikimedia Commons
+  (`assets/borders/ATTRIBUTION.md`).
 - **[BirdNET-Go](https://github.com/tphakala/birdnet-go)** by tphakala and contributors:
   the bird detection this frame displays. The BirdNET model is by the Cornell Lab of Ornithology
   and Chemnitz University of Technology. Taxonomy data is powered by eBird.org.

@@ -8,6 +8,7 @@ use birdnet_model::SpeciesSummary;
 use frame_core::Resolution;
 
 use crate::align::Align;
+use crate::corner_sprays::CornerSprays;
 use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::text_block::TextBlock;
@@ -20,6 +21,8 @@ pub struct TextListOptions {
     pub heading: String,
     /// A small line at the foot, e.g. when the page was drawn. Empty for none.
     pub footer: String,
+    /// The border, if any.
+    pub sprays: CornerSprays,
     /// A line about the main bird, over the footer. Empty for none, the default.
     pub fact: String,
     /// Most species shown; the rest are summarised in one line.
@@ -36,6 +39,7 @@ impl Default for TextListOptions {
             heading: String::from("Heard in the garden"),
             footer: String::new(),
             fact: String::new(),
+            sprays: CornerSprays::default(),
             max_species: 24,
             empty: String::from("No birds heard yet"),
             more: String::from("and {count} more"),
@@ -62,6 +66,8 @@ impl TextList {
                 heading: &options.heading,
                 fact: &options.fact,
                 footer: &options.footer,
+                sprays: &options.sprays,
+                packed_round: false,
             },
         );
         if species.is_empty() {
