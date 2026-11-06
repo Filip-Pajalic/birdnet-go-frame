@@ -277,8 +277,11 @@ jobs:
           for view in today week rarest story season; do
             for panel in 13.3 7.3; do
               curl -fsS -o "page-$view-$panel.png" "http://127.0.0.1:8080/preview.png?view=$view&panel=$panel"
-              test "$(stat -c %s "page-$view-$panel.png")" -gt 20000
             done
+          done
+          # Collages of plates are photographs' worth of detail; a list of names is a few kB.
+          for view in today week rarest; do
+            test "$(stat -c %s "page-$view-7.3.png")" -gt 150000
           done
       - uses: actions/upload-artifact@v7
         with:
