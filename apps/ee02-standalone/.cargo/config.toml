@@ -1,0 +1,10 @@
+[target.xtensa-esp32s3-none-elf]
+# The partition table gives the app most of the flash, for the font, the size table and an art
+# bundle built in (FRAME_ART).
+runner = "espflash flash --monitor --chip esp32s3 --partition-table partitions.csv"
+
+[build]
+target = "xtensa-esp32s3-none-elf"
+
+[unstable]
+build-std = ["alloc", "core"]

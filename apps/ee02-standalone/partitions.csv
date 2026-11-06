@@ -1,0 +1,6 @@
+# Name,   Type, SubType, Offset,  Size,     Flags
+# One app slot of 8 MB less 64 KB: the code, the font, the size table and an art bundle. Fits
+# boards with 8 MB of flash or more (the EE02's XIAO ESP32-S3 Plus has 16 MB, the E1002 32 MB).
+nvs,      data, nvs,     0x9000,  0x6000,
+phy_init, data, phy,     0xf000,  0x1000,
+factory,  app,  factory, 0x10000, 0x7f0000,

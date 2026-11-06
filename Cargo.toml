@@ -32,7 +32,7 @@ members = [
 ]
 # The ESP32 firmware and its radio crate build only with Espressif's Xtensa toolchain, from their
 # own workspace in apps/ee02-thin. See docs/how-to/flash-ee02-thin.md.
-exclude = ["apps/ee02-thin", "crates/transport-esp"]
+exclude = ["apps/ee02-standalone", "apps/ee02-thin", "crates/glass-esp", "crates/transport-esp"]
 
 [workspace.package]
 version = "0.1.0"

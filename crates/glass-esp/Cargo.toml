@@ -1,0 +1,35 @@
+[package]
+name = "glass-esp"
+description = "The Spectra 6 panels on ESP32-S3 boards: each board's pins, power and pin holds through deep sleep, over esp-hal."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
+publish = false
+
+# Built only with Espressif's Xtensa toolchain, from the firmware apps, so it sits outside the
+# main workspace (see the root Cargo.toml's `exclude`). Its dependency versions are locked in
+# each firmware's Cargo.lock.
+[dependencies]
+esp-hal = { version = "~1.2.2", default-features = false, features = ["esp32s3", "unstable"] }
+panel-ed2208 = { path = "../panel-ed2208", version = "0.1.0" }
+panel-t133a01 = { path = "../panel-t133a01", version = "0.1.0" }
+
+# The workspace's lints, repeated because this crate is not a workspace member.
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+unstable_features = "forbid"
+
+[lints.clippy]
+borrowed_box = "deny"
+expect_used = "warn"
+len_without_is_empty = "deny"
+missing_panics_doc = "warn"
+new_without_default = "deny"
+ptr_arg = "deny"
+should_implement_trait = "deny"
+unwrap_used = "deny"
+wildcard_imports = "deny"
+wrong_self_convention = "deny"
