@@ -6,7 +6,8 @@ The server reads environment variables at start-up.
 | --- | --- | --- | --- |
 | `BIRDNET_URL` | required | URL or `mock` | BirdNET-Go base URL, e.g. `http://192.168.1.10:8080`. `mock` uses the built-in simulated station. |
 | `LISTEN` | `0.0.0.0:8080` | address | Where the server listens. |
-| `ROTATION` | `0` | `0`, `90`, `180`, `270` | How the panel hangs, counter-clockwise from native landscape. `90` and `270` are portrait (1200x1600). |
+| `PANEL` | `13.3` | `13.3` or `7.3` | The panel served to clients that do not name one. Clients can ask for another panel or any screen size per request; see [HTTP endpoints](http-endpoints.md#sizes). |
+| `ROTATION` | `0` | `0`, `90`, `180`, `270` | How the panel hangs, counter-clockwise from native landscape, for clients that do not say. `90` and `270` are portrait (1200x1600 on the 13.3"). |
 | `POLL_MINUTES` | `15` | 0 to 255 | Minutes the panel sleeps between checks, sent in the page header. `0` means as soon as the panel likes. |
 | `WINDOW_HOURS` | `24` | hours | How far back detections count. Rounded outwards to whole days, as BirdNET-Go's summary takes dates. |
 | `UTC_OFFSET_MINUTES` | `0` | minutes | The garden's time zone, minutes east of UTC. Used for the date range and the "Updated" time. Not adjusted for daylight saving. |

@@ -8,6 +8,7 @@ use lan_http::{Request, Response, Server};
 
 use crate::page_store::PageStore;
 use crate::rendered_page::RenderedPage;
+use crate::target::Target;
 
 /// Serves the pages in a [`PageStore`].
 #[derive(Debug)]
@@ -46,26 +47,55 @@ impl FrameServer {
 }
 
 fn answer(store: &PageStore, request: &Request) -> Response {
-    let page: Option<Arc<RenderedPage>> = store.get();
-    match (request.path(), page) {
-        ("/healthz", Some(_)) => Response::text(200, "ok"),
-        ("/healthz" | "/frame.e6" | "/frame.png" | "/preview.png", None) => {
+    let path: &str = request.path();
+    if path == "/" {
+        return Response::new(200, INDEX).with_header("Content-Type", "text/html; charset=utf-8");
+    }
+    if path == "/healthz" {
+        return if store.is_ready() {
+            Response::text(200, "ok")
+        } else {
             Response::text(503, "no page rendered yet")
-        }
-        ("/frame.e6", Some(page)) => cached(request, &page, &page.e6, "application/octet-stream"),
-        ("/frame.png", Some(page)) => cached(request, &page, &page.frame_png, "image/png"),
-        ("/preview.png", Some(page)) => cached(request, &page, &page.preview_png, "image/png"),
-        ("/", _) => {
-            Response::new(200, INDEX).with_header("Content-Type", "text/html; charset=utf-8")
-        }
-        _ => Response::text(404, "not found"),
+        };
+    }
+    if !matches!(path, "/frame.e6" | "/frame.png" | "/preview.png") {
+        return Response::text(404, "not found");
+    }
+    let query: &str = request
+        .target()
+        .split_once('?')
+        .map_or("", |(_, query)| query);
+    let target: Target = match Target::from_query(query, store.default_target()) {
+        Ok(target) => target,
+        Err(problem) => return Response::text(400, &problem),
+    };
+    if path == "/frame.e6" && matches!(target, Target::Canvas(_)) {
+        return Response::text(
+            400,
+            "/frame.e6 is for panels: ask with panel= and rotation=",
+        );
+    }
+    if !store.is_ready() {
+        return Response::text(503, "no page rendered yet");
+    }
+    let Some(page) = store.page(target) else {
+        return Response::text(500, "the page could not be drawn");
+    };
+    match path {
+        "/frame.e6" => match &page.e6 {
+            Some(e6) => cached(request, &page, e6, "application/octet-stream"),
+            None => Response::text(500, "the page could not be packed"),
+        },
+        "/frame.png" => cached(request, &page, &page.frame_png, "image/png"),
+        _ => cached(request, &page, &page.preview_png, "image/png"),
     }
 }
 
 const INDEX: &str = "<!doctype html><meta charset=utf-8><title>birdnet-go-frame</title>\
 <style>body{font-family:sans-serif;margin:2rem;background:#eee}img{max-width:100%;box-shadow:0 2px 8px #0003}</style>\
 <h1>birdnet-go-frame</h1><p><a href=/frame.e6>/frame.e6</a> · <a href=/frame.png>/frame.png</a> · \
-<a href=/preview.png>/preview.png</a></p><img src=/preview.png alt='Current page'>";
+<a href=/preview.png>/preview.png</a> · other sizes: <a href='/preview.png?panel=7.3'>?panel=7.3</a>, \
+<a href='/preview.png?w=1920&amp;h=1080'>?w=1920&amp;h=1080</a></p><img src=/preview.png alt='Current page'>";
 
 fn cached(request: &Request, page: &RenderedPage, body: &[u8], content_type: &str) -> Response {
     if request.header("If-None-Match") == Some(page.etag.as_str()) {

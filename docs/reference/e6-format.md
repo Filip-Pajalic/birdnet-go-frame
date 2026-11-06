@@ -11,9 +11,9 @@ fugleramme defined for its EE02 firmware; birdnet-go-frame produces identical by
 | 4 | 2 | version | `1` |
 | 6 | 1 | encoding | `1` (nibbles) |
 | 7 | 1 | poll minutes | 0 to 255; how long the client should sleep before asking again |
-| 8 | 2 | width | `1200`, the glass in controller orientation |
-| 10 | 2 | height | `1600` |
-| 12 | 4 | payload length | `960000` |
+| 8 | 2 | width | `1200` (13.3", the glass in controller orientation) or `800` (7.3") |
+| 10 | 2 | height | `1600` (13.3") or `480` (7.3") |
+| 12 | 4 | payload length | `960000` (13.3") or `192000` (7.3") |
 | 16 | 4 | payload CRC-32 | zlib / IEEE 802.3 CRC-32 of the payload |
 
 ## Payload, encoding 1
@@ -30,6 +30,13 @@ fugleramme defined for its EE02 firmware; birdnet-go-frame produces identical by
 flowchart LR
     h["header<br/>20 bytes"] --> l["left halves<br/>1600 rows x 300 bytes<br/>controller CS0"] --> r["right halves<br/>1600 rows x 300 bytes<br/>controller CS1"]
 ```
+
+## The 7.3" panel
+
+fugleramme only packs for the 13.3" panel. For the 7.3" panel (`/frame.e6?panel=7.3`, or
+`PANEL=7.3`) birdnet-go-frame uses the same header and encoding with a single controller's
+layout: the page is turned back to native landscape (800x480) and its rows follow one another,
+400 bytes each, with no split. A client tells the two apart by the header's width and height.
 
 ## Reading it on a device
 

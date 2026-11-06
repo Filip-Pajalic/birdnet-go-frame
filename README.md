@@ -51,10 +51,14 @@ BIRDNET_URL=http://192.168.1.10:8080 UTC_OFFSET_MINUTES=60 cargo run --release -
 | Endpoint | What |
 | --- | --- |
 | `/` | A page showing the preview |
-| `/frame.e6` | The page for the 13.3" panel (E6F1, ETag, 304 when unchanged) |
+| `/frame.e6` | The page for the panel (E6F1, ETag, 304 when unchanged) |
 | `/frame.png` | Six-colour PNG in the panel's native orientation |
 | `/preview.png` | Full-colour PNG as it hangs |
 | `/healthz` | `ok` once a page exists |
+
+Each client can ask for its own size: `?panel=7.3` or `?panel=13.3` with `&rotation=90` for
+e-ink panels, or `?w=1920&h=1080` for any screen (PNG only). Each size is drawn once per change
+and cached; see [HTTP endpoints](docs/reference/http-endpoints.md#sizes).
 
 This project is a Rust re-implementation of the server-and-panel idea from
 [fugleramme](https://github.com/arnegiacomo/fugleramme) by Arne Giacomo Munthe-Kaas. It would not
@@ -136,6 +140,7 @@ The server is configured with environment variables:
 | --- | --- | --- |
 | `BIRDNET_URL` | required | BirdNET-Go base URL, e.g. `http://192.168.1.10:8080`, or `mock` |
 | `LISTEN` | `0.0.0.0:8080` | Address to serve on |
+| `PANEL` | `13.3` | Panel for clients that do not name one: `13.3` or `7.3` |
 | `ROTATION` | `0` | `0`, `90`, `180` or `270`, counter-clockwise from landscape |
 | `POLL_MINUTES` | `15` | How long the panel sleeps between checks (sent in the page header) |
 | `WINDOW_HOURS` | `24` | How far back detections count |

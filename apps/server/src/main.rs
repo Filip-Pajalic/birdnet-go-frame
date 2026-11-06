@@ -1,7 +1,8 @@
 //! birdnet-go-frame's server.
 //!
-//! Reads BirdNET-Go's API, draws the birds heard onto a page for a 13.3" Spectra 6 panel, and
-//! serves it at `/frame.e6` (for the ESP32), `/frame.png` and `/preview.png`. Configured with
+//! Reads BirdNET-Go's API, draws the birds heard onto pages for Spectra 6 panels (13.3" by
+//! default, 7.3" on request) and screens of any size, and serves them at `/frame.e6` (for the
+//! ESP32), `/frame.png` and `/preview.png`. Configured with
 //! environment variables; see the README. `BIRDNET_URL=mock` runs against a built-in
 //! simulated station, so it works out of the box.
 
@@ -10,7 +11,7 @@ mod config;
 mod poller;
 
 use std::process::ExitCode;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::{fs, thread};
 
 use art_mock::MockArt;
@@ -18,13 +19,14 @@ use art_pack::ArtSource;
 use art_webp::ArtFolder;
 use birdnet_client::BirdnetClient;
 use birdnet_mock::MockTransport;
-use frame_http::{FrameServer, PageStore};
+use frame_http::{FrameServer, PageStore, Target};
 use frame_raster::Renderer;
 use page_text::{PageText, Translations};
 use transport_lan::LanTransport;
 
 use crate::artist::{Artist, PageStyle};
 use crate::config::{Config, Source};
+use crate::poller::SharedArtist;
 
 /// The face species names are set in: EB Garamond Italic, SIL OFL 1.1 (see assets/fonts).
 const FONT: &[u8] = include_bytes!("../../../assets/fonts/ebgaramond/EBGaramond-Italic.ttf");
@@ -44,7 +46,11 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let store: Arc<PageStore> = Arc::new(PageStore::new());
+    let default_target = Target::Panel {
+        panel: config.panel,
+        rotation: config.rotation,
+    };
+    let store: Arc<PageStore> = Arc::new(PageStore::new(default_target));
     let server: FrameServer = match FrameServer::bind(&config.listen, Arc::clone(&store)) {
         Ok(server) => server,
         Err(error) => {
@@ -96,17 +102,18 @@ fn main() -> ExitCode {
         words,
     };
     let poller_store: Arc<PageStore> = Arc::clone(&store);
-    let mut artist = Artist::new(renderer, art, style);
+    let artist: SharedArtist<Box<dyn ArtSource + Send>> =
+        Arc::new(Mutex::new(Artist::new(renderer, art, style)));
     thread::spawn(move || match config.source.clone() {
         Source::Live(url) => {
             let client = BirdnetClient::new(&url, LanTransport::default());
-            poller::run(client, &config, &mut artist, &poller_store);
+            poller::run(client, &config, &artist, &poller_store);
         }
         Source::Mock => {
             let transport =
                 MockTransport::with_utc_offset(poller::now_unix_seconds, config.utc_offset_minutes);
             let client = BirdnetClient::new("mock", transport);
-            poller::run(client, &config, &mut artist, &poller_store);
+            poller::run(client, &config, &artist, &poller_store);
         }
     });
 

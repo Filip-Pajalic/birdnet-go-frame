@@ -1,12 +1,14 @@
-//! The render loop: ask BirdNET-Go, redraw when the birds change, publish the page.
+//! The render loop: ask BirdNET-Go, and publish new pages when the birds change.
 
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use art_pack::ArtSource;
-use birdnet_client::{BirdnetClient, ClientError, DateWindow, HttpTransport};
-use frame_core::{IndexedImage, Rgb, e6};
-use frame_http::{PageStore, RenderedPage};
+use birdnet_client::{BirdnetClient, DateWindow, HttpTransport};
+use birdnet_model::SpeciesSummary;
+use frame_core::{IndexedImage, Rgb};
+use frame_http::{PageStore, RenderedPage, Target};
 use frame_raster::Canvas;
 
 use crate::artist::Artist;
@@ -23,12 +25,15 @@ pub fn now_unix_seconds() -> i64 {
         })
 }
 
-/// Polls `client` forever, publishing a new page to `store` whenever the set of species heard
-/// changes. Keeps the last good page up while BirdNET-Go is unreachable.
-pub fn run<T: HttpTransport, A: ArtSource>(
+/// The artist, shared by the poller and the HTTP threads that draw pages on request.
+pub type SharedArtist<A> = Arc<Mutex<Artist<A>>>;
+
+/// Polls `client` forever, publishing new pages to `store` whenever the set of species heard
+/// changes. Keeps the last good pages up while BirdNET-Go is unreachable.
+pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
     mut client: BirdnetClient<T>,
     config: &Config,
-    artist: &mut Artist<A>,
+    artist: &SharedArtist<A>,
     store: &PageStore,
 ) {
     let mut shown: Option<(i64, Vec<String>)> = None;
@@ -45,21 +50,28 @@ pub fn run<T: HttpTransport, A: ArtSource>(
                 let day: i64 = now.div_euclid(SECONDS_PER_DAY);
                 let wanted: (i64, Vec<String>) = (day, names);
                 if shown.as_ref() != Some(&wanted) {
-                    artist.start_day(day);
-                    let footer: String = artist
-                        .words()
-                        .updated(&clock(now, config.utc_offset_minutes));
-                    let preview: Canvas =
-                        artist.draw(&species, &footer, e6::page_resolution(config.rotation));
-                    publish(&preview, artist.paper(), config, store);
-                    eprintln!("server: drew {} species", species.len());
+                    let time: String = clock(now, config.utc_offset_minutes);
+                    let Ok(footer) = artist.lock().map(|mut artist| {
+                        artist.start_day(day);
+                        artist.words().updated(&time)
+                    }) else {
+                        return;
+                    };
+                    let count: usize = species.len();
+                    let page = Page::Birds {
+                        species: Arc::new(species),
+                        footer,
+                    };
+                    publish(page, artist, config.poll_minutes, store);
+                    eprintln!("server: drew {count} species");
                     shown = Some(wanted);
                 }
             }
             Err(error) => {
                 eprintln!("server: {error}");
-                if shown.is_none() && store.get().is_none() {
-                    publish_notice(&error, config, artist, store);
+                if shown.is_none() && !store.is_ready() {
+                    let page = Page::Unreachable(format!("{error}"));
+                    publish(page, artist, config.poll_minutes, store);
                 }
             }
         }
@@ -67,23 +79,46 @@ pub fn run<T: HttpTransport, A: ArtSource>(
     }
 }
 
-fn publish(preview: &Canvas, paper: Rgb, config: &Config, store: &PageStore) {
-    let page: IndexedImage = frame_raster::dither(&frame_raster::pop(preview, paper));
-    match RenderedPage::new(&page, preview, config.rotation, config.poll_minutes) {
-        Ok(rendered) => store.set(rendered),
-        Err(error) => eprintln!("server: {error}"),
-    }
+/// What the published pages show.
+#[derive(Clone)]
+enum Page {
+    /// The birds heard, most heard first, and the list page's foot line.
+    Birds {
+        species: Arc<Vec<SpeciesSummary>>,
+        footer: String,
+    },
+    /// BirdNET-Go cannot be reached, and why.
+    Unreachable(String),
 }
 
-fn publish_notice<E: std::fmt::Display, A: ArtSource>(
-    error: &ClientError<E>,
-    config: &Config,
-    artist: &Artist<A>,
+/// Publishes `page` for every target, and draws the default one straight away so the panel's
+/// next wake is answered at once.
+fn publish<A: ArtSource + Send + 'static>(
+    page: Page,
+    artist: &SharedArtist<A>,
+    poll_minutes: u8,
     store: &PageStore,
 ) {
-    let problem: String = format!("{error}");
-    let preview: Canvas = artist.draw_unreachable(&problem, e6::page_resolution(config.rotation));
-    publish(&preview, artist.paper(), config, store);
+    let artist: SharedArtist<A> = Arc::clone(artist);
+    store.publish(Box::new(move |target: Target| {
+        let (preview, paper): (Canvas, Rgb) = {
+            let mut artist = artist.lock().ok()?;
+            let preview: Canvas = match &page {
+                Page::Birds { species, footer } => {
+                    artist.draw(species, footer, target.resolution())
+                }
+                Page::Unreachable(problem) => artist.draw_unreachable(problem, target.resolution()),
+            };
+            (preview, artist.paper())
+        };
+        let inks: IndexedImage = frame_raster::dither(&frame_raster::pop(&preview, paper));
+        RenderedPage::for_target(target, &inks, &preview, poll_minutes)
+            .inspect_err(|error| eprintln!("server: {error}"))
+            .ok()
+    }));
+    if store.get().is_none() {
+        eprintln!("server: the page could not be drawn");
+    }
 }
 
 /// Formats the local wall-clock time as `HH:MM`.

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use std::{env, fmt};
 
-use frame_core::Rotation;
+use frame_core::{PanelSize, Rotation};
 
 /// Where detections come from.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -44,7 +44,9 @@ pub struct Config {
     pub source: Source,
     /// Address to listen on.
     pub listen: String,
-    /// How the panel hangs.
+    /// The panel served to clients that do not name one.
+    pub panel: PanelSize,
+    /// How the panel hangs, for clients that do not say.
     pub rotation: Rotation,
     /// Minutes the panel sleeps between checks, sent in the page header.
     pub poll_minutes: u8,
@@ -114,6 +116,7 @@ impl Config {
         Ok(Self {
             source,
             listen: lookup("LISTEN").unwrap_or_else(|| String::from("0.0.0.0:8080")),
+            panel: parsed(&lookup, "PANEL", PanelSize::Inches13Point3)?,
             rotation: parsed(&lookup, "ROTATION", Rotation::Degrees0)?,
             poll_minutes: parsed(&lookup, "POLL_MINUTES", 15)?,
             window_hours: parsed(&lookup, "WINDOW_HOURS", 24)?,
@@ -176,6 +179,7 @@ mod test {
         );
         assert_eq!(config.poll_minutes, 15);
         assert_eq!(config.rotation, Rotation::Degrees0);
+        assert_eq!(config.panel, PanelSize::Inches13Point3);
         assert_eq!(config.layout, Layout::Collage);
         assert_eq!(config.max_birds, 0);
         assert_eq!(config.heading, None);

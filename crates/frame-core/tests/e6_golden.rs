@@ -99,3 +99,27 @@ fn rejects_a_page_of_the_wrong_size() {
     let page = IndexedImage::new(Resolution::new(800, 480), Ink::White);
     assert!(e6::encode(&page, Rotation::Degrees0, 5).is_err());
 }
+
+#[test]
+fn seven_inch_pages_are_native_rows_for_one_controller() {
+    use frame_core::PanelSize;
+
+    let panel = PanelSize::Inches7Point3;
+    assert_eq!(
+        e6::page_resolution_for(panel, Rotation::Degrees90),
+        Resolution::new(480, 800)
+    );
+    let page = pattern(Resolution::new(800, 480));
+    let packed: Vec<u8> = e6::encode_for(panel, &page, Rotation::Degrees0, 5).expect("fits");
+    assert_eq!(packed.len(), 20 + 800 * 480 / 2);
+    let header = frame_core::E6Header::parse(&packed).expect("header parses");
+    assert_eq!((header.width, header.height), (800, 480));
+    // The first byte is the first two pixels of the top row, left one high.
+    let first: u8 = (page.pixels()[0].controller_code() << 4) | page.pixels()[1].controller_code();
+    assert_eq!(packed[20], first);
+    // The second row starts 400 bytes in: no split between controllers.
+    let row: u8 =
+        (page.pixels()[800].controller_code() << 4) | page.pixels()[801].controller_code();
+    assert_eq!(packed[20 + 400], row);
+    assert!(e6::encode_for(panel, &page, Rotation::Degrees90, 5).is_err());
+}
