@@ -1,6 +1,6 @@
 //! The mass table.
 
-use crate::name_order::compare;
+use crate::name_table::NameTable;
 
 /// AVONET masses for the species BirdNET v2.4 can detect.
 const BUNDLED: &str = include_str!("../data/bird_sizes.csv");
@@ -11,9 +11,7 @@ const BUNDLED: &str = include_str!("../data/bird_sizes.csv");
 /// text must be sorted by name, ignoring case; [`BirdSizes::parse_csv`] checks this.
 #[derive(Clone, Copy, Debug)]
 pub struct BirdSizes<'a> {
-    /// Data lines, without the header.
-    rows: &'a str,
-    line_count: usize,
+    table: NameTable<'a>,
     median_grams: f32,
 }
 
@@ -38,22 +36,8 @@ impl<'a> BirdSizes<'a> {
     /// Returns `None` if the lines are not sorted.
     #[must_use]
     pub fn parse_csv(text: &'a str) -> Option<Self> {
-        let rows: &str = text.split_once('\n').map_or("", |(_header, rest)| rest);
-        let mut previous: Option<&str> = None;
-        let mut line_count: usize = 0;
-        for line in rows.lines() {
-            let Some((name, _mass)) = line.split_once(',') else {
-                continue;
-            };
-            if previous.is_some_and(|before| compare(before, name).is_gt()) {
-                return None;
-            }
-            previous = Some(name);
-            line_count += 1;
-        }
         let mut sizes = Self {
-            rows,
-            line_count,
+            table: NameTable::parse_csv(text)?,
             median_grams: 1.0,
         };
         sizes.median_grams = sizes.median();
@@ -63,13 +47,13 @@ impl<'a> BirdSizes<'a> {
     /// Returns how many species the table has.
     #[must_use]
     pub fn len(&self) -> usize {
-        self.line_count
+        self.table.len()
     }
 
     /// Returns whether the table has no species.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.line_count == 0
+        self.table.is_empty()
     }
 
     /// Returns the median mass, used for species the table does not know.
@@ -88,46 +72,17 @@ impl<'a> BirdSizes<'a> {
     /// Returns the mass of the species, or `None` when the table does not know it.
     #[must_use]
     pub fn find(&self, scientific_name: &str) -> Option<f32> {
-        // Binary search over byte offsets: jump to the middle, step to the next line start.
-        let bytes: &[u8] = self.rows.as_bytes();
-        let mut low: usize = 0;
-        let mut high: usize = bytes.len();
-        while low < high {
-            let mut middle: usize = line_start(bytes, low + (high - low) / 2);
-            if middle >= high {
-                // No line starts in the upper half; step through the lower one from `low`.
-                middle = low;
-            }
-            let (order, mass) = self.compare_line(middle, scientific_name);
-            match order {
-                core::cmp::Ordering::Equal => return mass,
-                core::cmp::Ordering::Less => low = line_end(bytes, middle),
-                core::cmp::Ordering::Greater => high = middle,
-            }
-        }
-        None
-    }
-
-    /// Compares the line starting at `start` with `wanted`, returning its mass when equal.
-    fn compare_line(&self, start: usize, wanted: &str) -> (core::cmp::Ordering, Option<f32>) {
-        let end: usize = line_end(self.rows.as_bytes(), start);
-        let line: &str = self.rows.get(start..end).unwrap_or("").trim_end();
-        let Some((name, mass)) = line.split_once(',') else {
-            return (core::cmp::Ordering::Less, None);
-        };
-        let order = compare(name, wanted);
-        let mass: Option<f32> = order.is_eq().then(|| mass.trim().parse().ok()).flatten();
-        (order, mass)
+        self.table.row(scientific_name)?.trim().parse().ok()
     }
 
     fn median(&self) -> f32 {
         // Masses are positive, so their bit patterns sort like the numbers; count how many lie
         // under each candidate to find the middle one without a buffer.
         let masses = || {
-            self.rows.lines().filter_map(|line| {
-                let (_name, mass) = line.split_once(',')?;
-                mass.trim().parse::<f32>().ok().filter(|mass| *mass > 0.0)
-            })
+            self.table
+                .rows()
+                .filter_map(|(_name, mass)| mass.trim().parse::<f32>().ok())
+                .filter(|mass| *mass > 0.0)
         };
         let count: usize = masses().count();
         if count == 0 {
@@ -145,31 +100,6 @@ impl<'a> BirdSizes<'a> {
             }
         }
         f32::from_bits(low)
-    }
-}
-
-/// Returns the start of the first line at or after `index`.
-fn line_start(bytes: &[u8], index: usize) -> usize {
-    if index == 0 {
-        return 0;
-    }
-    match bytes
-        .get(index - 1..)
-        .and_then(|rest| rest.iter().position(|&byte| byte == b'\n'))
-    {
-        Some(offset) => index + offset,
-        None => bytes.len(),
-    }
-}
-
-/// Returns the start of the line after the one starting at `start`.
-fn line_end(bytes: &[u8], start: usize) -> usize {
-    match bytes
-        .get(start..)
-        .and_then(|rest| rest.iter().position(|&byte| byte == b'\n'))
-    {
-        Some(offset) => start + offset + 1,
-        None => bytes.len(),
     }
 }
 
@@ -208,14 +138,5 @@ mod test {
         let empty = BirdSizes::parse_csv("").expect("empty is sorted");
         assert!(empty.is_empty());
         assert_eq!(empty.mass_grams("Parus major"), 1.0);
-    }
-
-    #[test]
-    fn finds_short_lines_hidden_behind_a_long_one() {
-        let text = "h\nA a,1\nB b,2\nZzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz z,3\n";
-        let sizes = BirdSizes::parse_csv(text).expect("sorted");
-        assert_eq!(sizes.find("B b"), Some(2.0));
-        assert_eq!(sizes.find("A a"), Some(1.0));
-        assert_eq!(sizes.find("C c"), None);
     }
 }

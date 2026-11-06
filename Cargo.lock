@@ -45,6 +45,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bird-facts"
+version = "0.1.0"
+dependencies = [
+ "bird-sizes",
+]
+
+[[package]]
 name = "bird-sizes"
 version = "0.1.0"
 
@@ -153,6 +160,7 @@ version = "0.1.0"
 dependencies = [
  "art-pack",
  "bird-almanac",
+ "bird-facts",
  "bird-sizes",
  "birdnet-client",
  "birdnet-mock",
@@ -160,6 +168,7 @@ dependencies = [
  "frame-core",
  "frame-layout",
  "frame-raster",
+ "libm",
  "open-meteo",
  "page-text",
 ]
@@ -203,6 +212,8 @@ name = "frame-standalone"
 version = "0.1.0"
 dependencies = [
  "art-pack",
+ "bird-almanac",
+ "birdnet-client",
  "birdnet-model",
  "frame-artist",
  "frame-core",
@@ -297,6 +308,7 @@ dependencies = [
  "page-text",
  "panel-ed2208",
  "panel-t133a01",
+ "panel-wake",
  "transport-lan",
 ]
 

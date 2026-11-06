@@ -2,7 +2,7 @@
 //!
 //! [`BirdSizes::bundled`] embeds AVONET's masses for every species BirdNET can detect (about
 //! 160 KB, CC BY 4.0; see `data/ATTRIBUTION.md`). [`BirdSizes::parse_csv`] reads
-//! any other `scientific_name,mass_g` table. `no_std`, no allocation, no dependencies.
+//! any other `scientific_name,mass_g` table, and [`NameTable`] any table keyed the same way. `no_std`, no allocation, no dependencies.
 //!
 //! ```
 //! use bird_sizes::BirdSizes;
@@ -17,5 +17,7 @@
 
 mod bird_sizes;
 mod name_order;
+mod name_table;
 
 pub use bird_sizes::BirdSizes;
+pub use name_table::NameTable;

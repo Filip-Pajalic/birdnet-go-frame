@@ -1,0 +1,15 @@
+[package]
+name = "bird-facts"
+description = "A few facts per bird species (AVONET and Wikidata), for a line about the page's main bird. no_std."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT AND CC-BY-4.0"
+repository.workspace = true
+include = ["src/**", "data/**"]
+
+[dependencies]
+bird-sizes.workspace = true
+
+[lints]
+workspace = true

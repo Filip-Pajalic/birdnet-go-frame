@@ -22,7 +22,7 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
   `frame-http`, `art-webp`, `home-assistant`). Keep it that way: the same code must compile for the ESP32, and CI builds those
   crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
   `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `bird-sizes`,
-  `page-text`, `frame-layout`, `frame-raster`, `frame-artist`, `frame-standalone`, `bird-almanac`, `open-meteo`, `panel-t133a01`, `panel-ed2208`, `panel-setup` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
+  `page-text`, `frame-layout`, `frame-raster`, `frame-artist`, `frame-standalone`, `bird-almanac`, `bird-facts`, `open-meteo`, `panel-t133a01`, `panel-ed2208`, `panel-setup` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
   only crate that decodes images.
 - The ESP32 firmware (`apps/ee02-thin`) and its radio crate (`crates/transport-esp`, `no_std`)
   build only with Espressif's Xtensa toolchain, so they sit in their own workspace in

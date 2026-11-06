@@ -7,6 +7,7 @@ members = [
     "crates/art-pack",
     "crates/art-webp",
     "crates/bird-almanac",
+    "crates/bird-facts",
     "crates/bird-sizes",
     "crates/birdnet-client",
     "crates/birdnet-mock",
@@ -44,6 +45,7 @@ repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
 art-pack = { path = "crates/art-pack", version = "0.1.0" }
 art-webp = { path = "crates/art-webp", version = "0.1.0" }
 bird-almanac = { path = "crates/bird-almanac", version = "0.1.0" }
+bird-facts = { path = "crates/bird-facts", version = "0.1.0" }
 bird-sizes = { path = "crates/bird-sizes", version = "0.1.0" }
 birdnet-client = { path = "crates/birdnet-client", version = "0.1.0" }
 birdnet-mock = { path = "crates/birdnet-mock", version = "0.1.0" }
