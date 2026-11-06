@@ -46,4 +46,4 @@ pub use layout::{Layout, ParseLayoutError};
 pub use page_style::PageStyle;
 pub use page_view::{PageView, ParseViewError};
 pub use panel_bytes::panel_bytes;
-pub use year_facts::{ARRIVAL_DAYS, YearFacts};
+pub use year_facts::{ABSENCE_DAYS, ARRIVAL_DAYS, YearFacts};

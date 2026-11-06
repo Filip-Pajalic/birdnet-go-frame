@@ -40,9 +40,11 @@ pub fn view_key(frame: &str, view: PageView) -> String {
 
 /// Polls `client` forever, publishing new pages to `store` whenever the set of species heard
 /// or the extras change. Keeps the last good pages up while BirdNET-Go is unreachable.
+/// `clock` returns the unix time to ask about, the real time unless the mock pretends.
 pub fn run<T: HttpTransport, W: HttpTransport, A: ArtSource + Send + 'static>(
     mut client: BirdnetClient<T>,
     mut news: News<W>,
+    clock: impl Fn() -> i64,
     config: &Arc<Config>,
     artist: &SharedArtist<A>,
     store: &PageStore,
@@ -52,7 +54,7 @@ pub fn run<T: HttpTransport, W: HttpTransport, A: ArtSource + Send + 'static>(
 {
     let mut shown: Option<(i64, Vec<String>, u64, bool)> = None;
     loop {
-        let now: i64 = now_unix_seconds();
+        let now: i64 = clock();
         let window = DateWindow::hours_back(now, config.utc_offset_minutes, config.window_hours);
         match client.species_summary(window) {
             Ok(species) => {
@@ -73,7 +75,7 @@ pub fn run<T: HttpTransport, W: HttpTransport, A: ArtSource + Send + 'static>(
                     && news::alert_active(&extras, minute, config.alert_minutes);
                 let wanted = (day, names, extras.generation, alert);
                 if shown.as_ref() != Some(&wanted) {
-                    let time: String = clock(now, config.utc_offset_minutes);
+                    let time: String = wall_clock(now, config.utc_offset_minutes);
                     let Ok(footer) = artist.lock().map(|mut artist| {
                         artist.start_day(day);
                         artist.words().updated(&time)
@@ -246,7 +248,7 @@ fn label(row: &SpeciesSummary) -> String {
 }
 
 /// Formats the local wall-clock time as `HH:MM`.
-fn clock(now_unix_seconds: i64, utc_offset_minutes: i32) -> String {
+fn wall_clock(now_unix_seconds: i64, utc_offset_minutes: i32) -> String {
     let local: i64 = now_unix_seconds + i64::from(utc_offset_minutes) * 60;
     let minutes_today: i64 = local.rem_euclid(SECONDS_PER_DAY) / 60;
     format!("{:02}:{:02}", minutes_today / 60, minutes_today % 60)
@@ -259,7 +261,7 @@ mod test {
     #[test]
     fn clock_applies_offset() {
         // 2026-11-06T06:30:00Z at UTC+1.
-        assert_eq!(clock(1_793_946_600, 60), "07:30");
+        assert_eq!(wall_clock(1_793_946_600, 60), "07:30");
     }
 
     #[test]

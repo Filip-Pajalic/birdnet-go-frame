@@ -21,7 +21,7 @@ use std::{fs, thread};
 use art_mock::MockArt;
 use art_pack::ArtSource;
 use art_webp::ArtFolder;
-use birdnet_client::BirdnetClient;
+use birdnet_client::{BirdnetClient, CivilDate, DateWindow};
 use birdnet_mock::MockTransport;
 use frame_artist::{Artist, PageStyle, PageView};
 use frame_http::{FrameLog, FrameServer, PageStore, Target};
@@ -158,17 +158,39 @@ fn main() -> ExitCode {
                         place,
                     )
                 });
-                poller::run(client, News::new(weather), &config, &artist, &poller_store);
+                let clock = poller::now_unix_seconds;
+                poller::run(
+                    client,
+                    News::new(weather),
+                    clock,
+                    &config,
+                    &artist,
+                    &poller_store,
+                );
             }
             Source::Mock => {
                 let offset: i32 = config.utc_offset_minutes;
-                let transport = MockTransport::with_utc_offset(poller::now_unix_seconds, offset);
+                // MOCK_DATE moves the simulated garden to another day, keeping the time of day.
+                let shift: i64 = config.mock_date.map_or(0, |date| {
+                    let today: CivilDate =
+                        DateWindow::local_date(poller::now_unix_seconds(), offset);
+                    (date.days_since_epoch() - today.days_since_epoch()) * 86_400
+                });
+                let clock = move || poller::now_unix_seconds() + shift;
+                let transport = MockTransport::with_utc_offset(clock, offset);
                 let client = BirdnetClient::new("mock", transport);
                 // The simulated garden has weather of its own, wherever it is said to be.
                 let place: Place = config.place.unwrap_or(MOCK_PLACE);
-                let sky = MockTransport::with_utc_offset(poller::now_unix_seconds, offset);
+                let sky = MockTransport::with_utc_offset(clock, offset);
                 let weather = Some((OpenMeteo::new("mock", sky), place));
-                poller::run(client, News::new(weather), &config, &artist, &poller_store);
+                poller::run(
+                    client,
+                    News::new(weather),
+                    clock,
+                    &config,
+                    &artist,
+                    &poller_store,
+                );
             }
         }
     });

@@ -5,6 +5,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use std::{env, fmt};
 
+use birdnet_client::CivilDate;
 use frame_artist::{Layout, PageView};
 use frame_core::{PanelSize, Rotation};
 
@@ -163,6 +164,9 @@ pub struct Config {
     pub mqtt: Option<Mqtt>,
     /// A folder of firmware to offer frames.
     pub firmware_dir: Option<PathBuf>,
+    /// The day the simulated station pretends it is (`MOCK_DATE`), for demos of other
+    /// seasons; `None` for today.
+    pub mock_date: Option<CivilDate>,
 }
 
 /// A setting that could not be read.
@@ -241,6 +245,13 @@ impl Config {
             almanac_refresh: Duration::from_secs(60 * parsed(&lookup, "ALMANAC_MINUTES", 30)?),
             mqtt: optional(&lookup, "MQTT_URL")?,
             firmware_dir: path(&lookup, "FIRMWARE_DIR"),
+            mock_date: match lookup("MOCK_DATE").filter(|date| !date.trim().is_empty()) {
+                None => None,
+                Some(text) => Some(CivilDate::parse(text.trim()).ok_or(ConfigError {
+                    variable: "MOCK_DATE",
+                    problem: format!("cannot read {text:?}: expected YYYY-MM-DD"),
+                })?),
+            },
         };
         if let Some(mqtt) = &mut config.mqtt {
             if let Some(prefix) =

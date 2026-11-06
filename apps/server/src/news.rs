@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 
-use bird_almanac::Almanac;
+use bird_almanac::{Almanac, Arrival};
 use birdnet_client::{BirdnetClient, CivilDate, ClientError, DateWindow, HttpTransport};
 use birdnet_model::{SpeciesHours, SpeciesSummary};
 use frame_artist::{DayFacts, YearFacts};
@@ -91,6 +91,11 @@ impl<W: HttpTransport> News<W> {
         let last_year: Vec<SpeciesSummary> = client.species_summary(week_window.year_earlier())?;
         let today_only: Vec<SpeciesSummary> =
             client.species_summary(DateWindow::days_back(now, offset, 1))?;
+        let (recent, before) = YearFacts::arrival_windows(today);
+        let arrivals: Vec<Arrival> = Arrival::returned(
+            &client.species_summary(recent)?,
+            &client.species_summary(before)?,
+        );
         let almanac = Almanac::new(today, year);
         let new_today: Vec<SpeciesSummary> = almanac.new_today();
         let charted: Vec<String> = DayFacts::chart_species(&today_only, &new_today);
@@ -110,7 +115,7 @@ impl<W: HttpTransport> News<W> {
                 weather,
                 new_today.clone(),
             )),
-            year: Some(YearFacts::new(almanac, &week, &last_year)),
+            year: Some(YearFacts::new(almanac, arrivals, &week, &last_year)),
             week,
             new_today,
             generation: 0,
