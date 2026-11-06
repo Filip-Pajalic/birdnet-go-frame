@@ -140,8 +140,8 @@ pub fn alert_active(extras: &Extras, local_minutes: u32, minutes: u32) -> bool {
         let (Ok(hours), Ok(minute)) = (hours.parse::<u32>(), minute.parse::<u32>()) else {
             return false;
         };
-        let heard: u32 = hours * 60 + minute;
-        heard <= local_minutes && local_minutes - heard <= minutes
+        // A time a little ahead of the server's clock counts as now.
+        local_minutes.saturating_sub(hours * 60 + minute) <= minutes
     })
 }
 

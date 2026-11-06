@@ -123,7 +123,15 @@ impl DayFacts {
             hours: self.story.chorus,
             ink: Ink::Blue,
         });
-        for counts in &self.hours {
+        // Birds new for the year first, so a small page that cannot fit every row keeps them.
+        let mut ordered: Vec<&SpeciesHours> = self.hours.iter().collect();
+        ordered.sort_by_key(|counts| {
+            !self
+                .new_today
+                .iter()
+                .any(|row| row.scientific_name == counts.scientific_name)
+        });
+        for counts in ordered {
             let is_new: bool = self
                 .new_today
                 .iter()

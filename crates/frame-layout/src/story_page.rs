@@ -55,7 +55,8 @@ pub struct StoryOptions {
 
 /// Lays out the day's story: its lines at the top, then one row per species showing when it
 /// sang, as bars hour by hour over the hours anything sang, scaled per row so a quiet bird's
-/// pattern shows as well as a loud one's.
+/// pattern shows as well as a loud one's. Rows that do not fit at a legible size are left off,
+/// from the last.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct StoryPage;
 
@@ -116,10 +117,14 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
     let tick_size: f32 = (body.heading_size * 0.3).max(16.0);
     let chart_top: i32 = body.top + (tick_size * 1.4) as i32;
     let chart_bottom: i32 = body.bottom - (tick_size * 1.6) as i32;
-    let rows: i32 = i32::try_from(options.rows.len()).unwrap_or(1).max(1);
+    // Rows below a legible height are left off, the last first.
+    let fitting: usize = usize::try_from((chart_bottom - chart_top) / (tick_size * 1.7) as i32)
+        .unwrap_or(1)
+        .max(1);
+    let shown: &[ChorusRow] = &options.rows[..options.rows.len().min(fitting)];
+    let rows: i32 = i32::try_from(shown.len()).unwrap_or(1).max(1);
     let row_height: i32 = ((chart_bottom - chart_top) / rows).max(8);
-    let longest: usize = options
-        .rows
+    let longest: usize = shown
         .iter()
         .map(|row| row.label.chars().count())
         .max()
@@ -133,7 +138,7 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
     let bar: i32 = ((column * 0.72) as i32).max(2);
     let rule: i32 = (row_height / 40).max(2);
 
-    for (index, row) in options.rows.iter().enumerate() {
+    for (index, row) in shown.iter().enumerate() {
         let index: i32 = i32::try_from(index).unwrap_or(0);
         let baseline: i32 = chart_top + (index + 1) * row_height - row_height / 8;
         page.text.push(TextBlock {
@@ -193,13 +198,23 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
             });
             y += dash * 2;
         }
+        // Centred over its line, unless that would run off the page.
+        let half: i32 =
+            (mark.label.chars().count() as f32 * AVERAGE_LETTER_WIDTH * tick_size / 2.0) as i32;
+        let align: Align = if x + half > body.width - body.margin / 4 {
+            Align::Right
+        } else if x - half < body.margin / 4 {
+            Align::Left
+        } else {
+            Align::Centre
+        };
         page.text.push(TextBlock {
             text: mark.label.clone(),
             x,
             baseline_y: chart_top - (tick_size * 0.4) as i32,
             size_px: tick_size,
             max_width: None,
-            align: Align::Centre,
+            align,
             style: TextStyle::Detail,
         });
     }
@@ -295,6 +310,18 @@ mod test {
             }
             assert!(page.text.iter().any(|block| block.text == "Sunrise"));
         }
+    }
+
+    #[test]
+    fn leaves_off_rows_that_do_not_fit() {
+        let rows: Vec<ChorusRow> = (0..30).map(|_| row("Robin", &[(5, 4)])).collect();
+        let page = StoryPage::layout(Resolution::new(800, 480), &options(rows));
+        let drawn: usize = page
+            .text
+            .iter()
+            .filter(|block| block.text == "Robin")
+            .count();
+        assert!((3..30).contains(&drawn), "{drawn}");
     }
 
     #[test]
