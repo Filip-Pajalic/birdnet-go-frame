@@ -54,7 +54,7 @@ impl Renderer {
     }
 
     /// Draws `layout` on a fresh paper-coloured canvas: its pictures first, taken from `art` by
-    /// [`frame_layout::ImageBlock::art`], then its text. Pictures missing from `art` are
+    /// [`frame_layout::ImageBlock::art`], then its shapes, then its text. Pictures missing from `art` are
     /// skipped.
     #[must_use]
     pub fn render(&self, layout: &PageLayout, art: &[ArtImage]) -> Canvas {
@@ -62,6 +62,14 @@ impl Renderer {
         for block in &layout.images {
             if let Some(picture) = art.get(block.art) {
                 draw_image(&mut canvas, block, picture);
+            }
+        }
+        for shape in &layout.shapes {
+            let colour: Rgb = shape.ink.dither_colour();
+            for y in shape.y..shape.y.saturating_add(shape.height) {
+                for x in shape.x..shape.x.saturating_add(shape.width) {
+                    canvas.blend(x, y, colour, u8::MAX);
+                }
             }
         }
         for block in &layout.text {
