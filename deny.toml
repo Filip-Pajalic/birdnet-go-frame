@@ -1,0 +1,33 @@
+# cargo-deny settings, checked in CI (`cargo deny check`). The dependency policy is in
+# docs/explanation/dependencies.md: every third-party crate needs a reason.
+
+[graph]
+all-features = true
+
+[advisories]
+# Any RustSec advisory, unmaintained or yanked crate fails the build, except as listed here.
+yanked = "deny"
+ignore = [
+    # ttf-parser is unmaintained and has no maintained drop-in; it comes with fontdue. It only
+    # ever parses the font embedded in our own binary, never untrusted input. Revisit when
+    # fontdue moves on (see docs/explanation/dependencies.md).
+    { id = "RUSTSEC-2026-0192", reason = "only parses our embedded font; no replacement for fontdue yet" },
+]
+
+[licenses]
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Zlib",
+    # The bird-sizes crate ships AVONET's body masses.
+    "CC-BY-4.0",
+]
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

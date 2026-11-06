@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work as the docs say.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Settings (environment variables, with secrets removed) and steps. Does it happen with `BIRDNET_URL=mock`?
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag, image tag, or commit.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it runs
+      options:
+        - Docker / Unraid
+        - Linux binary
+        - macOS binary
+        - Windows binary
+        - ESP32 firmware
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: text

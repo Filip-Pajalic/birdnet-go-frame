@@ -21,23 +21,23 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 license = "MIT"
 repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
 
 [workspace.dependencies]
-art-mock = { path = "crates/art-mock" }
-art-pack = { path = "crates/art-pack" }
-bird-sizes = { path = "crates/bird-sizes" }
-birdnet-client = { path = "crates/birdnet-client" }
-birdnet-mock = { path = "crates/birdnet-mock" }
-birdnet-model = { path = "crates/birdnet-model" }
-frame-core = { path = "crates/frame-core" }
-frame-http = { path = "crates/frame-http" }
-frame-layout = { path = "crates/frame-layout" }
-frame-raster = { path = "crates/frame-raster" }
-lan-http = { path = "crates/lan-http" }
-transport-lan = { path = "crates/transport-lan" }
+art-mock = { path = "crates/art-mock", version = "0.1.0" }
+art-pack = { path = "crates/art-pack", version = "0.1.0" }
+bird-sizes = { path = "crates/bird-sizes", version = "0.1.0" }
+birdnet-client = { path = "crates/birdnet-client", version = "0.1.0" }
+birdnet-mock = { path = "crates/birdnet-mock", version = "0.1.0" }
+birdnet-model = { path = "crates/birdnet-model", version = "0.1.0" }
+frame-core = { path = "crates/frame-core", version = "0.1.0" }
+frame-http = { path = "crates/frame-http", version = "0.1.0" }
+frame-layout = { path = "crates/frame-layout", version = "0.1.0" }
+frame-raster = { path = "crates/frame-raster", version = "0.1.0" }
+lan-http = { path = "crates/lan-http", version = "0.1.0" }
+transport-lan = { path = "crates/transport-lan", version = "0.1.0" }
 
 # Third-party crates. Keep this list short: see docs/explanation/dependencies.md before adding one.
 # Font rasterising. No default features: no std, no SIMD tables.
