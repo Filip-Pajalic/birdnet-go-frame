@@ -13,15 +13,15 @@ use crate::png_writer;
 pub enum RenderError {
     /// The page does not fit the E6F1 panel.
     E6(E6Error),
-    /// PNG encoding failed.
-    Png(png::EncodingError),
+    /// The page is too large for PNG.
+    PngTooLarge,
 }
 
 impl fmt::Display for RenderError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::E6(error) => write!(formatter, "cannot pack /frame.e6: {error}"),
-            Self::Png(error) => write!(formatter, "cannot encode PNG: {error}"),
+            Self::PngTooLarge => formatter.write_str("page too large for PNG"),
         }
     }
 }
@@ -47,7 +47,7 @@ impl RenderedPage {
     /// # Errors
     ///
     /// Returns [`RenderError`] when the page does not fit the panel for `rotation` or PNG
-    /// encoding fails.
+    /// cannot hold it.
     pub fn new(
         page: &IndexedImage,
         preview: &Canvas,
@@ -56,8 +56,8 @@ impl RenderedPage {
     ) -> Result<Self, RenderError> {
         let e6: Vec<u8> = e6::encode(page, rotation, poll_minutes).map_err(RenderError::E6)?;
         let glass: IndexedImage = page.rotated(rotation);
-        let frame_png: Vec<u8> = png_writer::indexed_png(&glass).map_err(RenderError::Png)?;
-        let preview_png: Vec<u8> = png_writer::rgb_png(preview).map_err(RenderError::Png)?;
+        let frame_png: Vec<u8> = png_writer::indexed_png(&glass).ok_or(RenderError::PngTooLarge)?;
+        let preview_png: Vec<u8> = png_writer::rgb_png(preview).ok_or(RenderError::PngTooLarge)?;
         let etag: String = format!("\"{:08x}\"", Crc32::checksum(&e6));
         Ok(Self {
             e6,

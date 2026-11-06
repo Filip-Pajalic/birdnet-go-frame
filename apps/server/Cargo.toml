@@ -22,7 +22,7 @@ frame-core.workspace = true
 frame-http.workspace = true
 frame-layout.workspace = true
 frame-raster.workspace = true
-transport-ureq.workspace = true
+transport-lan.workspace = true
 
 [lints]
 workspace = true

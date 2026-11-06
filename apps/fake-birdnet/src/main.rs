@@ -9,12 +9,12 @@
 //!
 //! Set `UTC_OFFSET_MINUTES` to move the simulated dawn chorus to your time zone.
 
+use std::env;
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{env, io};
 
 use birdnet_mock::MockBirdnet;
-use tiny_http::{Header, Response, Server};
+use lan_http::{Response, Server};
 
 fn main() -> ExitCode {
     let address: String = env::args()
@@ -24,7 +24,7 @@ fn main() -> ExitCode {
         .ok()
         .and_then(|text| text.parse().ok())
         .unwrap_or(0);
-    let server: Server = match Server::http(&address) {
+    let server: Server = match Server::bind(&address) {
         Ok(server) => server,
         Err(error) => {
             eprintln!("fake-birdnet: cannot listen on {address}: {error}");
@@ -33,27 +33,14 @@ fn main() -> ExitCode {
     };
     let station = MockBirdnet::new(offset);
     eprintln!("fake-birdnet: simulated BirdNET-Go on http://{address}/api/v2");
-    for request in server.incoming_requests() {
+    server.run(move |request| {
         let now: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |elapsed| {
                 i64::try_from(elapsed.as_secs()).unwrap_or(i64::MAX)
             });
-        let answer = station.respond(request.url(), now);
-        let Ok(content_type) = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
-        else {
-            continue;
-        };
-        let response = Response::from_data(answer.body)
-            .with_status_code(answer.status)
-            .with_header(content_type);
-        if let Err(error) = request.respond(response) {
-            report(&error);
-        }
-    }
+        let answer = station.respond(request.target(), now);
+        Response::new(answer.status, answer.body).with_header("Content-Type", "application/json")
+    });
     ExitCode::SUCCESS
-}
-
-fn report(error: &io::Error) {
-    eprintln!("fake-birdnet: could not answer a request: {error}");
 }

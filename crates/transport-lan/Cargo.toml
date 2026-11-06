@@ -1,6 +1,6 @@
 [package]
-name = "transport-ureq"
-description = "HttpTransport for Linux and other std targets, on ureq."
+name = "transport-lan"
+description = "HttpTransport for Linux and other std targets, on lan-http."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 birdnet-client.workspace = true
-ureq.workspace = true
+lan-http.workspace = true
 
 [lints]
 workspace = true

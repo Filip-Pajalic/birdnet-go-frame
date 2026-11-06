@@ -7,6 +7,7 @@
 //! | `/preview.png` | Full-colour PNG as the viewer sees it |
 //! | `/healthz` | `ok` once a page has been rendered, 503 before |
 
+mod deflate;
 mod frame_server;
 mod page_store;
 mod png_writer;

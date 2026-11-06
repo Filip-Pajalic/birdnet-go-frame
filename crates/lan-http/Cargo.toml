@@ -1,0 +1,13 @@
+[package]
+name = "lan-http"
+description = "Just enough plain HTTP/1.1 for a home network: a GET client and a small server, std only."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -18,7 +18,7 @@ use birdnet_client::BirdnetClient;
 use birdnet_mock::MockTransport;
 use frame_http::{FrameServer, PageStore};
 use frame_raster::Renderer;
-use transport_ureq::UreqTransport;
+use transport_lan::LanTransport;
 
 use crate::artist::Artist;
 use crate::config::{Config, Source};
@@ -67,7 +67,7 @@ fn main() -> ExitCode {
     );
     thread::spawn(move || match config.source.clone() {
         Source::Live(url) => {
-            let client = BirdnetClient::new(&url, UreqTransport::default());
+            let client = BirdnetClient::new(&url, LanTransport::default());
             poller::run(client, &config, &mut artist, &poller_store);
         }
         Source::Mock => {

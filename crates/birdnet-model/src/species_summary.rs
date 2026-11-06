@@ -3,31 +3,25 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use serde::Deserialize;
-
+use crate::json::Json;
 use crate::parse_error::ParseError;
 use crate::scientific_name::ScientificName;
 
 /// A species heard in the requested date range, with false positives already excluded by
 /// BirdNET-Go.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpeciesSummary {
     /// Scientific name.
     pub scientific_name: ScientificName,
     /// Common name in BirdNET-Go's configured locale.
-    #[serde(default)]
     pub common_name: String,
     /// Number of detections in the range.
-    #[serde(default)]
     pub count: u32,
     /// Earliest detection, as BirdNET-Go formats it.
-    #[serde(default)]
     pub first_heard: Option<String>,
     /// Latest detection, as BirdNET-Go formats it.
-    #[serde(default)]
     pub last_heard: Option<String>,
     /// Highest confidence in the range, from 0 to 1.
-    #[serde(default)]
     pub max_confidence: Option<f64>,
 }
 
@@ -40,8 +34,11 @@ impl SpeciesSummary {
     ///
     /// Returns [`ParseError`] when the body is not a JSON array of summary rows.
     pub fn parse_list(body: &[u8]) -> Result<Vec<Self>, ParseError> {
-        let rows: Vec<Self> = serde_json::from_slice(body).map_err(ParseError::new)?;
-        let mut merged: Vec<Self> = Vec::with_capacity(rows.len());
+        let Json::Array(items) = Json::parse(body)? else {
+            return Err(ParseError::new("expected a list of species", 0));
+        };
+        let rows = items.iter().filter_map(Self::from_json);
+        let mut merged: Vec<Self> = Vec::with_capacity(items.len());
         for row in rows {
             if !row.is_bird() {
                 continue;
@@ -61,6 +58,21 @@ impl SpeciesSummary {
                 .then_with(|| left.common_name.cmp(&right.common_name))
         });
         Ok(merged)
+    }
+
+    /// Reads one row. Rows without a scientific name are skipped; other fields default when
+    /// missing or of the wrong type.
+    fn from_json(row: &Json) -> Option<Self> {
+        Some(Self {
+            scientific_name: ScientificName::new(row.str("scientific_name")?),
+            common_name: String::from(row.str("common_name").unwrap_or_default()),
+            count: row
+                .number("count")
+                .map_or(0, |count| count.clamp(0.0, f64::from(u32::MAX)) as u32),
+            first_heard: row.str("first_heard").map(String::from),
+            last_heard: row.str("last_heard").map(String::from),
+            max_confidence: row.number("max_confidence"),
+        })
     }
 
     /// Returns whether the row is a bird rather than one of BirdNET's non-animal labels.

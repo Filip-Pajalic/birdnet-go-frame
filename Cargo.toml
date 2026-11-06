@@ -14,7 +14,8 @@ members = [
     "crates/frame-http",
     "crates/frame-layout",
     "crates/frame-raster",
-    "crates/transport-ureq",
+    "crates/lan-http",
+    "crates/transport-lan",
 ]
 
 [workspace.package]
@@ -35,16 +36,14 @@ frame-core = { path = "crates/frame-core" }
 frame-http = { path = "crates/frame-http" }
 frame-layout = { path = "crates/frame-layout" }
 frame-raster = { path = "crates/frame-raster" }
-transport-ureq = { path = "crates/transport-ureq" }
+lan-http = { path = "crates/lan-http" }
+transport-lan = { path = "crates/transport-lan" }
 
-libm = "0.2"
+# Third-party crates. Keep this list short: see docs/explanation/dependencies.md before adding one.
+# Font rasterising. No default features: no std, no SIMD tables.
 fontdue = { version = "0.9", default-features = false, features = ["hashbrown"] }
-serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1", default-features = false, features = ["alloc"] }
-tiny_http = "0.12"
-# Plain HTTP only: BirdNET-Go is reached on the LAN, and TLS would add most of the binary.
-ureq = { version = "3", default-features = false }
-png = "0.18"
+# Float maths for no_std. fontdue already pulls it in (via ttf-parser), so it adds nothing.
+libm = "0.2"
 
 # Lints named by Google's Rust Style Guide, plus the error-handling rules it describes.
 # See STYLE.md for the rules that are enforced by review instead.

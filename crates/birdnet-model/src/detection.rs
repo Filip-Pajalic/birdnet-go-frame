@@ -3,37 +3,28 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use serde::Deserialize;
-
+use crate::json::Json;
 use crate::parse_error::ParseError;
 use crate::scientific_name::ScientificName;
 
 /// A single detection.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Detection {
     /// BirdNET-Go's row id.
-    #[serde(default)]
     pub id: u64,
     /// RFC 3339 time with offset (BirdNET-Go from 2026-03); older versions leave it out.
-    #[serde(default)]
     pub timestamp: Option<String>,
     /// Local date, `YYYY-MM-DD`.
-    #[serde(default)]
     pub date: String,
     /// Local wall-clock time, `HH:MM:SS`.
-    #[serde(default)]
     pub time: String,
     /// Scientific name.
     pub scientific_name: ScientificName,
     /// Common name in BirdNET-Go's configured locale.
-    #[serde(default)]
     pub common_name: String,
     /// Confidence from 0 to 1.
-    #[serde(default)]
     pub confidence: f64,
     /// Review state; `false_positive` marks a rejected detection.
-    #[serde(default)]
     pub verified: Option<String>,
 }
 
@@ -45,9 +36,30 @@ impl Detection {
     ///
     /// Returns [`ParseError`] when the body is not a JSON array of detections.
     pub fn parse_list(body: &[u8]) -> Result<Vec<Self>, ParseError> {
-        let mut rows: Vec<Self> = serde_json::from_slice(body).map_err(ParseError::new)?;
-        rows.retain(|row| row.is_bird() && !row.is_false_positive());
-        Ok(rows)
+        let Json::Array(items) = Json::parse(body)? else {
+            return Err(ParseError::new("expected a list of detections", 0));
+        };
+        Ok(items
+            .iter()
+            .filter_map(Self::from_json)
+            .filter(|row| row.is_bird() && !row.is_false_positive())
+            .collect())
+    }
+
+    /// Reads one row. Rows without a scientific name are skipped; other fields default when
+    /// missing or of the wrong type.
+    fn from_json(row: &Json) -> Option<Self> {
+        let text = |key: &str| String::from(row.str(key).unwrap_or_default());
+        Some(Self {
+            id: row.number("id").map_or(0, |id| id.max(0.0) as u64),
+            timestamp: row.str("timestamp").map(String::from),
+            date: text("date"),
+            time: text("time"),
+            scientific_name: ScientificName::new(row.str("scientificName")?),
+            common_name: text("commonName"),
+            confidence: row.number("confidence").unwrap_or(0.0),
+            verified: row.str("verified").map(String::from),
+        })
     }
 
     /// Returns whether a reviewer marked this detection as wrong.

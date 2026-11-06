@@ -1,0 +1,85 @@
+//! The client against the server, over real sockets.
+
+#![allow(clippy::expect_used)] // Tests may panic on setup failures.
+
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::thread;
+use std::time::Duration;
+
+use lan_http::{Response, Server, get};
+
+fn serve(handler: fn(&lan_http::Request) -> Response) -> String {
+    let server = Server::bind("127.0.0.1:0").expect("bind");
+    let address = server.local_addr().expect("address");
+    thread::spawn(move || server.run(handler));
+    format!("http://{address}")
+}
+
+#[test]
+fn get_round_trip_with_headers_and_status() {
+    let base = serve(|request| match request.path() {
+        "/hello" => Response::text(200, request.target()).with_header(
+            "ETag",
+            request.header("if-none-match").unwrap_or("none").to_owned(),
+        ),
+        _ => Response::text(404, "not found"),
+    });
+    let response = get(&format!("{base}/hello?x=1"), Duration::from_secs(5)).expect("fetch");
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body, b"/hello?x=1");
+    let missing = get(&format!("{base}/other"), Duration::from_secs(5)).expect("fetch");
+    assert_eq!(missing.status, 404);
+}
+
+#[test]
+fn large_bodies_arrive_whole() {
+    let base = serve(|_| Response::new(200, vec![7_u8; 1_000_000]));
+    let response = get(&base, Duration::from_secs(5)).expect("fetch");
+    assert_eq!(response.body.len(), 1_000_000);
+}
+
+#[test]
+fn other_methods_and_garbage_are_refused() {
+    let base = serve(|_| Response::text(200, "ok"));
+    let address = base.trim_start_matches("http://").to_owned();
+    let exchange = |request: &[u8]| -> String {
+        let mut stream = TcpStream::connect(&address).expect("connect");
+        stream.write_all(request).expect("send");
+        let mut reply = String::new();
+        stream.read_to_string(&mut reply).expect("read");
+        reply
+    };
+    assert!(exchange(b"POST / HTTP/1.1\r\n\r\n").starts_with("HTTP/1.1 405"));
+    assert!(exchange(b"hello\r\n\r\n").starts_with("HTTP/1.1 400"));
+    let head = exchange(b"HEAD / HTTP/1.1\r\n\r\n");
+    assert!(
+        head.starts_with("HTTP/1.1 200")
+            && head.contains("Content-Length: 2")
+            && !head.ends_with("ok")
+    );
+}
+
+#[test]
+fn reads_chunked_responses_from_other_servers() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let address = listener.local_addr().expect("address");
+    thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("accept");
+        let mut request = [0_u8; 1024];
+        let _ = stream.read(&mut request).expect("read");
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n[]\r\n0\r\n\r\n")
+            .expect("write");
+    });
+    let response = get(&format!("http://{address}/api"), Duration::from_secs(5)).expect("fetch");
+    assert_eq!(response.body, b"[]");
+}
+
+#[test]
+fn unreachable_servers_fail_quickly() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let address = listener.local_addr().expect("address");
+    drop(listener);
+    assert!(get(&format!("http://{address}/"), Duration::from_secs(2)).is_err());
+}

@@ -3,11 +3,8 @@
 use alloc::string::String;
 use core::fmt;
 
-use serde::Deserialize;
-
 /// A scientific name such as `Parus major`, compared case- and whitespace-insensitively.
-#[derive(Clone, Debug, Deserialize)]
-#[serde(transparent)]
+#[derive(Clone, Debug)]
 pub struct ScientificName(String);
 
 impl ScientificName {

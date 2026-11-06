@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 birdnet-mock.workspace = true
-tiny_http.workspace = true
+lan-http.workspace = true
 
 [lints]
 workspace = true
