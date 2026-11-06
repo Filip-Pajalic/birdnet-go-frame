@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 birdnet-model.workspace = true
+lite-json.workspace = true
 
 [lints]
 workspace = true

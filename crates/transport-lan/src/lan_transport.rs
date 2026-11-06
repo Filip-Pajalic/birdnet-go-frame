@@ -2,10 +2,10 @@
 
 use std::time::Duration;
 
-use birdnet_client::{HttpResponse, HttpTransport};
+use birdnet_client::{HttpRequest, HttpResponse, HttpTransport};
 use lan_http::HttpError;
 
-/// Performs blocking plain-HTTP GETs with a timeout.
+/// Sends blocking plain-HTTP requests with a timeout.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LanTransport {
     timeout: Duration,
@@ -28,11 +28,23 @@ impl Default for LanTransport {
 impl HttpTransport for LanTransport {
     type Error = HttpError;
 
-    fn get(&mut self, url: &str) -> Result<HttpResponse, Self::Error> {
-        let response = lan_http::get(url, self.timeout)?;
+    fn send(&mut self, request: &HttpRequest) -> Result<HttpResponse, Self::Error> {
+        let headers: Vec<(&str, &str)> = request
+            .headers
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+            .collect();
+        let response = lan_http::send(
+            request.method.as_str(),
+            &request.url,
+            &headers,
+            &request.body,
+            self.timeout,
+        )?;
         Ok(HttpResponse {
             status: response.status,
             body: response.body,
+            headers: response.headers,
         })
     }
 }

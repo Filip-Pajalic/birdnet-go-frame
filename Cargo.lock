@@ -43,6 +43,7 @@ name = "birdnet-client"
 version = "0.1.0"
 dependencies = [
  "birdnet-model",
+ "lite-json",
 ]
 
 [[package]]

@@ -83,3 +83,55 @@ fn unreachable_servers_fail_quickly() {
     drop(listener);
     assert!(get(&format!("http://{address}/"), Duration::from_secs(2)).is_err());
 }
+
+#[test]
+fn posts_a_body_with_headers_and_reads_response_headers() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let address = listener.local_addr().expect("address");
+    let seen = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("accept");
+        let mut request = vec![0_u8; 4096];
+        let read = stream.read(&mut request).expect("read");
+        stream
+            .write_all(
+                b"HTTP/1.1 200 OK\r\nSet-Cookie: a=1; Path=/\r\nSet-Cookie: b=2\r\n\
+                  Content-Length: 2\r\n\r\nok",
+            )
+            .expect("write");
+        String::from_utf8_lossy(&request[..read]).into_owned()
+    });
+    let response = lan_http::send(
+        "POST",
+        &format!("http://{address}/api/v2/auth/login"),
+        &[("Content-Type", "application/json"), ("Cookie", "s=x")],
+        br#"{"password":"pw"}"#,
+        Duration::from_secs(5),
+    )
+    .expect("send");
+    let request: String = seen.join().expect("server thread");
+    assert!(
+        request.starts_with("POST /api/v2/auth/login HTTP/1.1\r\n"),
+        "{request}"
+    );
+    assert!(request.contains("Content-Type: application/json\r\n"));
+    assert!(request.contains("Cookie: s=x\r\n"));
+    assert!(request.contains("Content-Length: 17\r\n"));
+    assert!(request.ends_with("\r\n\r\n{\"password\":\"pw\"}"));
+    let cookies: Vec<&str> = response
+        .headers
+        .iter()
+        .filter(|(name, _)| name.eq_ignore_ascii_case("set-cookie"))
+        .map(|(_, value)| value.as_str())
+        .collect();
+    assert_eq!(cookies, ["a=1; Path=/", "b=2"]);
+    assert!(
+        lan_http::send(
+            "GET",
+            "http://127.0.0.1:1/",
+            &[("X", "a\r\nb")],
+            &[],
+            Duration::from_secs(1)
+        )
+        .is_err()
+    );
+}

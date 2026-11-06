@@ -1,6 +1,6 @@
 //! Just enough plain HTTP/1.1 for a home network, on the standard library alone.
 //!
-//! [`get`] fetches a URL; [`Server`] answers GET and HEAD requests with a handler. Both close
+//! [`get`] fetches a URL and [`send`] sends any request; [`Server`] answers GET and HEAD requests with a handler. Both close
 //! the connection after one exchange, which keeps them small and is all a panel that wakes
 //! every few minutes needs. There is no TLS: BirdNET-Go and the frame talk on the LAN. This
 //! replaces `ureq` and `tiny_http` and the dozen crates they bring.
@@ -21,7 +21,7 @@ mod response;
 mod server;
 mod url;
 
-pub use client::{ClientResponse, MAX_BODY_BYTES, get};
+pub use client::{ClientResponse, MAX_BODY_BYTES, get, send};
 pub use http_error::HttpError;
 pub use request::Request;
 pub use response::Response;

@@ -41,16 +41,10 @@ impl MockBirdnet {
             }
             "/api/v2/health" | "/api/v2/ping" => String::from(r#"{"status":"ok"}"#),
             _ => {
-                return HttpResponse {
-                    status: 404,
-                    body: br#"{"error":"not found"}"#.to_vec(),
-                };
+                return HttpResponse::new(404, br#"{"error":"not found"}"#.to_vec());
             }
         };
-        HttpResponse {
-            status: 200,
-            body: body.into_bytes(),
-        }
+        HttpResponse::new(200, body.into_bytes())
     }
 
     /// Returns today's local midnight and the local hour, as unix seconds and 0 to 23.

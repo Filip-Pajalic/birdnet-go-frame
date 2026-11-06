@@ -117,7 +117,10 @@ fn main() -> ExitCode {
         Arc::new(Mutex::new(Artist::new(renderer, art, style)));
     thread::spawn(move || match config.source.clone() {
         Source::Live(url) => {
-            let client = BirdnetClient::new(&url, LanTransport::default());
+            let mut client = BirdnetClient::new(&url, LanTransport::default());
+            if let Some(login) = &config.login {
+                client = client.with_login(&login.username, &login.password);
+            }
             poller::run(client, &config, &artist, &poller_store);
         }
         Source::Mock => {

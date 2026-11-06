@@ -9,6 +9,8 @@ use std::{fmt, io};
 pub enum HttpError {
     /// The URL is not one this client can fetch; the text says why.
     BadUrl(&'static str),
+    /// A header name or value holds a line break, which would split the request.
+    BadHeader,
     /// Connecting, sending or receiving failed, or timed out.
     Io(io::Error),
     /// The other side did not speak HTTP/1.x as expected; the text says how.
@@ -21,6 +23,7 @@ impl fmt::Display for HttpError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BadUrl(problem) => write!(formatter, "bad URL: {problem}"),
+            Self::BadHeader => formatter.write_str("a request header holds a line break"),
             Self::Io(error) => write!(formatter, "{error}"),
             Self::Malformed(problem) => write!(formatter, "malformed HTTP response: {problem}"),
             Self::TooLarge => formatter.write_str("response too large"),

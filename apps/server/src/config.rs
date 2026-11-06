@@ -39,11 +39,31 @@ impl FromStr for Layout {
     }
 }
 
+/// BirdNET-Go's login, for its private mode. The password never shows in debug output.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Login {
+    /// The user name; BirdNET-Go's password login takes any.
+    pub username: String,
+    /// The password.
+    pub password: String,
+}
+
+impl fmt::Debug for Login {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Login")
+            .field("username", &self.username)
+            .finish_non_exhaustive()
+    }
+}
+
 /// Server settings.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Config {
     /// Detection source.
     pub source: Source,
+    /// BirdNET-Go's login, when its private mode is on.
+    pub login: Option<Login>,
     /// Address to listen on.
     pub listen: String,
     /// The panel served to clients that do not name one.
@@ -119,6 +139,14 @@ impl Config {
         };
         Ok(Self {
             source,
+            login: lookup("BIRDNET_PASSWORD")
+                .filter(|password| !password.is_empty())
+                .map(|password| Login {
+                    username: lookup("BIRDNET_USERNAME")
+                        .filter(|name| !name.trim().is_empty())
+                        .unwrap_or_else(|| String::from("admin")),
+                    password,
+                }),
             listen: lookup("LISTEN").unwrap_or_else(|| String::from("0.0.0.0:8080")),
             panel: parsed(&lookup, "PANEL", PanelSize::Inches13Point3)?,
             rotation: parsed(&lookup, "ROTATION", Rotation::Degrees0)?,
@@ -213,6 +241,23 @@ mod test {
         assert!(config.names);
         assert_eq!(config.language, "en");
         assert_eq!(config.art_dir, None);
+    }
+
+    #[test]
+    fn login_for_private_mode() {
+        let open = config(&[("BIRDNET_URL", "mock")]).expect("valid");
+        assert_eq!(open.login, None);
+        let private =
+            config(&[("BIRDNET_URL", "mock"), ("BIRDNET_PASSWORD", "hunter2")]).expect("valid");
+        let login: Login = private.login.expect("a login");
+        assert_eq!(
+            (login.username.as_str(), login.password.as_str()),
+            ("admin", "hunter2")
+        );
+        assert!(
+            !format!("{login:?}").contains("hunter2"),
+            "kept out of logs"
+        );
     }
 
     #[test]

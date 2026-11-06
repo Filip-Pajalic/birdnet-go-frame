@@ -1,4 +1,4 @@
-//! A blocking GET client.
+//! A blocking HTTP client: one request per connection.
 
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -8,16 +8,18 @@ use crate::head::{self, Head};
 use crate::http_error::HttpError;
 use crate::url::Url;
 
-/// The largest body [`get`] accepts. A summary from a busy BirdNET-Go is well under this.
+/// The largest body [`get`] and [`send`] accept. A summary from a busy BirdNET-Go is well under this.
 pub const MAX_BODY_BYTES: usize = 16 * 1024 * 1024;
 
-/// A response to [`get`].
+/// A response to [`get`] or [`send`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClientResponse {
     /// Status code, e.g. 200. Redirects are not followed.
     pub status: u16,
     /// The body, with any chunked transfer encoding removed.
     pub body: Vec<u8>,
+    /// Header names and values as received, in order.
+    pub headers: Vec<(String, String)>,
 }
 
 /// Fetches `url` (`http://host[:port]/path`) with one GET. Connecting, and each read and write,
@@ -28,18 +30,50 @@ pub struct ClientResponse {
 /// Returns [`HttpError`] when the URL is not plain `http://`, the server cannot be reached, or
 /// the response is not readable HTTP/1.x.
 pub fn get(url: &str, timeout: Duration) -> Result<ClientResponse, HttpError> {
+    send("GET", url, &[], &[], timeout)
+}
+
+/// Sends one `method` request for `url` with extra `headers` and `body`, e.g. a POST of JSON.
+/// `Host`, `Content-Length` (when there is a body) and `Connection` are added. Connecting, and
+/// each read and write, give up after `timeout`.
+///
+/// # Errors
+///
+/// Returns [`HttpError`] when the URL is not plain `http://`, the server cannot be reached, or
+/// the response is not readable HTTP/1.x.
+pub fn send(
+    method: &str,
+    url: &str,
+    headers: &[(&str, &str)],
+    body: &[u8],
+    timeout: Duration,
+) -> Result<ClientResponse, HttpError> {
+    let split: bool = headers
+        .iter()
+        .any(|(name, value)| name.contains(['\r', '\n']) || value.contains(['\r', '\n']));
+    if split {
+        return Err(HttpError::BadHeader);
+    }
     let url: Url<'_> = Url::parse(url)?;
     let mut stream: TcpStream = connect(&url, timeout)?;
     stream.set_read_timeout(Some(timeout))?;
     stream.set_write_timeout(Some(timeout))?;
-    let request: String = format!(
-        "GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: birdnet-go-frame/{}\r\nAccept: */*\r\n\
-         Connection: close\r\n\r\n",
+    let mut request: String = format!(
+        "{method} {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: birdnet-go-frame/{}\r\nAccept: */*\r\n\
+         Connection: close\r\n",
         url.target,
         url.authority,
         env!("CARGO_PKG_VERSION"),
     );
+    for (name, value) in headers {
+        request.push_str(&format!("{name}: {value}\r\n"));
+    }
+    if !body.is_empty() {
+        request.push_str(&format!("Content-Length: {}\r\n", body.len()));
+    }
+    request.push_str("\r\n");
     stream.write_all(request.as_bytes())?;
+    stream.write_all(body)?;
     let (head, mut body) =
         head::read_head(&mut stream)?.ok_or(HttpError::Malformed("connection closed early"))?;
     let status: u16 = status(&head)?;
@@ -74,7 +108,11 @@ pub fn get(url: &str, timeout: Duration) -> Result<ClientResponse, HttpError> {
     if body.len() > MAX_BODY_BYTES {
         return Err(HttpError::TooLarge);
     }
-    Ok(ClientResponse { status, body })
+    Ok(ClientResponse {
+        status,
+        body,
+        headers: head.fields,
+    })
 }
 
 fn connect(url: &Url<'_>, timeout: Duration) -> Result<TcpStream, HttpError> {
