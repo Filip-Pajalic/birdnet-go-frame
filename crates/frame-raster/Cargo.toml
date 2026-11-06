@@ -1,0 +1,16 @@
+[package]
+name = "frame-raster"
+description = "Draws a page layout and dithers it to the six Spectra 6 inks, no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+fontdue.workspace = true
+frame-core.workspace = true
+frame-layout.workspace = true
+
+[lints]
+workspace = true

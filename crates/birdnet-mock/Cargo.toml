@@ -1,0 +1,17 @@
+[package]
+name = "birdnet-mock"
+description = "A simulated BirdNET-Go: realistic, deterministic API responses for tests and demos."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-client.workspace = true
+
+[dev-dependencies]
+birdnet-model.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,14 @@
+[package]
+name = "birdnet-client"
+description = "A BirdNET-Go API client, generic over its HTTP transport, no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-model.workspace = true
+
+[lints]
+workspace = true

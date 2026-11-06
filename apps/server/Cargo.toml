@@ -1,0 +1,25 @@
+[package]
+name = "server"
+description = "birdnet-go-frame's server: reads BirdNET-Go, renders the page, serves it to panels."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "birdnet-go-frame"
+path = "src/main.rs"
+
+[dependencies]
+birdnet-client.workspace = true
+birdnet-mock.workspace = true
+birdnet-model.workspace = true
+frame-core.workspace = true
+frame-http.workspace = true
+frame-layout.workspace = true
+frame-raster.workspace = true
+transport-ureq.workspace = true
+
+[lints]
+workspace = true

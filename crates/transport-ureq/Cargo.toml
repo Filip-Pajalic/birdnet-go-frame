@@ -1,0 +1,15 @@
+[package]
+name = "transport-ureq"
+description = "HttpTransport for Linux and other std targets, on ureq."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-client.workspace = true
+ureq.workspace = true
+
+[lints]
+workspace = true

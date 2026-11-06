@@ -1,0 +1,15 @@
+[package]
+name = "frame-layout"
+description = "Decides what goes where on the page, no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-model.workspace = true
+frame-core.workspace = true
+
+[lints]
+workspace = true

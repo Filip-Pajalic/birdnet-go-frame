@@ -1,0 +1,17 @@
+[package]
+name = "frame-http"
+description = "Serves rendered pages to panels and browsers: /frame.e6, /frame.png, /preview.png."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+frame-core.workspace = true
+frame-raster.workspace = true
+png.workspace = true
+tiny_http.workspace = true
+
+[lints]
+workspace = true

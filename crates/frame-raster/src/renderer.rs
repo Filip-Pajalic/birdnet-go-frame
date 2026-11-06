@@ -1,0 +1,93 @@
+//! Draws text blocks with a TrueType font.
+
+use alloc::vec::Vec;
+
+use fontdue::{Font, FontSettings, Metrics};
+use frame_core::{Ink, Rgb};
+use frame_layout::{Align, PageLayout, TextBlock, TextStyle};
+
+use crate::canvas::Canvas;
+use crate::font_error::FontError;
+
+/// The paper colour pages are drawn on before dithering.
+const PAPER: Rgb = Rgb::WHITE;
+
+/// Draws [`PageLayout`]s with one font.
+pub struct Renderer {
+    font: Font,
+}
+
+impl Renderer {
+    /// Creates a renderer from a TrueType or OpenType font file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FontError`] when the data is not a font fontdue can read.
+    pub fn new(font_data: &[u8]) -> Result<Self, FontError> {
+        let font: Font =
+            Font::from_bytes(font_data, FontSettings::default()).map_err(FontError::new)?;
+        Ok(Self { font })
+    }
+
+    /// Draws `layout` on a fresh paper-coloured canvas.
+    #[must_use]
+    pub fn render(&self, layout: &PageLayout) -> Canvas {
+        let mut canvas = Canvas::new(layout.resolution, PAPER);
+        for block in &layout.text {
+            self.draw(&mut canvas, block);
+        }
+        canvas
+    }
+
+    /// Returns the width of `text` at `size_px`, in pixels.
+    #[must_use]
+    pub fn measure(&self, text: &str, size_px: f32) -> f32 {
+        let mut width: f32 = 0.0;
+        for letter in text.chars() {
+            width += self.font.metrics(letter, size_px).advance_width;
+        }
+        width
+    }
+
+    fn draw(&self, canvas: &mut Canvas, block: &TextBlock) {
+        let natural_width: f32 = self.measure(&block.text, block.size_px);
+        let size_px: f32 = match block.max_width {
+            Some(limit) if natural_width > limit as f32 && natural_width > 0.0 => {
+                block.size_px * limit as f32 / natural_width
+            }
+            _ => block.size_px,
+        };
+        let width: f32 = self.measure(&block.text, size_px);
+        let left: f32 = match block.align {
+            Align::Left => block.x as f32,
+            Align::Right => block.x as f32 - width,
+            Align::Centre => block.x as f32 - width / 2.0,
+        };
+        let colour: Rgb = ink_for(block.style).dither_colour();
+        let mut pen_x: f32 = left;
+        for letter in block.text.chars() {
+            let (metrics, coverage): (Metrics, Vec<u8>) = self.font.rasterize(letter, size_px);
+            let glyph_left: i32 = (pen_x + 0.5) as i32 + metrics.xmin;
+            let glyph_top: i32 =
+                block.baseline_y - i32::try_from(metrics.height).unwrap_or(0) - metrics.ymin;
+            for (row_index, row) in coverage.chunks(metrics.width.max(1)).enumerate() {
+                for (column_index, &alpha) in row.iter().enumerate() {
+                    let x: i32 = glyph_left + i32::try_from(column_index).unwrap_or(0);
+                    let y: i32 = glyph_top + i32::try_from(row_index).unwrap_or(0);
+                    // Hard edges: anti-aliased grey would dither into coloured specks on
+                    // a six-ink panel.
+                    let ink_coverage: u8 = if alpha >= 128 { u8::MAX } else { 0 };
+                    canvas.blend(x, y, colour, ink_coverage);
+                }
+            }
+            pen_x += metrics.advance_width;
+        }
+    }
+}
+
+fn ink_for(style: TextStyle) -> Ink {
+    match style {
+        TextStyle::Heading | TextStyle::Name | TextStyle::Footer => Ink::Black,
+        TextStyle::Detail => Ink::Red,
+    }
+}

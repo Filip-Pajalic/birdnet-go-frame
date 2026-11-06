@@ -1,0 +1,7 @@
+# Options required by Google's Rust Style Guide. The last three need nightly rustfmt:
+# run `cargo +nightly fmt`. The code itself builds on stable.
+style_edition = "2024"
+max_width = 100
+hex_literal_case = "Lower"
+format_macro_matchers = true
+imports_granularity = "Module"

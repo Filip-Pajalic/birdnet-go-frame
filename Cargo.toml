@@ -1,0 +1,65 @@
+[workspace]
+resolver = "3"
+members = [
+    "apps/fake-birdnet",
+    "apps/server",
+    "crates/birdnet-client",
+    "crates/birdnet-mock",
+    "crates/birdnet-model",
+    "crates/frame-core",
+    "crates/frame-http",
+    "crates/frame-layout",
+    "crates/frame-raster",
+    "crates/transport-ureq",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
+
+[workspace.dependencies]
+birdnet-client = { path = "crates/birdnet-client" }
+birdnet-mock = { path = "crates/birdnet-mock" }
+birdnet-model = { path = "crates/birdnet-model" }
+frame-core = { path = "crates/frame-core" }
+frame-http = { path = "crates/frame-http" }
+frame-layout = { path = "crates/frame-layout" }
+frame-raster = { path = "crates/frame-raster" }
+transport-ureq = { path = "crates/transport-ureq" }
+
+fontdue = { version = "0.9", default-features = false, features = ["hashbrown"] }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+tiny_http = "0.12"
+# Plain HTTP only: BirdNET-Go is reached on the LAN, and TLS would add most of the binary.
+ureq = { version = "3", default-features = false }
+png = "0.18"
+
+# Lints named by Google's Rust Style Guide, plus the error-handling rules it describes.
+# See STYLE.md for the rules that are enforced by review instead.
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+unstable_features = "forbid"
+
+[workspace.lints.clippy]
+borrowed_box = "deny"
+expect_used = "warn"
+len_without_is_empty = "deny"
+missing_panics_doc = "warn"
+new_without_default = "deny"
+ptr_arg = "deny"
+should_implement_trait = "deny"
+unwrap_used = "deny"
+wildcard_imports = "deny"
+wrong_self_convention = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

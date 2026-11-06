@@ -4,7 +4,41 @@ A low-power e-ink bird frame for [BirdNET-Go](https://github.com/tphakala/birdne
 Rust server reads your BirdNET-Go API and renders the birds heard in your garden. An ESP32 board
 then shows the result on a 13.3" six-colour e-ink panel and runs on battery for months.
 
-> **Status:** early development. Nothing here is ready to install yet.
+> **Status:** early development. The server runs and serves a text-only page (species and
+> counts) that the panel can show; the illustrated collage and the Rust ESP32 firmware come next.
+> Until then, fugleramme's MicroPython EE02 firmware can show this server's `/frame.e6`.
+
+## Quick start (no BirdNET-Go needed)
+
+```bash
+BIRDNET_URL=mock cargo run --release -p server
+# open http://localhost:8080/
+```
+
+`BIRDNET_URL=mock` uses the built-in simulated station: a garden of 18 European species with a
+dawn chorus, deterministic for a given time. To test over real HTTP instead, run the fake
+BirdNET-Go and point the server at it:
+
+```bash
+cargo run --release -p fake-birdnet -- 127.0.0.1:8090
+BIRDNET_URL=http://127.0.0.1:8090 LISTEN=127.0.0.1:8081 cargo run --release -p server
+```
+
+The fake speaks the same `/api/v2` paths as BirdNET-Go, so fugleramme can use it too.
+
+With your own BirdNET-Go:
+
+```bash
+BIRDNET_URL=http://192.168.1.10:8080 UTC_OFFSET_MINUTES=60 cargo run --release -p server
+```
+
+| Endpoint | What |
+| --- | --- |
+| `/` | A page showing the preview |
+| `/frame.e6` | The page for the 13.3" panel (E6F1, ETag, 304 when unchanged) |
+| `/frame.png` | Six-colour PNG in the panel's native orientation |
+| `/preview.png` | Full-colour PNG as it hangs |
+| `/healthz` | `ok` once a page exists |
 
 This project is a Rust re-implementation of the server-and-panel idea from
 [fugleramme](https://github.com/arnegiacomo/fugleramme) by Arne Giacomo Munthe-Kaas. It would not
@@ -46,44 +80,54 @@ Everything is a library crate. The crates under `apps/` are thin binaries that o
 libraries to wire together, so the same rendering code can run on a server, on a Raspberry Pi
 driving the panel, or on the ESP32 itself.
 
-| Path | What |
-| --- | --- |
-| `crates/frame-core` | `no_std`: E6 image format, palette, panel geometry, CRC |
-| `crates/birdnet-model` | `no_std` + `alloc`: detection and species types, JSON parsing |
-| `crates/birdnet-client` | `no_std` + `alloc`: BirdNET-Go API client, generic over an HTTP transport |
-| `crates/transport-ureq`, `crates/transport-esp` | HTTP transports for Linux and the ESP32 |
-| `crates/art-pack` | `no_std` + `alloc`: compact pre-decoded artwork format and reader |
-| `crates/frame-layout` | `no_std` + `alloc`: picks art, sizes birds by body mass, packs the page |
-| `crates/frame-raster` | `no_std` + `alloc`: draws art and text, dithers to six inks |
-| `crates/panel-t133a01` | `no_std`: 13.3" Spectra 6 driver on `embedded-hal` 1.0 traits |
-| `crates/frame-http` | Serves `/frame.e6`, `/frame.png`, `/preview.png` |
-| `apps/server` | The server for Unraid / Docker |
-| `apps/ee02-thin` | ESP32 firmware that fetches the finished image (best battery life) |
-| `apps/ee02-standalone` | ESP32 firmware that talks to BirdNET-Go and renders on the device |
-| `apps/linux-panel` | Renders and drives the panel directly from a Raspberry Pi |
-| `tools/art-packer` | Converts the webp artwork into `art-pack` files once |
-| `assets/` | Fonts and small data files, each with its own `ATTRIBUTION.md` |
-| `deploy/` | Dockerfile and Unraid template |
+| Path | What | State |
+| --- | --- | --- |
+| `crates/frame-core` | `no_std`: E6 image format, inks, panel geometry, CRC-32 | Done; byte-compatible with fugleramme |
+| `crates/birdnet-model` | `no_std` + `alloc`: BirdNET-Go response types and parsing | Done |
+| `crates/birdnet-client` | `no_std` + `alloc`: API client, generic over an `HttpTransport` | Done (no private-mode login yet) |
+| `crates/birdnet-mock` | `no_std` + `alloc`: simulated BirdNET-Go and an in-process transport | Done |
+| `crates/transport-ureq` | `HttpTransport` for Linux | Done |
+| `crates/frame-layout` | `no_std` + `alloc`: what goes where on the page | Text list done; collage planned |
+| `crates/frame-raster` | `no_std` + `alloc`: draws text, dithers to six inks | Done for text |
+| `crates/frame-http` | Serves `/frame.e6`, `/frame.png`, `/preview.png` | Done |
+| `apps/server` | The server for Unraid / Docker | Done |
+| `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
+| `crates/transport-esp`, `crates/panel-t133a01`, `crates/art-pack` | ESP32 networking, panel driver, art format | Planned |
+| `apps/ee02-thin`, `apps/ee02-standalone`, `apps/linux-panel` | ESP32 and Pi firmware | Planned |
+| `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
+| `deploy/` | Dockerfile | |
 
-## Configuration (planned)
+## Configuration
 
 The server is configured with environment variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `BIRDNET_URL` | - | BirdNET-Go base URL, e.g. `http://192.168.1.10:8080` |
-| `PANEL` | `13.3` | Panel size |
-| `ROTATION` | `0` | `0`, `90`, `180` or `270` |
-| `POLL_MINUTES` | `15` | How often the panel should check for a new page |
+| `BIRDNET_URL` | required | BirdNET-Go base URL, e.g. `http://192.168.1.10:8080`, or `mock` |
+| `LISTEN` | `0.0.0.0:8080` | Address to serve on |
+| `ROTATION` | `0` | `0`, `90`, `180` or `270`, counter-clockwise from landscape |
+| `POLL_MINUTES` | `15` | How long the panel sleeps between checks (sent in the page header) |
 | `WINDOW_HOURS` | `24` | How far back detections count |
-| `LOCALE` | `en` | Language for species names |
-| `QUIET_HOURS` | - | e.g. `22-06`; the panel sleeps longer during these hours |
-| `ART_DIR` | `/data/art` | Where `scripts/fetch-art.sh` put the artwork |
+| `UTC_OFFSET_MINUTES` | `0` | Your time zone, for the date range and the "Updated" time |
+| `REFRESH_SECONDS` | `60` | How often the server asks BirdNET-Go for news |
+| `HEADING` | `Heard in the garden` | Page heading |
+
+The page is redrawn only when the set of species changes, so most panel wakes get a 304.
+
+## Docker
+
+```bash
+docker build -f deploy/Dockerfile -t birdnet-go-frame .
+docker run -p 8080:8080 -e BIRDNET_URL=http://192.168.1.10:8080 birdnet-go-frame
+```
+
+The image is `FROM scratch` with a static musl binary of about 1.8 MB (most of it the font).
 
 ## Development
 
 ```bash
 cargo build -p server --release         # server, stable Rust
+cargo run -p server                     # with BIRDNET_URL=mock for a demo
 cargo +nightly fmt --check              # formatting (Google style options need nightly rustfmt)
 cargo clippy --workspace -- -D warnings
 cargo test --workspace
