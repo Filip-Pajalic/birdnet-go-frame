@@ -73,6 +73,10 @@ what you just flashed. Saved settings are kept.
 If the board does not show up as a serial port, hold **BOOT**, press **RESET**, release
 **BOOT**, and run the command again.
 
+For Seeed's reTerminal E1002 and its 7.3" panel, add
+`--no-default-features --features board-e1002` to the command; the rest of this guide is the
+same (see [the firmware reference](../reference/firmware.md#the-reterminal-e1002)).
+
 To build without flashing, use `cargo build --release`; the image is
 `target/xtensa-esp32s3-none-elf/release/ee02-thin`.
 

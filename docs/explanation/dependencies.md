@@ -68,8 +68,9 @@ file).
 
 ## The firmware
 
-`apps/ee02-thin` and `crates/transport-esp` build only for the ESP32-S3, in their own workspace
-with their own `Cargo.lock`. Their twelve direct third-party crates all come from the two projects
+`apps/ee02-thin`, `apps/ee02-standalone`, `crates/glass-esp` and `crates/transport-esp` build
+only for the ESP32-S3; each firmware is its own workspace with its own `Cargo.lock`, and both
+lock the same versions. Their twelve direct third-party crates all come from the two projects
 that make embedded Rust on the ESP32 work: Espressif's [esp-rs](https://github.com/esp-rs) and
 [Embassy](https://embassy.dev). Every one has its default features turned off.
 
@@ -96,7 +97,10 @@ crate (`panel-setup` answers both in about 200 lines, tested on a laptop), a SHA
 updates (the image's XOR checksum is checked before writing, and the bootloader checks its
 SHA-256 before booting it), and a zlib crate (`frame_core::inflate_zlib`).
 
-Dependabot watches the firmware's lock file as one group, since Espressif's crates release
+The standalone firmware adds nothing to that list but the server's own `fontdue` and its eight
+crates, for drawing the page's words on the chip.
+
+Dependabot watches each firmware's lock file as one group, since Espressif's crates release
 together, and the CI firmware build checks each update. `cargo deny` runs on the root workspace
 only.
 

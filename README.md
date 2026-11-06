@@ -122,7 +122,10 @@ compressed, so the radio moves about a quarter of the bytes per new page; see
 | Frame | IKEA RÖDALM 21x30 (A4) |
 | Server | Anything that runs Docker or a Linux binary and can reach BirdNET-Go (e.g. Unraid) |
 
-The server also serves the 7.3" Spectra 6 panel and PNGs at any size. See
+The server also serves the 7.3" Spectra 6 panel (the thin firmware runs on Seeed's reTerminal
+E1002 with it) and PNGs at any size. Without a server, a Raspberry Pi
+([how](docs/how-to/run-on-raspberry-pi.md)) or an ESP32
+([how](docs/how-to/flash-ee02-standalone.md)) can draw the page itself. See
 [Supported hardware](docs/reference/supported-hardware.md) for which panels, ESP32 models and
 combinations work today.
 
@@ -158,9 +161,14 @@ driving the panel, or on the ESP32 itself.
 | `crates/panel-wake` | `no_std` + `alloc`: each wake's request, unpacking and checking the page, sleep and back-off, the RTC memory and Wi-Fi rejoin record, button presses, battery, and checking firmware updates | Done; tested against the real server |
 | `crates/panel-setup` | `no_std` + `alloc`: the setup hotspot's settings record, page and form, and its DHCP and DNS answers | Done; tested on the host |
 | `crates/transport-esp` | `no_std` + `alloc`: ESP32 Wi-Fi with fast rejoin and one HTTP GET, and the setup hotspot, on `esp-radio` and `embassy-net` | Builds for the ESP32-S3; untried on hardware |
-| `apps/ee02-thin` | ESP32-S3 firmware: `panel-wake`, `panel-setup`, `transport-esp` and `panel-t133a01` on the EE02; deep sleep between wakes, setup over Wi-Fi, over-the-air updates, buttons | Builds for the ESP32-S3; untried on hardware |
-| `tools/art-packer` | Art on an SD card for an ESP32 that renders its own page | Planned |
-| `apps/ee02-standalone`, `apps/linux-panel` | ESP32 that draws its own page; a Raspberry Pi panel | Planned |
+| `apps/ee02-thin` | ESP32-S3 firmware: `panel-wake`, `panel-setup`, `transport-esp` and `glass-esp` on the EE02 or the reTerminal E1002 (7.3"); deep sleep between wakes, setup over Wi-Fi, over-the-air updates, buttons | Builds for the ESP32-S3; untried on hardware |
+| `crates/frame-artist` | `no_std` + `alloc`: draws the page for a list of birds, shared by the server and the frames that draw their own | Done |
+| `crates/frame-standalone` | `no_std` + `alloc`: a frame that draws its own page: whether the birds changed, asking BirdNET-Go, its settings, RTC memory and sleep | Done; tested on the host |
+| `crates/panel-ed2208` | `no_std`: the 7.3" panel's controller over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
+| `crates/glass-esp` | Each ESP32-S3 board's panel pins, power and deep-sleep pin holds, for the EE02 and the reTerminal E1002 | Builds; untried on hardware |
+| `tools/art-packer` | Packs fugleramme's plates into one bundle, about 30 KB a species, for an ESP32's flash | Done |
+| `apps/ee02-standalone` | ESP32-S3 firmware with no server: asks BirdNET-Go and draws the page itself, art in flash; EE02 or reTerminal E1002 | Builds for both boards; untried on hardware |
+| `apps/linux-panel` | A Raspberry Pi driving the panel over SPI, with no server | Done; tested on a mock bus, untried on a panel |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
 | `deploy/` | Dockerfile, Unraid template | |
 | `scripts/fetch-art.sh` | Downloads a fugleramme art style for `ART_DIR` | |

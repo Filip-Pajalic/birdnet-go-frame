@@ -233,6 +233,29 @@ serial port only (`esp-println`'s `jtag-serial`). After a refresh the panel is p
 clock, data, both chip selects, data/command and reset are held low through deep sleep, so the
 idle panel is not fed through its inputs; the next wake that draws releases the holds.
 
+## The reTerminal E1002
+
+Built with `--no-default-features --features board-e1002`, the same firmware runs on Seeed's
+reTerminal E1002 (ESP32-S3, 8 MB octal PSRAM, 32 MB flash) and its 7.3" panel: it asks for
+`panel=7.3` and takes a 192,000-byte page. Each board's table is in `apps/ee02-thin/src/board.rs`;
+the panel code is `crates/glass-esp`, shared with the [standalone firmware](../how-to/flash-ee02-standalone.md).
+
+| Signal | GPIO | Notes |
+| --- | --- | --- |
+| SPI clock, data out | 7, 9 | SPI2 at 4 MHz, mode 0, as Zephyr's board files |
+| Chip select, data/command, reset | 10, 11, 12 | Held high, low and high through deep sleep |
+| BUSY | 13 | Input, pulled up; low while the controller works |
+| Refresh, previous, next buttons | 3, 5, 4 | The green button, the left and the right one |
+| Battery divider, its switch | 1, 21 | As on the EE02, with another switch pin |
+
+The panel has no power switch: the controller's own deep sleep keeps it quiet. The button and
+battery pins are from Seeed's reTerminal E10xx documentation and, like the rest, untried.
+
+Its application description names it `e1002-thin`, so it never installs the EE02's update.
+The server serves one firmware file to every frame, so an E1002 offered the EE02's firmware
+refuses it, and after three refusals leaves that version alone; update E1002s over USB, or point
+them at a server that serves the E1002's build.
+
 ## Toolchain and crates
 
 | | |

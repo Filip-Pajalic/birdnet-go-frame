@@ -26,6 +26,7 @@
 | `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |
 | `panel-wake` | yes (alloc) | A panel's wake: the request (view, frame name, battery, version), reading the answer, unpacking and checking the page, planning the sleep, button presses, whether and what firmware to install, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `PageRequest`, `PageView`, `Button`, `FirmwareImage`, `FirmwareUpdate`, `battery_millivolts`, `page_request` |
 | `panel-setup` | yes (alloc) | A panel's setup hotspot: the settings record kept in flash, the setup page and its form, and just enough DHCP and DNS for a phone to find the page | `FrameSettings`, `SettingsError`, `SetupRequest`, `DhcpServer`, `dns::captive_answer`, `setup_page::render` |
+| `glass-esp` | yes | Each ESP32-S3 board's panel: its pins, power order and pin holds through deep sleep, over esp-hal, handing the bus to the panel drivers. Built only with the Xtensa toolchain, outside the root workspace | `ee02::show`, `e1002::show`, `GlassPins`, `Refresh` |
 | `transport-esp` | yes (alloc) | ESP32 Wi-Fi with fast rejoin and one HTTP GET; the setup hotspot and serving UDP and HTTP on it; on `esp-radio` and `embassy-net`. Built only with the Xtensa toolchain, outside the root workspace | `join`, `network_config`, `wait_for_address`, `get`, `rejoin`, `scan`, `open_hotspot`, `serve_udp`, `serve_http`, `WifiCredentials`, `TransportError` |
 
 | App | Binary | Uses |
@@ -34,7 +35,8 @@
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
 | `apps/linux-panel` | `birdnet-go-frame-panel` (Raspberry Pi) | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + standalone + panel-t133a01 / panel-ed2208 on linux-embedded-hal |
 | `tools/art-packer` | `art-packer` | art-webp + art-pack + frame-http's zlib: packs plates into a bundle for firmware flash |
-| `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + panel-setup + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
+| `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware, EE02 or reTerminal E1002) | panel-wake + panel-setup + transport-esp + glass-esp + frame-core, on esp-hal; its own workspace |
+| `apps/ee02-standalone` | `ee02-standalone` (ESP32-S3 firmware with no server, EE02 or reTerminal E1002) | birdnet-client + frame-standalone + artist + raster + art-pack (a bundle in flash) or art-mock + page-text + transport-esp + glass-esp, on esp-hal; its own workspace |
 
 ## Planned
 
