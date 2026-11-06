@@ -17,6 +17,56 @@ pub struct DateWindow {
 }
 
 impl DateWindow {
+    /// Returns the dates from `start` to `end`, both included.
+    #[must_use]
+    pub fn new(start: CivilDate, end: CivilDate) -> Self {
+        Self { start, end }
+    }
+
+    /// Returns the local date at `now_unix_seconds` in a time zone `utc_offset_minutes` east of
+    /// UTC.
+    #[must_use]
+    pub fn local_date(now_unix_seconds: i64, utc_offset_minutes: i32) -> CivilDate {
+        let local_now: i64 = now_unix_seconds + i64::from(utc_offset_minutes) * 60;
+        CivilDate::from_days_since_epoch(local_now.div_euclid(SECONDS_PER_DAY))
+    }
+
+    /// Returns the `days` local dates ending today: 1 for today alone, 7 for the last week.
+    /// 0 counts as 1.
+    #[must_use]
+    pub fn days_back(now_unix_seconds: i64, utc_offset_minutes: i32, days: u32) -> Self {
+        let today: CivilDate = Self::local_date(now_unix_seconds, utc_offset_minutes);
+        Self {
+            start: today.add_days(1 - i64::from(days.max(1))),
+            end: today,
+        }
+    }
+
+    /// Returns the local dates from the first of January to today.
+    #[must_use]
+    pub fn year_to_date(now_unix_seconds: i64, utc_offset_minutes: i32) -> Self {
+        let today: CivilDate = Self::local_date(now_unix_seconds, utc_offset_minutes);
+        Self {
+            start: today.start_of_year(),
+            end: today,
+        }
+    }
+
+    /// Returns the same dates a year earlier.
+    #[must_use]
+    pub fn year_earlier(self) -> Self {
+        Self {
+            start: self.start.year_earlier(),
+            end: self.end.year_earlier(),
+        }
+    }
+
+    /// Returns whether `date` is in the window.
+    #[must_use]
+    pub fn contains(self, date: CivilDate) -> bool {
+        self.start <= date && date <= self.end
+    }
+
     /// Returns the local dates covering the last `hours` before `now_unix_seconds`, in a time
     /// zone `utc_offset_minutes` east of UTC. The range rounds outwards to whole days, so it may
     /// count a little more than `hours`.
@@ -63,6 +113,18 @@ mod test {
         let window = DateWindow::hours_back(1_793_926_800, 0, 6);
         assert_eq!(window.start.to_string(), "2026-11-05");
         assert_eq!(window.end.to_string(), "2026-11-06");
+    }
+
+    #[test]
+    fn whole_days_back() {
+        // 2026-11-06T09:00:00Z.
+        let week = DateWindow::days_back(1_793_955_600, 0, 7);
+        assert_eq!(week.start.to_string(), "2026-10-31");
+        assert_eq!(week.end.to_string(), "2026-11-06");
+        let year = DateWindow::year_to_date(1_793_955_600, 0);
+        assert_eq!(year.start.to_string(), "2026-01-01");
+        assert_eq!(week.year_earlier().start.to_string(), "2025-10-31");
+        assert!(week.contains(year.end) && !week.contains(year.start));
     }
 
     #[test]

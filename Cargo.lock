@@ -45,6 +45,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bird-almanac"
+version = "0.1.0"
+dependencies = [
+ "birdnet-client",
+ "birdnet-mock",
+ "birdnet-model",
+]
+
+[[package]]
 name = "bird-sizes"
 version = "0.1.0"
 
@@ -62,6 +71,7 @@ version = "0.1.0"
 dependencies = [
  "birdnet-client",
  "birdnet-model",
+ "libm",
 ]
 
 [[package]]
@@ -204,6 +214,15 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 [[package]]
 name = "lite-json"
 version = "0.1.0"
+
+[[package]]
+name = "open-meteo"
+version = "0.1.0"
+dependencies = [
+ "birdnet-client",
+ "birdnet-mock",
+ "lite-json",
+]
 
 [[package]]
 name = "page-text"

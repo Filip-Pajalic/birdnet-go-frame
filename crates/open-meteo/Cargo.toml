@@ -1,0 +1,19 @@
+[package]
+name = "open-meteo"
+description = "Today's weather from Open-Meteo's free, keyless forecast API, no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# For its HttpTransport trait, so the weather is fetched the way BirdNET-Go is.
+birdnet-client.workspace = true
+lite-json.workspace = true
+
+[dev-dependencies]
+birdnet-mock.workspace = true
+
+[lints]
+workspace = true

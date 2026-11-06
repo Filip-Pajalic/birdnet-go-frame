@@ -4,7 +4,9 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-use birdnet_model::{Detection, SpeciesSummary};
+use birdnet_model::{Detection, SpeciesHours, SpeciesSummary};
+
+use crate::civil_date::CivilDate;
 use lite_json::Json;
 
 use crate::client_error::ClientError;
@@ -78,6 +80,35 @@ impl<T: HttpTransport> BirdnetClient<T> {
         let body: Vec<u8> = self.fetch(&format!("/detections/recent?limit={limit}"))?;
         Detection::parse_list(&body).map_err(ClientError::Parse)
     }
+
+    /// Returns how many times each of `species` (scientific names, at most
+    /// [`HOURLY_BATCH`](Self::HOURLY_BATCH) of them) was heard in each local hour of `date`
+    /// (`GET /analytics/time/hourly/batch`). More names are asked for in several requests.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ClientError`] when BirdNET-Go cannot be reached, refuses the request, or
+    /// sends something unreadable.
+    pub fn hourly(
+        &mut self,
+        date: CivilDate,
+        species: &[&str],
+    ) -> Result<Vec<SpeciesHours>, ClientError<T::Error>> {
+        let mut all: Vec<SpeciesHours> = Vec::with_capacity(species.len());
+        for batch in species.chunks(Self::HOURLY_BATCH) {
+            let names: Vec<String> = batch
+                .iter()
+                .map(|name| format!("&species={}", query_escape(name)))
+                .collect();
+            let path: String = format!("/analytics/time/hourly/batch?date={date}{}", names.concat());
+            let body: Vec<u8> = self.fetch(&path)?;
+            all.extend(SpeciesHours::parse_batch(&body).map_err(ClientError::Parse)?);
+        }
+        Ok(all)
+    }
+
+    /// The most species BirdNET-Go answers in one hourly batch request.
+    pub const HOURLY_BATCH: usize = 10;
 
     /// GETs `/api/v2{path}`, logging in once and trying again if BirdNET-Go asks for it.
     fn fetch(&mut self, path: &str) -> Result<Vec<u8>, ClientError<T::Error>> {
@@ -164,6 +195,19 @@ impl<T: HttpTransport> BirdnetClient<T> {
     }
 }
 
+/// `text` percent-encoded for a query value: letters, digits and `-._~` stay as they are.
+fn query_escape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || b"-._~".contains(&byte) {
+            out.push(char::from(byte));
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
 /// `text` as a JSON string literal.
 fn json_string(text: &str) -> String {
     let mut out = String::from("\"");
@@ -187,6 +231,12 @@ fn json_string(text: &str) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn escapes_query_values() {
+        assert_eq!(query_escape("Parus major"), "Parus%20major");
+        assert_eq!(query_escape("a&b=ö"), "a%26b%3D%C3%B6");
+    }
 
     #[test]
     fn escapes_passwords_for_json() {

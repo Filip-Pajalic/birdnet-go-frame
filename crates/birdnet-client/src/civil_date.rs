@@ -42,6 +42,69 @@ impl CivilDate {
     }
 }
 
+impl CivilDate {
+    /// Returns the days from 1970-01-01 to this date (negative for earlier dates).
+    ///
+    /// Uses Howard Hinnant's `days_from_civil` algorithm, the inverse of
+    /// [`from_days_since_epoch`](Self::from_days_since_epoch).
+    #[must_use]
+    pub fn days_since_epoch(self) -> i64 {
+        let month: i64 = i64::from(self.month);
+        let year: i64 = i64::from(self.year) - i64::from(month <= 2);
+        let era: i64 = year.div_euclid(400);
+        let year_of_era: i64 = year.rem_euclid(400);
+        let shifted_month: i64 = if month > 2 { month - 3 } else { month + 9 };
+        let day_of_year: i64 = (153 * shifted_month + 2) / 5 + i64::from(self.day) - 1;
+        let day_of_era: i64 =
+            year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+        era * 146_097 + day_of_era - 719_468
+    }
+
+    /// Reads a date written `YYYY-MM-DD`, alone or at the start of a longer timestamp such as
+    /// `2026-11-06T05:12:00+01:00`. Returns `None` when it does not start with a valid date.
+    #[must_use]
+    pub fn parse(text: &str) -> Option<Self> {
+        let date: &str = text.get(..10)?;
+        let mut parts = date.split('-');
+        let year: i32 = parts.next()?.parse().ok()?;
+        let month: u8 = parts.next()?.parse().ok()?;
+        let day: u8 = parts.next()?.parse().ok()?;
+        let parsed = Self { year, month, day };
+        // Round-tripping through the day count rejects days a month does not have.
+        (Self::from_days_since_epoch(parsed.days_since_epoch()) == parsed).then_some(parsed)
+    }
+
+    /// Returns the date `days` later (earlier when negative).
+    #[must_use]
+    pub fn add_days(self, days: i64) -> Self {
+        Self::from_days_since_epoch(self.days_since_epoch() + days)
+    }
+
+    /// Returns the first of January of this date's year.
+    #[must_use]
+    pub fn start_of_year(self) -> Self {
+        Self {
+            year: self.year,
+            month: 1,
+            day: 1,
+        }
+    }
+
+    /// Returns the same day a year earlier; the 29th of February becomes the 28th.
+    #[must_use]
+    pub fn year_earlier(self) -> Self {
+        let earlier = Self {
+            year: self.year - 1,
+            ..self
+        };
+        if self.month == 2 && self.day == 29 {
+            Self { day: 28, ..earlier }
+        } else {
+            earlier
+        }
+    }
+}
+
 impl fmt::Display for CivilDate {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -54,7 +117,7 @@ impl fmt::Display for CivilDate {
 
 #[cfg(test)]
 mod test {
-    use alloc::string::ToString;
+    use alloc::string::{String, ToString};
 
     use super::*;
 
@@ -68,6 +131,30 @@ mod test {
                 day: 1
             }
         );
+    }
+
+    #[test]
+    fn counts_days_both_ways() {
+        for days in [-800_000, -1, 0, 19_782, 20_398, 400_000] {
+            assert_eq!(CivilDate::from_days_since_epoch(days).days_since_epoch(), days);
+        }
+    }
+
+    #[test]
+    fn parses_dates_and_timestamps() {
+        let date = CivilDate::parse("2026-11-06T05:12:00+01:00").expect("a date");
+        assert_eq!(date.to_string(), "2026-11-06");
+        assert_eq!(date.add_days(-6).to_string(), "2026-10-31");
+        assert_eq!(date.start_of_year().to_string(), "2026-01-01");
+        assert_eq!(
+            CivilDate::parse("2024-02-29")
+                .map(CivilDate::year_earlier)
+                .map(|date| date.to_string()),
+            Some(String::from("2023-02-28"))
+        );
+        for bad in ["2026-02-30", "2026-13-01", "06/11/2026", "2026-11"] {
+            assert_eq!(CivilDate::parse(bad), None, "{bad}");
+        }
     }
 
     #[test]

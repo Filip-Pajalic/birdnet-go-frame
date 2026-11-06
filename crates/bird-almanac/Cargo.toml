@@ -1,0 +1,18 @@
+[package]
+name = "bird-almanac"
+description = "Reads a station's year: new birds, arrivals, the rarest, year on year, the day's story. no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-client.workspace = true
+birdnet-model.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+birdnet-mock.workspace = true

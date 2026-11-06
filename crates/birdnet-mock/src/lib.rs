@@ -2,7 +2,10 @@
 //!
 //! [`MockBirdnet`] answers the API paths the frame reads with realistic JSON: a garden's worth
 //! of European species whose detections build up through the day, with a dawn chorus. The
-//! output depends only on the time it is asked for, so tests are deterministic.
+//! output depends only on the time it is asked for, so tests are deterministic. Summer
+//! migrants and winter visitors keep to their months and a couple of rarities turn up a few days
+//! a year, so year lists and arrivals work too, and it answers Open-Meteo's forecast path with
+//! the garden's weather.
 //!
 //! [`MockTransport`] plugs it into [`birdnet_client::BirdnetClient`] in-process; the
 //! `fake-birdnet` app serves it over HTTP so anything that speaks to BirdNET-Go can use it.
@@ -25,6 +28,7 @@ extern crate alloc;
 mod garden;
 mod mock_birdnet;
 mod mock_transport;
+mod mock_weather;
 
 pub use mock_birdnet::MockBirdnet;
 pub use mock_transport::MockTransport;

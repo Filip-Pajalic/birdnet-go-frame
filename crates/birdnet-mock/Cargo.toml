@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 birdnet-client.workspace = true
+libm.workspace = true
 
 [dev-dependencies]
 birdnet-model.workspace = true

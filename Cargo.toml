@@ -6,6 +6,7 @@ members = [
     "crates/art-mock",
     "crates/art-pack",
     "crates/art-webp",
+    "crates/bird-almanac",
     "crates/bird-sizes",
     "crates/birdnet-client",
     "crates/birdnet-mock",
@@ -17,6 +18,7 @@ members = [
     "crates/frame-raster",
     "crates/lan-http",
     "crates/lite-json",
+    "crates/open-meteo",
     "crates/page-text",
     "crates/panel-ed2208",
     "crates/panel-setup",
@@ -40,6 +42,7 @@ repository = "https://github.com/Filip-Pajalic/birdnet-go-frame"
 art-mock = { path = "crates/art-mock", version = "0.1.0" }
 art-pack = { path = "crates/art-pack", version = "0.1.0" }
 art-webp = { path = "crates/art-webp", version = "0.1.0" }
+bird-almanac = { path = "crates/bird-almanac", version = "0.1.0" }
 bird-sizes = { path = "crates/bird-sizes", version = "0.1.0" }
 birdnet-client = { path = "crates/birdnet-client", version = "0.1.0" }
 birdnet-mock = { path = "crates/birdnet-mock", version = "0.1.0" }
@@ -51,6 +54,7 @@ frame-layout = { path = "crates/frame-layout", version = "0.1.0" }
 frame-raster = { path = "crates/frame-raster", version = "0.1.0" }
 lan-http = { path = "crates/lan-http", version = "0.1.0" }
 lite-json = { path = "crates/lite-json", version = "0.1.0" }
+open-meteo = { path = "crates/open-meteo", version = "0.1.0" }
 page-text = { path = "crates/page-text", version = "0.1.0" }
 panel-ed2208 = { path = "crates/panel-ed2208", version = "0.1.0" }
 panel-setup = { path = "crates/panel-setup", version = "0.1.0" }
