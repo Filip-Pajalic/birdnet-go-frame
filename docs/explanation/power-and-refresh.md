@@ -44,6 +44,9 @@ So the panel polls, and the server makes polling cheap:
 | zlib-compressed page | server | A new page moves about a quarter of the bytes |
 | Length and Adler-32 checked before refresh | panel | A damaged or mismatched download never reaches the glass |
 | Wi-Fi off during refresh | panel | The radio is only on while it is needed |
+| Buttons wake the panel | panel | A person who wants the page now presses refresh instead of the panel polling more often |
+| Battery voltage in each request | panel | `X-Frame-Battery-mV` lets the server show the charge without the panel staying awake to report it |
+| Updates only on a charged battery | panel | Firmware is downloaded and written only above 3.6 V, and a version that fails three times is left alone |
 
 For a frame on USB power, a long-poll mode (the panel holds a request open and the server answers
 when the page changes) is planned as an option.

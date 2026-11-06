@@ -2,7 +2,8 @@
 
 `apps/ee02-thin` is birdnet-go-frame's own firmware for the Seeed XIAO EE02 with the 13.3"
 Spectra 6 panel. It reads `/panel` directly, redraws only on a change, and sleeps for as long as
-the server's `Cache-Control: max-age` says. This guide builds it and puts it on the board.
+the server's `Cache-Control: max-age` says. This guide builds it and puts it on the board, which
+is the only time it needs a cable: settings and later updates go over Wi-Fi.
 
 > The firmware compiles and its logic is tested on a laptop, but it has not yet run on an EE02.
 > Please open an issue with the serial log from your first wakes, good or bad.
@@ -35,19 +36,26 @@ Install the flasher too:
 cargo install espflash --locked  # needs libudev-dev on Debian/Ubuntu; or use a release binary
 ```
 
-## 2. Set the build-time settings
+## 2. Decide where the settings come from
 
-The settings are compiled in, so nothing on the board needs configuring:
+Usually, nothing needs setting before you build: the first time the frame starts it opens its own
+Wi-Fi network with a setup page, and you enter your Wi-Fi and server there from a phone (see
+[Set up and update the EE02 over Wi-Fi](set-up-ee02-over-wifi.md)). The settings are kept in flash
+and survive reflashing.
+
+If you would rather build them in, for example for a frame with no phone nearby, set them before
+you build. They are only used while the frame has no settings saved from the setup page:
 
 ```bash
 export FRAME_WIFI_SSID="your-network"
 export FRAME_WIFI_PASSWORD="your-password"     # empty for an open network
 export FRAME_SERVER="192.168.1.20:8081"        # the address and port the server is published on
 export FRAME_ROTATION=90                       # optional: 0, 90, 180 or 270; else the server decides
+export FRAME_NAME=hall                         # optional: picks this frame's layout on the server
 ```
 
-See [the firmware reference](../reference/firmware.md) for what each one does. The password ends up
-in the firmware image, so treat the built file like the password itself.
+See [the firmware reference](../reference/firmware.md#settings) for what each one does. A password
+built in ends up in the firmware image, so treat the built file like the password itself.
 
 ## 3. Build and flash
 
@@ -58,6 +66,10 @@ cd apps/ee02-thin
 cargo run --release              # builds, flashes with espflash, then shows the serial log
 ```
 
+This flashes with `partitions.csv`, which gives the board two app slots for over-the-air updates
+and a sector for its settings, and erases the record of which slot to boot so the board starts
+what you just flashed. Saved settings are kept.
+
 If the board does not show up as a serial port, hold **BOOT**, press **RESET**, release
 **BOOT**, and run the command again.
 
@@ -66,9 +78,20 @@ To build without flashing, use `cargo build --release`; the image is
 
 ## 4. Check the first wakes
 
-The log shows each wake in a few lines:
+Without settings, the log ends with the setup hotspot's name; set the frame up from a phone as in
+[Set up and update the EE02 over Wi-Fi](set-up-ee02-over-wifi.md):
 
 ```text
+ee02: firmware 0.2.0
+ee02: join the Wi-Fi "BirdFrame-1a2b" and open http://192.168.4.1/
+```
+
+After that, the log shows each wake in a few lines:
+
+```text
+ee02: firmware 0.2.0
+ee02: battery 3912 mV
+ee02: asking for the today page
 ee02: 200 with 214873 bytes, max-age Some(900)
 ee02: refreshed in 28431 ms
 ee02: sleeping 900 s
@@ -87,11 +110,12 @@ redraw, nothing more.
 
 | Log line | Fix |
 | --- | --- |
-| `ee02: could not join the Wi-Fi` | Check `FRAME_WIFI_SSID` and `FRAME_WIFI_PASSWORD`, and that the network has 2.4 GHz |
+| `ee02: could not join the Wi-Fi` | Check the Wi-Fi name and password on the setup page, and that the network has 2.4 GHz |
 | `ee02: fast rejoin failed (...), scanning` | Nothing: the access point or channel changed, and the next wake is fast again |
 | `ee02: no address from DHCP` | The router did not answer in 10 s; it retries with a growing pause |
-| `ee02: the frame refused the connection` | Check `FRAME_SERVER` and that the server's port is published |
-| `ee02: FRAME_SERVER: ...` | `FRAME_SERVER` must be an IPv4 address with an optional port, not a host name |
+| `ee02: the frame refused the connection` | Check the server address on the setup page and that the server's port is published |
+| `ee02: FRAME_SERVER: ...` | A built-in `FRAME_SERVER` must be an IPv4 address with an optional port, not a host name |
+| `ee02: no "frame" partition; ...` | The board was flashed without `partitions.csv`; flash it with `cargo run --release` from `apps/ee02-thin` |
 | `ee02: the page is ... bytes, this panel takes 960000` | The server is set up for another panel size |
 | `ee02: panel did not start refreshing` or similar | Check the panel's ribbon cable; the page is fetched again next wake |
 

@@ -22,13 +22,14 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
   `frame-http`, `art-webp`). Keep it that way: the same code must compile for the ESP32, and CI builds those
   crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
   `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `art-mock`, `bird-sizes`,
-  `page-text`, `frame-layout`, `frame-raster`, `frame-artist`, `panel-t133a01`, `panel-ed2208` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
+  `page-text`, `frame-layout`, `frame-raster`, `frame-artist`, `panel-t133a01`, `panel-ed2208`, `panel-setup` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
   only crate that decodes images.
 - The ESP32 firmware (`apps/ee02-thin`) and its radio crate (`crates/transport-esp`, `no_std`)
   build only with Espressif's Xtensa toolchain, so they sit in their own workspace in
   `apps/ee02-thin` with their own `Cargo.lock`, excluded from the root one. Keep everything that
   can be tested on a laptop out of them: decisions, parsing and byte layouts belong in
-  `panel-wake`, and `transport-esp` and the app only move bytes and drive the chip. They repeat
+  `panel-wake` (and the setup hotspot's in `panel-setup`), and `transport-esp` and the app only
+  move bytes and drive the chip. They repeat
   the workspace's lints in their own `Cargo.toml`; keep those tables in step.
 - Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`,
   `embedded-hal`'s SPI, pin and delay traits),
@@ -56,7 +57,7 @@ cargo run -p fake-birdnet -- 127.0.0.1:8090                # simulated BirdNET-G
 # Firmware, after `espup install --targets esp32s3 --toolchain-version 1.98.1.0`:
 . ~/export-esp.sh
 cd apps/ee02-thin
-export FRAME_WIFI_SSID=ci FRAME_WIFI_PASSWORD=ci-password FRAME_SERVER=192.0.2.1:8080
+# Settings come from flash at run time; FRAME_* variables are an optional build-time fallback.
 cargo +nightly fmt --check && (cd ../../crates/transport-esp && cargo +nightly fmt --check)
 cargo clippy --release --locked -- -D warnings
 cargo build --release --locked
@@ -65,7 +66,7 @@ cargo build --release --locked
 Run fmt, clippy and tests before every commit; CI runs the same with `--locked`, plus tests on
 Linux, macOS and Windows, the minimum Rust version (1.87, set by fontdue), a bare-metal build of
 the `no_std` crates, `cargo doc` and `cargo deny`, and builds the firmware with the Xtensa
-toolchain. The firmware cannot be tested on the host; prove its logic with tests in `panel-wake`.
+toolchain. The firmware cannot be tested on the host; prove its logic with tests in `panel-wake` and `panel-setup`.
 
 ## Code style
 

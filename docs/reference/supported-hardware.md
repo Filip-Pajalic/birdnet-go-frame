@@ -40,7 +40,7 @@ to the panel. For the 13.3" panel that means PSRAM.
 | ESP32-C5, C61 with PSRAM | RISC-V | Possible, untried | Possible | esp-hal support for their radios is newer |
 | ESP32-H2, P4 | RISC-V | No: no Wi-Fi of their own | No | |
 
-The libraries the firmware shares with the server (`frame-core`, `panel-wake`,
+The libraries the firmware shares with the server (`frame-core`, `panel-wake`, `panel-setup`,
 `panel-t133a01`) are `no_std` and build for any of these; only `apps/ee02-thin` and
 `crates/transport-esp` are tied to the ESP32-S3 today.
 

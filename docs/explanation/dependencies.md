@@ -62,9 +62,9 @@ that make embedded Rust on the ESP32 work: Espressif's [esp-rs](https://github.c
 | `esp-radio` | Wi-Fi, around Espressif's binary radio driver. Still a 1.0 beta, the newest release | MIT OR Apache-2.0 |
 | `esp-rtos` | The scheduler `esp-radio` needs, and the embassy executor the firmware runs on | MIT OR Apache-2.0 |
 | `esp-alloc` | The heap: internal RAM for the radio, PSRAM for the 960 KB page | MIT OR Apache-2.0 |
-| `esp-bootloader-esp-idf` | The app descriptor the ESP-IDF second-stage bootloader checks | MIT OR Apache-2.0 |
+| `esp-bootloader-esp-idf` | The app descriptor the ESP-IDF second-stage bootloader checks; the partition table, flash access (through its own `esp-storage`) and `otadata`, for the settings partition and over-the-air updates | MIT OR Apache-2.0 |
 | `esp-println`, `esp-backtrace` | Logs and panic messages over the USB serial port | MIT OR Apache-2.0 |
-| `embassy-net` | TCP/IP and DHCP (on `smoltcp`); TCP and IPv4 only, no DNS, no UDP sockets | MIT OR Apache-2.0 |
+| `embassy-net` | TCP/IP and the DHCP client (on `smoltcp`); IPv4, TCP, and UDP for the setup hotspot's DHCP and DNS answers; no DNS client | MIT OR Apache-2.0 |
 | `embassy-executor`, `embassy-time`, `embassy-futures` | The async runtime's types, timeouts, and running the network stack beside the request without a spawned task | MIT OR Apache-2.0 |
 | `portable-atomic` | Atomics esp-hal lets live in RTC memory, so keeping state through deep sleep needs no `unsafe`. Already a dependency of esp-hal | Apache-2.0 OR MIT |
 
@@ -73,8 +73,11 @@ for esp-hal's configuration). That is the price of Espressif's supported stack, 
 the alternative: `esp-idf-svc` builds all of ESP-IDF in C with CMake and Python. Things the
 firmware deliberately does without: `static_cell` (the network stack lives in the fetch's own
 stack frame, not a `'static`), `log` (it prints directly), `heapless`, `embedded-io-async`, an
-HTTP client crate (`transport-esp::get` is 60 lines over a TCP socket, and `panel-wake` reads
-the response) and a zlib crate (`frame_core::inflate_zlib`).
+HTTP client or server crate (`transport-esp::get` and `serve_http` are short loops over a TCP
+socket, and `panel-wake` and `panel-setup` read and write the HTTP), a DHCP server and captive DNS
+crate (`panel-setup` answers both in about 200 lines, tested on a laptop), a SHA-256 crate for
+updates (the image's XOR checksum is checked before writing, and the bootloader checks its
+SHA-256 before booting it), and a zlib crate (`frame_core::inflate_zlib`).
 
 Dependabot watches the firmware's lock file as one group, since Espressif's crates release
 together, and the CI firmware build checks each update. `cargo deny` runs on the root workspace

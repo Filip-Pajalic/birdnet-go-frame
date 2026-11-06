@@ -20,14 +20,15 @@
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 | `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |
-| `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `page_request` |
-| `transport-esp` | yes (alloc) | ESP32 Wi-Fi with fast rejoin and one HTTP GET, on `esp-radio` and `embassy-net`. Built only with the Xtensa toolchain, outside the root workspace | `join`, `network_config`, `wait_for_address`, `get`, `rejoin`, `WifiCredentials`, `TransportError` |
+| `panel-wake` | yes (alloc) | A panel's wake: the request (view, frame name, battery, version), reading the answer, unpacking and checking the page, planning the sleep, button presses, whether and what firmware to install, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `PageRequest`, `PageView`, `Button`, `FirmwareImage`, `FirmwareUpdate`, `battery_millivolts`, `page_request` |
+| `panel-setup` | yes (alloc) | A panel's setup hotspot: the settings record kept in flash, the setup page and its form, and just enough DHCP and DNS for a phone to find the page | `FrameSettings`, `SettingsError`, `SetupRequest`, `DhcpServer`, `dns::captive_answer`, `setup_page::render` |
+| `transport-esp` | yes (alloc) | ESP32 Wi-Fi with fast rejoin and one HTTP GET; the setup hotspot and serving UDP and HTTP on it; on `esp-radio` and `embassy-net`. Built only with the Xtensa toolchain, outside the root workspace | `join`, `network_config`, `wait_for_address`, `get`, `rejoin`, `scan`, `open_hotspot`, `serve_udp`, `serve_http`, `WifiCredentials`, `TransportError` |
 
 | App | Binary | Uses |
 | --- | --- | --- |
 | `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + raster + http |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
-| `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
+| `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + panel-setup + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
 
 ## Planned
 

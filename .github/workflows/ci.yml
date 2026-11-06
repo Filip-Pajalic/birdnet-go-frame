@@ -84,7 +84,7 @@ jobs:
       # Pinned: espup's release and Espressif's Rust (1.99.0.0 mis-links the firmware).
       ESPUP_VERSION: v0.19.0
       ESP_RUST_VERSION: 1.98.1.0
-      # Placeholder settings: the firmware compiles them in, and CI never flashes it.
+      # Placeholder build-time fallback settings, so CI builds that path too; CI never flashes.
       FRAME_WIFI_SSID: ci
       FRAME_WIFI_PASSWORD: ci-password
       FRAME_SERVER: 192.0.2.1:8080
