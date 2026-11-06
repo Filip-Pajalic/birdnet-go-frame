@@ -10,12 +10,14 @@ repository.workspace = true
 [dependencies]
 art-pack.workspace = true
 bird-almanac.workspace = true
+bird-facts.workspace = true
 bird-sizes.workspace = true
 birdnet-client.workspace = true
 birdnet-model.workspace = true
 frame-core.workspace = true
 frame-layout.workspace = true
 frame-raster.workspace = true
+libm.workspace = true
 open-meteo.workspace = true
 page-text.workspace = true
 

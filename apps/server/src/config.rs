@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::{env, fmt};
 
 use birdnet_client::CivilDate;
-use frame_artist::{Layout, PageView};
+use frame_artist::{Border, Layout, PageView};
 use frame_core::{PanelSize, Rotation};
 
 use crate::frames::FrameSettings;
@@ -139,6 +139,10 @@ pub struct Config {
     pub max_birds: usize,
     /// Whether the collage writes each bird's name under it.
     pub names: bool,
+    /// Whether the bird pages end with a line about their main bird (`FACTS`).
+    pub facts: bool,
+    /// The border round the pages (`BORDER`): `season`, `off` or a theme.
+    pub border: Border,
     /// Language code for the page's own words, e.g. `sv`.
     pub language: String,
     /// A translations file adding to or overriding the bundled one.
@@ -231,6 +235,8 @@ impl Config {
             layout: parsed(&lookup, "LAYOUT", Layout::Collage)?,
             max_birds: parsed(&lookup, "MAX_BIRDS", 0)?,
             names: parsed(&lookup, "NAMES", true)?,
+            facts: parsed(&lookup, "FACTS", true)?,
+            border: parsed(&lookup, "BORDER", Border::Season)?,
             language: lookup("LANGUAGE").unwrap_or_else(|| String::from("en")),
             translations: path(&lookup, "TRANSLATIONS"),
             art_dir: path(&lookup, "ART_DIR"),
@@ -284,6 +290,8 @@ impl Config {
             max_birds: self.max_birds,
             names: self.names,
             heading: self.heading.clone(),
+            facts: self.facts,
+            border: self.border,
         }
     }
 
@@ -390,6 +398,8 @@ mod test {
         assert_eq!(config.max_birds, 0);
         assert_eq!(config.heading, None);
         assert!(config.names);
+        assert!(config.facts);
+        assert_eq!(config.border, Border::Season);
         assert_eq!(config.language, "en");
         assert_eq!(config.art_dir, None);
     }
@@ -437,8 +447,12 @@ mod test {
             ("LANGUAGE", "sv"),
             ("NAMES", "false"),
             ("HEADING", "Fåglar"),
+            ("FACTS", "false"),
+            ("BORDER", "frost"),
         ])
         .expect("valid");
+        assert!(!config.facts);
+        assert_eq!(config.border.to_string(), "frost");
         assert_eq!(config.art_dir, Some(PathBuf::from("/art/classic")));
         assert_eq!(config.language, "sv");
         assert!(!config.names);

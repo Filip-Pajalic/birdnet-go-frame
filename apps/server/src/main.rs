@@ -140,6 +140,9 @@ fn main() -> ExitCode {
         names: config.names,
         heading: config.heading.clone(),
         words,
+        facts: config.facts,
+        border: config.border,
+        southern: config.place.is_some_and(|place| place.latitude < 0.0),
     };
     let poller_store: Arc<PageStore> = Arc::clone(&store);
     let artist: SharedArtist<Box<dyn ArtSource + Send>> =

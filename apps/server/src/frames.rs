@@ -3,7 +3,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use frame_artist::{Layout, PageView};
+use frame_artist::{Border, Layout, PageView};
 use frame_core::{PanelSize, Rotation};
 
 /// One frame's settings. Anything a frame leaves out comes from the server's own settings.
@@ -25,6 +25,10 @@ pub struct FrameSettings {
     pub names: bool,
     /// A heading to print over the birds.
     pub heading: Option<String>,
+    /// Whether the bird pages end with a line about their main bird.
+    pub facts: bool,
+    /// The border round the pages.
+    pub border: Border,
 }
 
 /// Why `FRAMES` could not be read.
@@ -42,7 +46,8 @@ impl std::error::Error for FramesError {}
 impl FrameSettings {
     /// Reads `FRAMES`: frames separated by `;`, each a name, `:`, and `key=value` settings
     /// separated by `,`, e.g. `hall:layout=collage;desk:layout=list,panel=7.3,view=story`.
-    /// The keys are `layout`, `view`, `panel`, `rotation`, `max_birds`, `names` and `heading`;
+    /// The keys are `layout`, `view`, `panel`, `rotation`, `max_birds`, `names`, `heading`,
+    /// `facts` and `border`;
     /// a frame starts from `base`, the server's own settings.
     ///
     /// # Errors
@@ -100,6 +105,8 @@ impl FrameSettings {
             "rotation" => self.rotation = read(value)?,
             "max_birds" => self.max_birds = read(value)?,
             "names" => self.names = read(value)?,
+            "facts" => self.facts = read(value)?,
+            "border" => self.border = read(value)?,
             "heading" => {
                 self.heading = Some(String::from(value)).filter(|heading| !heading.is_empty())
             }
@@ -123,13 +130,15 @@ mod test {
             max_birds: 0,
             names: true,
             heading: None,
+            facts: true,
+            border: Border::Season,
         }
     }
 
     #[test]
     fn reads_each_frame_from_the_base() {
         let frames = FrameSettings::parse_all(
-            " hall ; desk:layout=list, panel=7.3,rotation=90,view=story,max_birds=12,names=false,heading=Desk birds",
+            " hall ; desk:layout=list, panel=7.3,rotation=90,view=story,max_birds=12,names=false,heading=Desk birds,facts=false,border=off",
             &base(),
         )
         .expect("valid");
@@ -161,6 +170,7 @@ mod test {
             )
         );
         assert_eq!(desk.heading.as_deref(), Some("Desk birds"));
+        assert_eq!((desk.facts, desk.border), (false, Border::Off));
     }
 
     #[test]
@@ -170,6 +180,7 @@ mod test {
             ("hall;hall", "named twice"),
             ("desk:colour=red", "unknown setting"),
             ("desk:view=month", "view"),
+            ("desk:border=tinsel", "border"),
         ] {
             let error: FramesError = FrameSettings::parse_all(text, &base()).expect_err(text);
             assert!(error.to_string().contains(needle), "{text}: {error}");

@@ -6,8 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use art_pack::ArtSource;
 use birdnet_client::{BirdnetClient, DateWindow, HttpTransport};
-use birdnet_model::{ScientificName, SpeciesSummary};
-use frame_artist::{Artist, PageStyle, PageView};
+use birdnet_model::SpeciesSummary;
+use frame_artist::{Artist, PageStyle, PageView, ViewData};
 use frame_core::{IndexedImage, Rgb};
 use frame_http::{PageStore, RenderedPage, Target};
 use frame_raster::Canvas;
@@ -17,9 +17,6 @@ use crate::frames::FrameSettings;
 use crate::news::{self, Extras, News};
 
 const SECONDS_PER_DAY: i64 = 86_400;
-
-/// Most birds on the rarest page's collage, unless the frame sets fewer.
-const RAREST_BIRDS: usize = 6;
 
 /// Returns the current unix time in seconds.
 pub fn now_unix_seconds() -> i64 {
@@ -153,6 +150,9 @@ fn publish<A: ArtSource + Send + 'static>(
                 names: frame.names,
                 heading: frame.heading.clone(),
                 words: artist.words().clone(),
+                facts: frame.facts,
+                border: frame.border,
+                southern: artist.style().southern,
             };
             artist.set_style(style);
             let (preview, alert): (Canvas, bool) = match &page {
@@ -185,66 +185,16 @@ fn draw<A: ArtSource>(
     view: PageView,
     target: Target,
 ) -> Canvas {
-    let resolution = target.resolution();
-    let words = artist.words().clone();
     let extras: &Extras = &birds.extras;
-    let new_bird: Option<&SpeciesSummary> = extras.new_today.first();
-    let new_heading: Option<String> =
-        new_bird.map(|row| words.new_for_year.replace("{name}", &label(row)));
-    let featured: Option<&ScientificName> = new_bird.map(|row| &row.scientific_name);
-    match view {
-        PageView::Today => artist.draw_featured(
-            &birds.today,
-            featured,
-            new_heading.as_deref(),
-            &birds.footer,
-            resolution,
-        ),
-        PageView::Week => artist.draw_featured(
-            &extras.week,
-            featured,
-            Some(&words.heading_week),
-            &birds.footer,
-            resolution,
-        ),
-        PageView::Rarest => {
-            let rarest: Vec<SpeciesSummary> = match &extras.year {
-                Some(year) => year.almanac.rarest(&birds.today),
-                None => birds.today.iter().rev().cloned().collect(),
-            };
-            let most: usize = match artist.style().max_birds {
-                0 => RAREST_BIRDS,
-                limit => limit.min(RAREST_BIRDS),
-            };
-            let shown: &[SpeciesSummary] = &rarest[..rarest.len().min(most)];
-            let rarest_name: Option<ScientificName> =
-                shown.first().map(|row| row.scientific_name.clone());
-            artist.draw_featured(
-                shown,
-                rarest_name.as_ref(),
-                Some(&words.heading_rarest),
-                &birds.footer,
-                resolution,
-            )
-        }
-        PageView::Story => match &extras.day {
-            Some(day) => artist.draw_story(day, &birds.footer, resolution),
-            None => artist.draw(&birds.today, &birds.footer, resolution),
-        },
-        PageView::Season => match &extras.year {
-            Some(year) => artist.draw_season(year, &birds.footer, resolution),
-            None => artist.draw(&birds.today, &birds.footer, resolution),
-        },
-    }
-}
-
-/// The species' common name, or its scientific one when BirdNET-Go gave none.
-fn label(row: &SpeciesSummary) -> String {
-    if row.common_name.is_empty() {
-        row.scientific_name.to_string()
-    } else {
-        row.common_name.clone()
-    }
+    let data = ViewData {
+        today: &birds.today,
+        week: &extras.week,
+        new_today: &extras.new_today,
+        day: extras.day.as_ref(),
+        year: extras.year.as_ref(),
+        footer: &birds.footer,
+    };
+    artist.draw_view(view, &data, target.resolution())
 }
 
 /// Formats the local wall-clock time as `HH:MM`.
