@@ -17,7 +17,7 @@ flowchart LR
 - Most wakes end at the 304: the server only changes the page when the set of species changes.
 - A real redraw is dominated by the panel refresh, which takes about 20 to 30 seconds.
 - Joining Wi-Fi is the biggest cost of a 304 wake. Remembering the access point, channel and a
-  static IP makes it much faster (planned for the firmware).
+  static IP makes it much faster (for the firmware app, `apps/ee02-thin`).
 
 The figures in this page are rough estimates until the power milestone measures them.
 
@@ -34,7 +34,9 @@ So the panel polls, and the server makes polling cheap:
 | --- | --- | --- |
 | ETag and 304 | server | An unchanged page costs a few hundred bytes |
 | Redraw only on a new species set | server | Most polls are unchanged |
-| Poll interval as `Cache-Control: max-age` | server | `POLL_MINUTES` tells the panel when to come back; the server can lengthen it at night (planned) |
+| Poll interval as `Cache-Control: max-age` | server | `POLL_MINUTES` tells the panel when to come back |
+| Quiet hours | server | With `QUIET_HOURS=22-6`, a panel asking at 22:00 is told to sleep until 06:00: one wake instead of 32 |
+| Back-off after failures | panel | `panel-wake` doubles the sleep after each failed wake in a row (5 minutes up to 12 hours), so a server that is down does not drain the battery |
 | zlib-compressed page | server | A new page moves about a quarter of the bytes |
 | Length and Adler-32 checked before refresh | panel | A damaged or mismatched download never reaches the glass |
 | Wi-Fi off during refresh | panel | The radio is only on while it is needed |

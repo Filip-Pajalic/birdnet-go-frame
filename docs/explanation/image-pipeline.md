@@ -70,18 +70,21 @@ is set.
    `size_weights` compresses it as fugleramme does: `(mass / geometric mean) ^ 0.14`. A wood
    pigeon comes out about 1.9 times the size of a goldcrest, not 90 times. The weight is then
    multiplied by how much bigger the plate is than its bird.
-2. **Starting size.** The set starts too big:
+2. **Starting size.** The set starts at
    `min(sqrt(page area x 1.5 / sum of weights squared), short side x 0.7 / largest weight)`.
 3. **Footprints.** Each bird's outline (alpha above 24) is resampled to its size, mirrored if a
    hash of its name says so, and shrunk by 2 px so neighbours nestle into each other's invisible
    halos. Its name is joined underneath, centred on the body rather than the box and raised
    until it clears the outline: into the gap beside a leg or under a perch.
 4. **Spiral.** Biggest first, each footprint goes at the first spot on an outward walk from the
-   middle of the page (rings 6 px apart) where no opaque pixel overlaps. Biggest birds land in
-   the middle.
-5. **Shrink.** If any bird does not fit, the whole set shrinks by 10% and packs again. Names
-   shrink with the set; once it fits, names left small beside a few big birds are grown back as
-   far as the packing allows.
+   middle of the page where no opaque pixel overlaps. The walk follows ellipses 6 px apart with
+   the page's own proportions, so the cluster takes the page's shape and reaches into its
+   corners, where circles would leave them bare. Biggest birds land in the middle.
+5. **Find the size.** If any bird does not fit, the whole set shrinks by 10% and packs again.
+   Once it fits, the gap to the size that did not is halved three times, so the birds come out
+   as big as the page allows; a set that fits at once grows by 6% steps instead. Names shrink
+   with the set; at the end, names left small beside a few big birds are grown back as far as
+   the packing allows.
 6. **Centre.** The cluster's bounding box is centred on the page.
 
 The page is packed at a short side of 1200 pixels and scaled, so a page packs the same at every
@@ -89,12 +92,13 @@ resolution.
 
 ```mermaid
 flowchart LR
-    birds["birds<br/>weight x span ratio"] --> size["start too big"]
+    birds["birds<br/>weight x span ratio"] --> size["starting size"]
     size --> foot["outline + name<br/>as one footprint"]
-    foot --> spiral["spiral out from the middle,<br/>biggest first"]
+    foot --> spiral["elliptical spiral out from<br/>the middle, biggest first"]
     spiral -->|"a bird did not fit"| shrink["shrink 10%"]
     shrink --> foot
-    spiral -->|"all fit"| centre["centre the cluster"]
+    spiral -->|"all fit"| refine["halve the gap to the size<br/>that did not fit, 3 times"]
+    refine --> centre["centre the cluster"]
 ```
 
 ### The list (`LAYOUT=list`)

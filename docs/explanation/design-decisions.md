@@ -63,7 +63,7 @@ places:
 | --- | --- |
 | `HttpTransport` (`birdnet-client`) | Desktop networking (`transport-lan`), the simulated station (`birdnet-mock`), or ESP32 networking (planned) |
 | `ArtSource` (`art-pack`) | Where bird pictures come from: generated (`art-mock`), fugleramme's webp folders (`art-webp`), or an SD card (planned) |
-| `embedded-hal` 1.0 traits (planned, `panel-t133a01`) | Which board drives the panel: ESP32 or a Raspberry Pi |
+| `embedded-hal` 1.0 traits (`panel-t133a01`) | Which board drives the panel: ESP32, a Raspberry Pi, or the mock bus in its tests |
 
 ## `no_std` wherever possible
 
@@ -96,8 +96,9 @@ otherwise make up most of the binary. `lan-http` speaks just enough HTTP/1.1 for
 
 ## Few dependencies
 
-Eight third-party crates, all for font rendering. JSON, HTTP and PNG are small modules in this
-repository instead. See [Dependencies](dependencies.md).
+Eleven third-party crates in the server: font rendering and the webp decoder. The panel side
+adds `embedded-hal`. JSON, HTTP, PNG and zlib (both ways) are small modules in this repository
+instead. See [Dependencies](dependencies.md).
 
 ## Code style
 

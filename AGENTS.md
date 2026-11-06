@@ -22,19 +22,20 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
   `frame-http`, `art-webp`). Keep it that way: the same code must compile for the ESP32, and CI builds those
   crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
   `birdnet-client`, `birdnet-mock`, `lite-json`, `art-pack`, `art-mock`, `bird-sizes`,
-  `page-text`, `frame-layout` or `frame-raster`. `art-webp` is `std` (it reads folders) and is the
+  `page-text`, `frame-layout`, `frame-raster`, `panel-t133a01` or `panel-wake`. `art-webp` is `std` (it reads folders) and is the
   only crate that decodes images.
-- Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`, later
-  `embedded-hal`),
+- Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`,
+  `embedded-hal`'s SPI, pin and delay traits),
   not `cfg` branches inside libraries. Prefer generics over `dyn`.
 - See [`docs/reference/crates.md`](docs/reference/crates.md) for what each crate owns.
 
 ## Dependencies
 
-The server has eight third-party crates, all from `fontdue`. Do not add one without a strong
-reason: read [`docs/explanation/dependencies.md`](docs/explanation/dependencies.md), turn off
-default features, add a row there, and make sure `cargo deny check` passes. Small jobs (JSON,
-HTTP, PNG) are done in-repo on purpose.
+The server has eleven third-party crates (`fontdue` and `image-webp` with their own); the panel
+side adds `embedded-hal`. Do not add one without a strong reason: read
+[`docs/explanation/dependencies.md`](docs/explanation/dependencies.md), turn off default
+features, add a row there, and make sure `cargo deny check` passes. Small jobs (JSON, HTTP, PNG,
+zlib both ways) are done in-repo on purpose.
 
 ## Commands
 

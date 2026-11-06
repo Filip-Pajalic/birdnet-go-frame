@@ -29,8 +29,8 @@
 
 | Crate or app | Purpose |
 | --- | --- |
-| `transport-esp` | `HttpTransport` and Wi-Fi on `esp-idf-svc` |
-| `apps/ee02-thin` | ESP32 firmware that fetches `/panel` |
+| `transport-esp` | `HttpTransport` and Wi-Fi for the ESP32 |
+| `apps/ee02-thin` | ESP32 firmware that fetches `/panel`: Wi-Fi and deep sleep around `panel-wake` and `panel-t133a01` |
 | `apps/ee02-standalone` | ESP32 firmware that renders the page itself |
 | `apps/linux-panel` | Raspberry Pi that renders and drives the panel |
 | `tools/art-packer` | Converts fugleramme's webp art to `.artp`, so the ESP32 can read plates from an SD card |
