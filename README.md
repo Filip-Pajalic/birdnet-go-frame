@@ -45,6 +45,12 @@ This project is a Rust re-implementation of the server-and-panel idea from
 exist without that project, its artwork curation and its ESP32 panel work. See
 [Credits](#credits).
 
+## Documentation
+
+Full docs, organised by [Diátaxis](https://diataxis.fr/), are in [`docs/`](docs/README.md): a
+tutorial, how-to guides, reference, and explanations of the architecture and of how the image is
+made (with diagrams).
+
 ## How it works
 
 ```

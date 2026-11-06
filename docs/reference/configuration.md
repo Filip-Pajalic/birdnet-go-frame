@@ -1,0 +1,24 @@
+# Configuration
+
+The server reads environment variables at start-up.
+
+| Variable | Default | Type | Meaning |
+| --- | --- | --- | --- |
+| `BIRDNET_URL` | required | URL or `mock` | BirdNET-Go base URL, e.g. `http://192.168.1.10:8080`. `mock` uses the built-in simulated station. |
+| `LISTEN` | `0.0.0.0:8080` | address | Where the server listens. |
+| `ROTATION` | `0` | `0`, `90`, `180`, `270` | How the panel hangs, counter-clockwise from native landscape. `90` and `270` are portrait (1200x1600). |
+| `POLL_MINUTES` | `15` | 0 to 255 | Minutes the panel sleeps between checks, sent in the page header. `0` means as soon as the panel likes. |
+| `WINDOW_HOURS` | `24` | hours | How far back detections count. Rounded outwards to whole days, as BirdNET-Go's summary takes dates. |
+| `UTC_OFFSET_MINUTES` | `0` | minutes | The garden's time zone, minutes east of UTC. Used for the date range and the "Updated" time. Not adjusted for daylight saving. |
+| `REFRESH_SECONDS` | `60` | seconds | How often the server asks BirdNET-Go for news. |
+| `HEADING` | `Heard in the garden` | text | Page heading. |
+
+An invalid value stops the server with a message naming the variable, e.g.
+`ROTATION: cannot read "45": rotation must be 0, 90, 180 or 270`.
+
+## `fake-birdnet`
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| first argument | `127.0.0.1:8090` | Address to listen on |
+| `UTC_OFFSET_MINUTES` | `0` | Time zone of the simulated garden |
