@@ -1,7 +1,8 @@
 # Pages and views
 
-A frame can show five pages. It asks for one with `view=`; the EE02's button cycles through them,
-and each frame in `FRAMES` has a default. Every page is drawn for whatever panel or screen asks,
+A frame can show five pages. It asks for one with `view=`; the previous and next buttons of the
+EE02, the reTerminal E1002 and the standalone firmware step through all five (see
+[Firmware: Buttons](../reference/firmware.md#buttons)), and each frame in `FRAMES` has a default. Every page is drawn for whatever panel or screen asks,
 in the frame's layout where the page has birds on it.
 
 | View | Shows | From BirdNET-Go |
@@ -58,7 +59,7 @@ out.
 
 ## The season
 
-![The season page: 37 species this year, two spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
+![The season page on 1 May in spring's blossom border: 39 species this year, three spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
 
 - **Just arrived** lists the birds heard in the last 21 days that were not heard in the 60 days
   before: spring's migrants, autumn's winter thrushes, and rarities.
@@ -66,6 +67,56 @@ out.
   earlier, and names a few birds heard only now or only then.
 - **Year list** numbers every species heard this year in the order they were first heard, like
   a birder's notebook. A long list is set smaller, then cut short with "and N more".
+
+## A fact about the main bird
+
+![Today's collage in autumn's border, with a line about the great tit at its foot](../images/view-today.jpg)
+
+Today's, the week's and the rarest page end with one line about their main bird, the one drawn
+first: a bird new for the year, the rarest, or else the most heard. Each species has up to ten
+facts, and the line tells a different one each day, in an order of the species' own, so it
+changes daily but not between wakes:
+
+| Fact | Example | Source |
+| --- | --- | --- |
+| Weight, in sugar cubes of 4 g | Great Tit: weighs about 16 g, as much as 4 sugar cubes | AVONET |
+| Wingspan | Eurasian Magpie: 56 cm from wingtip to wingtip | Wikidata |
+| Incubation | Eurasian Blackbird: the eggs hatch after about 13 days | Wikidata |
+| Oldest known | House Sparrow: the oldest one known lived 19 years | Wikidata |
+| Range, against Europe | Great Tit: its range is 3 times the size of Europe | AVONET |
+| How far north or south | Great Tit: found as far north as 71° N | AVONET |
+| Migration | Common Swift: a migrant, with a summer home and a winter one | AVONET |
+| Diet | Eurasian Bullfinch: eats almost anything | AVONET |
+| Where it lives | Common Swift: spends most of its life on the wing | AVONET |
+
+The table is built into the server and the standalone firmware (`crates/bird-facts`, about
+260 KB); nothing is looked up online. Its sources, AVONET (CC BY 4.0) and Wikidata (CC0), are
+credited in `crates/bird-facts/data/ATTRIBUTION.md` and NOTICE.md, never on the page. The words
+are in English and Swedish; other languages fall back to English until translated (keys
+`fact_*` and `food_*` in [Translations](../reference/configuration.md#translations)). `FACTS=false`
+turns the line off.
+
+## Seasonal borders
+
+![The seven borders on a portrait page: frost, blossom, meadow, autumn, Christmas, Easter and Midsummer](../images/borders.jpg)
+
+Every page wears a border engraved like the plates: a double hairline rule and, along it, motifs
+outlined in black and hatched in the panel's other inks. It changes with the date:
+
+| Border | When | Drawn in |
+| --- | --- | --- |
+| Frost | December to February | Blue snow crystals and frost ferns creeping from the corners |
+| Blossom | March to May | A flowering branch from two corners, petals drifting along the edges |
+| Meadow | June to August | Grasses, daisies, cornflowers and poppies along the foot, butterflies above |
+| Autumn | September to November | Falling leaves in red, yellow and green, acorns in the corners |
+| Christmas | 13 December (Lucia) to 6 January | Holly and red berries |
+| Easter | Palm Sunday to Easter Monday | Birch twigs hung with coloured feathers, eggs in the grass |
+| Midsummer | 19 to 25 June | A garland of flowers and birch leaves |
+
+The border is drawn procedurally (`crates/frame-layout/src/season_border.rs`), stays in the page's
+outer few percent, and is drawn under the birds and the words. South of the equator (a negative
+`LATITUDE`) the seasons come round half a year apart and Midsummer is not kept in June.
+`BORDER=off` leaves it off; a theme's name keeps that one all year.
 
 ## What it costs BirdNET-Go
 

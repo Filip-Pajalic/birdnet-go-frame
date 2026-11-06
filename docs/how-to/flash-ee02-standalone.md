@@ -10,10 +10,11 @@ not run a container beside. It runs on two boards:
 | Seeed XIAO ePaper Display Board EE02 | 13.3" Spectra 6, 1600x1200 | the default |
 | Seeed reTerminal E1002 | 7.3" Spectra 6, 800x480 | `--no-default-features --features board-e1002` |
 
-What it gives up against [the thin firmware](flash-ee02-thin.md) and the server: no setup
-hotspot (the settings are built in), no over-the-air updates, no buttons or other pages (the
-story and season pages need the server's longer history), no weather, no Home Assistant, and no
-login to a private BirdNET-Go. The 13.3" page is drawn at half size and enlarged when it is
+Its three buttons step through the same five pages the server draws (today, the week, the
+rarest, the day's story and the season), as on [the thin firmware](flash-ee02-thin.md): see
+[Buttons](#buttons) below. What it gives up against the thin firmware and the server: no setup
+hotspot (the settings are built in), no over-the-air updates, no weather or new-bird alert (they
+need the server), no Home Assistant, and no login to a private BirdNET-Go. The 13.3" page is drawn at half size and enlarged when it is
 dithered, so it is a little softer than the server's.
 
 > The firmware compiles in CI and its logic and drawing are tested on a laptop, but it has not
@@ -68,6 +69,8 @@ The rest are optional:
 | `FRAME_WINDOW_HOURS` | `24` | How far back detections count |
 | `FRAME_MAX_BIRDS` | `12` | Most birds on the page; each one's picture is held while drawing |
 | `FRAME_NAMES` | `true` | Whether the collage names its birds |
+| `FRAME_FACTS` | `true` | Whether the bird pages end with a line about their main bird, as `FACTS` on the server |
+| `FRAME_BORDER` | `season` | The border, as `BORDER` on the server: `season`, `off` or a theme |
 
 A password built in ends up in the firmware image, so treat the built file like the password.
 
@@ -99,3 +102,23 @@ as the one on the glass, it goes straight back to sleep: `the page has not chang
 
 After a failure the picture stays and the frame tries again in a minute, doubling after each
 failure in a row up to the poll interval.
+
+## Buttons
+
+The buttons and their pins are the thin firmware's (see
+[Firmware: Buttons](../reference/firmware.md#buttons)): on the EE02 refresh, previous and next
+are GPIO2, 3 and 5; on the E1002 the green, left and right buttons, GPIO3, 5 and 4. Each wakes
+the frame from deep sleep.
+
+| Button | Press |
+| --- | --- |
+| Refresh | Draws the page again now |
+| Previous | Steps to the previous page and draws it |
+| Next | Steps to the next page and draws it |
+
+The pages go round today, week, rarest, story, season. The chosen page is kept in RTC memory,
+so the frame keeps showing it, updated each wake, until a button changes it. Each page asks
+BirdNET-Go only for what it shows: today's page is one request, the story two and its hourly
+counts, the season five (the year so far, this week, the same week last year, and two windows
+for arrivals). Holding refresh does nothing special: there is no setup hotspot.
+

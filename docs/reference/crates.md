@@ -11,15 +11,16 @@
 | `transport-lan` | no | `HttpTransport` for Linux, macOS, Windows | `LanTransport` |
 | `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, bundles of them for flash, no art, and plain ovals for tests | `ArtImage`, `ArtSource`, `ArtBundle`, `NoArt`, `OutlineArt`, `Rgba`, `Subject` |
 | `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered | `ArtFolder` |
-| `bird-sizes` | yes | AVONET body masses for BirdNET's species | `BirdSizes` |
+| `bird-sizes` | yes | AVONET body masses for BirdNET's species, and the name-keyed table they and the facts are read with | `BirdSizes`, `NameTable` |
+| `bird-facts` | yes | A few facts per species (AVONET and Wikidata, built in), one told a day about a page's main bird | `BirdFacts`, `Fact` |
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
-| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
+| `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline; the seasonal border, engraved as pen marks | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `SeasonBorder`, `BorderTheme`, `Border`, `PenMark`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
-| `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, a featured bird, the story and season pages, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `PageView`, `DayFacts`, `YearFacts`, `panel_bytes` |
+| `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, a featured bird, the story and season pages, which page each view shows, the fact line and the border, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `PageView`, `ViewData`, `DayFacts`, `YearFacts`, `fun_fact`, `panel_bytes` |
 | `bird-almanac` | yes (alloc) | What longer windows say: birds new for the year, arrivals after an absence, the rarest of today's birds, this week against last year's, and the day's story | `Almanac`, `Arrival`, `YearOnYear`, `DayStory` |
 | `open-meteo` | yes (alloc) | Today's weather from Open-Meteo's free forecast API, over any `HttpTransport` | `OpenMeteo`, `Weather`, `Sky` |
 | `home-assistant` | no | Announces frames to Home Assistant: just enough MQTT 3.1.1 to publish, and the discovery messages | `mqtt::publish`, `discovery::frame_messages` |
-| `frame-standalone` | yes (alloc) | The decisions of a frame that draws its own page: whether the birds changed, the request to BirdNET-Go and reading its answer and `Date`, what to keep in RTC memory and how long to sleep | `Fingerprint`, `birdnet_request`, `BirdnetAnswer`, `http_date::parse`, `StandaloneMemory` |
+| `frame-standalone` | yes (alloc) | The decisions of a frame that draws its own page: whether the birds changed, the request to BirdNET-Go and reading its answer and `Date`, what each page asks for and makes of the answers, what to keep in RTC memory (the page the buttons chose included) and how long to sleep | `Fingerprint`, `birdnet_request`, `BirdnetAnswer`, `http_date::parse`, `ViewFetch`, `StandaloneMemory` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target`, `FrameLog`, `query_value` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 | `panel-ed2208` | yes | The 7.3" Spectra 6 panel's ED2208 controller on `embedded-hal` 1.0 (reTerminal E1002, Waveshare 7.3" (E)) | `Ed2208`, `Pins`, `PanelError` |

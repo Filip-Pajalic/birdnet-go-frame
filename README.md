@@ -25,8 +25,11 @@ fugleramme does, and sized as big as the page allows so the cluster reaches its 
 
 Besides today's birds, a frame can show the week, today's rarest birds, the day's story and the
 year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
-drawn first and biggest, and frames wake every 5 minutes while it is about. Frames report
-battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).
+drawn first and biggest, and frames wake every 5 minutes while it is about. The bird pages end
+with a fun fact about their main bird (from a table built in, no cloud), and every page wears an
+engraved seasonal border: frost, blossom, a summer meadow, autumn leaves, and holly, Easter
+feathers or a Midsummer garland on those holidays. On every ESP32 frame the previous and next
+buttons step through all five pages. Frames report battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).
 
 | The day so far | The year so far |
 | --- | --- |
@@ -148,7 +151,8 @@ driving the panel, or on the ESP32 itself.
 | `crates/art-webp` | fugleramme's art folders: a plate per species per day, paper halo toned and feathered | Done |
 | `crates/page-text` | `no_std` + `alloc`: the page's words in a dozen languages, from a translations JSON | Done |
 | `crates/bird-sizes` | `no_std`: AVONET body masses for the 6,421 species BirdNET detects | Done |
-| `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline, out to the page's corners; the story chart and season page | Collage, list, story and season done |
+| `crates/bird-facts` | `no_std`: a few facts per species from AVONET and Wikidata, one told a day | Done |
+| `crates/frame-layout` | `no_std` + `alloc`: what goes where; the collage's spiral packing by outline, out to the page's corners; the story chart and season page; the seasonal borders | Collage, list, story, season and borders done |
 | `crates/bird-almanac` | `no_std` + `alloc`: new birds for the year, arrivals, the rarest, year on year, the day's story | Done |
 | `crates/open-meteo` | `no_std` + `alloc`: today's weather from Open-Meteo, keyless | Done |
 | `crates/home-assistant` | Frames as Home Assistant devices over MQTT discovery, with a small MQTT publisher | Done |
@@ -166,7 +170,7 @@ driving the panel, or on the ESP32 itself.
 | `crates/panel-ed2208` | `no_std`: the 7.3" panel's controller over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
 | `crates/glass-esp` | Each ESP32-S3 board's panel pins, power and deep-sleep pin holds, for the EE02 and the reTerminal E1002 | Builds; untried on hardware |
 | `tools/art-packer` | Packs fugleramme's plates into one bundle, about 30 KB a species, for an ESP32's flash | Done |
-| `apps/ee02-standalone` | ESP32-S3 firmware with no server: asks BirdNET-Go and draws the page itself, art in flash; EE02 or reTerminal E1002 | Builds for both boards; untried on hardware |
+| `apps/ee02-standalone` | ESP32-S3 firmware with no server: asks BirdNET-Go and draws the page itself, art in flash, buttons stepping through all five pages; EE02 or reTerminal E1002 | Builds for both boards; untried on hardware |
 | `apps/linux-panel` | A Raspberry Pi driving the panel over SPI, with no server | Done; tested on a mock bus, untried on a panel |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
 | `deploy/` | Dockerfile, Unraid template | |
@@ -194,6 +198,8 @@ The server is configured with environment variables:
 | `MAX_BIRDS` | `0` | Most birds on a page; `0` for every bird heard |
 | `NAMES` | `true` | Whether the collage writes each bird's name under it |
 | `HEADING` | unset | A heading over the page; the collage has none by default, like fugleramme |
+| `FACTS` | `true` | Whether today's, the week's and the rarest page end with a line about their main bird |
+| `BORDER` | `season` | The engraved border: `season` (by date and holiday), `off`, or one theme, e.g. `frost` |
 | `LANGUAGE` | `en` | Language of the page's own words, e.g. `sv`, `nb`, `de` (bird names come from BirdNET-Go) |
 | `TRANSLATIONS` | unset | A translations JSON adding languages or overriding words |
 | `VIEW` | `today` | Page for frames that do not ask: `today`, `week`, `rarest`, `story` or `season` |
@@ -291,6 +297,8 @@ Formatting and the lints it names are enforced in CI (see `rustfmt.toml` and the
 - **AVONET** (Tobias et al. 2022, *Ecology Letters*,
   [doi:10.1111/ele.13898](https://doi.org/10.1111/ele.13898)): bird body masses, CC BY 4.0,
   via fugleramme's table (`crates/bird-sizes/data/`). The size exponent (0.14) is fugleramme's.
+  AVONET's ranges, migration, diet and lifestyle, with wingspans, incubation and lifespans from
+  **[Wikidata](https://www.wikidata.org/)** (CC0), make the fun facts (`crates/bird-facts/data/`).
 - **[OpenFauna](https://github.com/tphakala/openfauna)**: scientific-name aliases, CC BY-SA 4.0.
 
 Full notices are in [`NOTICE.md`](NOTICE.md).

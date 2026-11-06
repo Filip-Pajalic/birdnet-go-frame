@@ -64,7 +64,10 @@ three are pulled up, read low when pressed, and wake the frame from deep sleep (
 | Next (KEY3) | 5 | Steps to the next view and fetches it | |
 
 The views go round in this order and are sent as `view=`; `today` is the server's default and is
-not sent. The chosen view is kept in RTC memory until a button changes it.
+not sent. The chosen view is kept in RTC memory until a button changes it. The list is every
+page the server draws: a test in `frame-standalone` fails if the two ever differ. The
+reTerminal E1002 build has the same three buttons and cycle, and so has the
+[standalone firmware](../how-to/flash-ee02-standalone.md#buttons), which draws each page itself.
 
 | `view=` | Page |
 | --- | --- |
