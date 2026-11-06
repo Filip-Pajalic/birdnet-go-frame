@@ -196,6 +196,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "home-assistant"
+version = "0.1.0"
+dependencies = [
+ "birdnet-client",
+ "frame-http",
+]
+
+[[package]]
 name = "image-webp"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -279,6 +287,7 @@ dependencies = [
  "art-mock",
  "art-pack",
  "art-webp",
+ "bird-almanac",
  "birdnet-client",
  "birdnet-mock",
  "birdnet-model",
@@ -286,6 +295,8 @@ dependencies = [
  "frame-core",
  "frame-http",
  "frame-raster",
+ "home-assistant",
+ "open-meteo",
  "page-text",
  "transport-lan",
 ]

@@ -6,15 +6,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use art_pack::ArtSource;
 use birdnet_client::{BirdnetClient, DateWindow, HttpTransport};
-use birdnet_model::SpeciesSummary;
-use frame_artist::Artist;
+use birdnet_model::{ScientificName, SpeciesSummary};
+use frame_artist::{Artist, PageStyle, PageView};
 use frame_core::{IndexedImage, Rgb};
 use frame_http::{PageStore, RenderedPage, Target};
 use frame_raster::Canvas;
 
 use crate::config::Config;
+use crate::frames::FrameSettings;
+use crate::news::{self, Extras, News};
 
 const SECONDS_PER_DAY: i64 = 86_400;
+
+/// Most birds on the rarest page's collage, unless the frame sets fewer.
+const RAREST_BIRDS: usize = 6;
 
 /// Returns the current unix time in seconds.
 pub fn now_unix_seconds() -> i64 {
@@ -28,15 +33,24 @@ pub fn now_unix_seconds() -> i64 {
 /// The artist, shared by the poller and the HTTP threads that draw pages on request.
 pub type SharedArtist<A> = Arc<Mutex<Artist<A>>>;
 
+/// The store's name for one frame's page in one view: `frame/view`.
+pub fn view_key(frame: &str, view: PageView) -> String {
+    format!("{frame}/{view}")
+}
+
 /// Polls `client` forever, publishing new pages to `store` whenever the set of species heard
-/// changes. Keeps the last good pages up while BirdNET-Go is unreachable.
-pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
+/// or the extras change. Keeps the last good pages up while BirdNET-Go is unreachable.
+pub fn run<T: HttpTransport, W: HttpTransport, A: ArtSource + Send + 'static>(
     mut client: BirdnetClient<T>,
-    config: &Config,
+    mut news: News<W>,
+    config: &Arc<Config>,
     artist: &SharedArtist<A>,
     store: &PageStore,
-) {
-    let mut shown: Option<(i64, Vec<String>)> = None;
+) where
+    T::Error: std::fmt::Display,
+    W::Error: std::fmt::Display,
+{
+    let mut shown: Option<(i64, Vec<String>, u64, bool)> = None;
     loop {
         let now: i64 = now_unix_seconds();
         let window = DateWindow::hours_back(now, config.utc_offset_minutes, config.window_hours);
@@ -48,7 +62,16 @@ pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
                     .collect();
                 // A new day may dress a bird in another plate, so it redraws too.
                 let day: i64 = now.div_euclid(SECONDS_PER_DAY);
-                let wanted: (i64, Vec<String>) = (day, names);
+                let changed: bool = shown.as_ref().is_none_or(|(shown_day, shown_names, _, _)| {
+                    *shown_day != day || *shown_names != names
+                });
+                let extras: Extras = news.extras(&mut client, config, now, changed).clone();
+                let local: i64 = now + i64::from(config.utc_offset_minutes) * 60;
+                let minute: u32 =
+                    u32::try_from(local.rem_euclid(SECONDS_PER_DAY) / 60).unwrap_or(0);
+                let alert: bool = config.alert_poll_minutes > 0
+                    && news::alert_active(&extras, minute, config.alert_minutes);
+                let wanted = (day, names, extras.generation, alert);
                 if shown.as_ref() != Some(&wanted) {
                     let time: String = clock(now, config.utc_offset_minutes);
                     let Ok(footer) = artist.lock().map(|mut artist| {
@@ -58,12 +81,17 @@ pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
                         return;
                     };
                     let count: usize = species.len();
-                    let page = Page::Birds {
-                        species: Arc::new(species),
+                    let page = Page::Birds(Arc::new(Birds {
+                        today: species,
+                        extras,
                         footer,
-                    };
-                    publish(page, artist, config.poll_minutes, store);
-                    eprintln!("server: drew {count} species");
+                        alert,
+                    }));
+                    publish(page, artist, config, store);
+                    eprintln!(
+                        "server: drew {count} species{}",
+                        if alert { ", a new bird is about" } else { "" }
+                    );
                     shown = Some(wanted);
                 }
             }
@@ -71,7 +99,7 @@ pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
                 eprintln!("server: {error}");
                 if shown.is_none() && !store.is_ready() {
                     let page = Page::Unreachable(format!("{error}"));
-                    publish(page, artist, config.poll_minutes, store);
+                    publish(page, artist, config, store);
                 }
             }
         }
@@ -79,45 +107,141 @@ pub fn run<T: HttpTransport, A: ArtSource + Send + 'static>(
     }
 }
 
+/// Everything the bird pages show.
+struct Birds {
+    /// The birds heard in the window, most heard first.
+    today: Vec<SpeciesSummary>,
+    /// The week, the year and the day's story.
+    extras: Extras,
+    /// The list page's foot line.
+    footer: String,
+    /// Whether frames should wake sooner, for a bird new for the year.
+    alert: bool,
+}
+
 /// What the published pages show.
 #[derive(Clone)]
 enum Page {
-    /// The birds heard, most heard first, and the list page's foot line.
-    Birds {
-        species: Arc<Vec<SpeciesSummary>>,
-        footer: String,
-    },
+    /// The birds heard.
+    Birds(Arc<Birds>),
     /// BirdNET-Go cannot be reached, and why.
     Unreachable(String),
 }
 
-/// Publishes `page` for every target, and draws the default one straight away so the panel's
-/// next wake is answered at once.
+/// Publishes `page` for every target and view, and draws the default one straight away so
+/// the panel's next wake is answered at once.
 fn publish<A: ArtSource + Send + 'static>(
     page: Page,
     artist: &SharedArtist<A>,
-    poll_minutes: u8,
+    config: &Arc<Config>,
     store: &PageStore,
 ) {
     let artist: SharedArtist<A> = Arc::clone(artist);
-    store.publish(Box::new(move |target: Target| {
-        let (preview, paper): (Canvas, Rgb) = {
+    let default: String = view_key(frame_http::DEFAULT_FRAME, config.view);
+    let config: Arc<Config> = Arc::clone(config);
+    store.publish_views(Box::new(move |target: Target, key: &str| {
+        let (name, view): (&str, &str) = key.split_once('/').unwrap_or((key, ""));
+        let frame: FrameSettings = config.frame(name);
+        let view: PageView = view.parse().unwrap_or(frame.view);
+        let (preview, paper, alert): (Canvas, Rgb, bool) = {
             let mut artist = artist.lock().ok()?;
-            let preview: Canvas = match &page {
-                Page::Birds { species, footer } => {
-                    artist.draw(species, footer, target.resolution())
-                }
-                Page::Unreachable(problem) => artist.draw_unreachable(problem, target.resolution()),
+            let style = PageStyle {
+                layout: frame.layout,
+                max_birds: frame.max_birds,
+                names: frame.names,
+                heading: frame.heading.clone(),
+                words: artist.words().clone(),
             };
-            (preview, artist.paper())
+            artist.set_style(style);
+            let (preview, alert): (Canvas, bool) = match &page {
+                Page::Birds(birds) => (draw(&mut artist, birds, view, target), birds.alert),
+                Page::Unreachable(problem) => {
+                    (artist.draw_unreachable(problem, target.resolution()), false)
+                }
+            };
+            (preview, artist.paper(), alert)
+        };
+        let poll_minutes: u8 = if alert {
+            config.alert_poll_minutes.min(config.poll_minutes).max(1)
+        } else {
+            config.poll_minutes
         };
         let inks: IndexedImage = frame_raster::dither(&frame_raster::pop(&preview, paper));
         RenderedPage::for_target(target, &inks, &preview, poll_minutes)
             .inspect_err(|error| eprintln!("server: {error}"))
             .ok()
     }));
-    if store.get().is_none() {
+    if store.view(store.default_target(), &default).is_none() {
         eprintln!("server: the page could not be drawn");
+    }
+}
+
+/// Draws `view` of `birds` for `target` in the artist's current style.
+fn draw<A: ArtSource>(
+    artist: &mut Artist<A>,
+    birds: &Birds,
+    view: PageView,
+    target: Target,
+) -> Canvas {
+    let resolution = target.resolution();
+    let words = artist.words().clone();
+    let extras: &Extras = &birds.extras;
+    let new_bird: Option<&SpeciesSummary> = extras.new_today.first();
+    let new_heading: Option<String> =
+        new_bird.map(|row| words.new_for_year.replace("{name}", &label(row)));
+    let featured: Option<&ScientificName> = new_bird.map(|row| &row.scientific_name);
+    match view {
+        PageView::Today => artist.draw_featured(
+            &birds.today,
+            featured,
+            new_heading.as_deref(),
+            &birds.footer,
+            resolution,
+        ),
+        PageView::Week => artist.draw_featured(
+            &extras.week,
+            featured,
+            Some(&words.heading_week),
+            &birds.footer,
+            resolution,
+        ),
+        PageView::Rarest => {
+            let rarest: Vec<SpeciesSummary> = match &extras.year {
+                Some(year) => year.almanac.rarest(&birds.today),
+                None => birds.today.iter().rev().cloned().collect(),
+            };
+            let most: usize = match artist.style().max_birds {
+                0 => RAREST_BIRDS,
+                limit => limit.min(RAREST_BIRDS),
+            };
+            let shown: &[SpeciesSummary] = &rarest[..rarest.len().min(most)];
+            let rarest_name: Option<ScientificName> =
+                shown.first().map(|row| row.scientific_name.clone());
+            artist.draw_featured(
+                shown,
+                rarest_name.as_ref(),
+                Some(&words.heading_rarest),
+                &birds.footer,
+                resolution,
+            )
+        }
+        PageView::Story => match &extras.day {
+            Some(day) => artist.draw_story(day, &birds.footer, resolution),
+            None => artist.draw(&birds.today, &birds.footer, resolution),
+        },
+        PageView::Season => match &extras.year {
+            Some(year) => artist.draw_season(year, &birds.footer, resolution),
+            None => artist.draw(&birds.today, &birds.footer, resolution),
+        },
+    }
+}
+
+/// The species' common name, or its scientific one when BirdNET-Go gave none.
+fn label(row: &SpeciesSummary) -> String {
+    if row.common_name.is_empty() {
+        row.scientific_name.to_string()
+    } else {
+        row.common_name.clone()
     }
 }
 
@@ -136,5 +260,10 @@ mod test {
     fn clock_applies_offset() {
         // 2026-11-06T06:30:00Z at UTC+1.
         assert_eq!(clock(1_793_946_600, 60), "07:30");
+    }
+
+    #[test]
+    fn keys_name_the_frame_and_view() {
+        assert_eq!(view_key("desk", PageView::Story), "desk/story");
     }
 }

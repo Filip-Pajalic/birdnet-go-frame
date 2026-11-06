@@ -16,6 +16,7 @@ members = [
     "crates/frame-http",
     "crates/frame-layout",
     "crates/frame-raster",
+    "crates/home-assistant",
     "crates/lan-http",
     "crates/lite-json",
     "crates/open-meteo",
@@ -52,6 +53,7 @@ frame-core = { path = "crates/frame-core", version = "0.1.0" }
 frame-http = { path = "crates/frame-http", version = "0.1.0" }
 frame-layout = { path = "crates/frame-layout", version = "0.1.0" }
 frame-raster = { path = "crates/frame-raster", version = "0.1.0" }
+home-assistant = { path = "crates/home-assistant", version = "0.1.0" }
 lan-http = { path = "crates/lan-http", version = "0.1.0" }
 lite-json = { path = "crates/lite-json", version = "0.1.0" }
 open-meteo = { path = "crates/open-meteo", version = "0.1.0" }

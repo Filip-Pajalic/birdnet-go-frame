@@ -15,6 +15,7 @@ path = "src/main.rs"
 art-mock.workspace = true
 art-pack.workspace = true
 art-webp.workspace = true
+bird-almanac.workspace = true
 birdnet-client.workspace = true
 birdnet-mock.workspace = true
 birdnet-model.workspace = true
@@ -22,6 +23,8 @@ frame-artist.workspace = true
 frame-core.workspace = true
 frame-http.workspace = true
 frame-raster.workspace = true
+home-assistant.workspace = true
+open-meteo.workspace = true
 page-text.workspace = true
 transport-lan.workspace = true
 

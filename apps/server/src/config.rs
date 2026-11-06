@@ -5,10 +5,79 @@ use std::str::FromStr;
 use std::time::Duration;
 use std::{env, fmt};
 
-use frame_artist::Layout;
+use frame_artist::{Layout, PageView};
 use frame_core::{PanelSize, Rotation};
 
+use crate::frames::FrameSettings;
 use crate::quiet_hours::QuietHours;
+
+/// Where the garden is, for its weather.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Place {
+    /// Degrees north.
+    pub latitude: f32,
+    /// Degrees east.
+    pub longitude: f32,
+}
+
+/// An MQTT broker to announce frames to Home Assistant on. The password never shows in debug
+/// output.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Mqtt {
+    /// `host:port`.
+    pub address: String,
+    /// The user name and password, if the broker asks for them.
+    pub login: Option<(String, String)>,
+    /// Home Assistant's discovery prefix, `homeassistant` unless changed.
+    pub discovery_prefix: String,
+}
+
+impl fmt::Debug for Mqtt {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Mqtt")
+            .field("address", &self.address)
+            .field("user", &self.login.as_ref().map(|(user, _)| user))
+            .field("discovery_prefix", &self.discovery_prefix)
+            .finish_non_exhaustive()
+    }
+}
+
+impl FromStr for Mqtt {
+    type Err = String;
+
+    /// Reads `mqtt://user:password@host:port`; the login and port (1883) may be left out.
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        let rest: &str = text
+            .trim()
+            .strip_prefix("mqtt://")
+            .ok_or_else(|| String::from("expected mqtt://host:port"))?;
+        let rest: &str = rest.trim_end_matches('/');
+        let (login, host): (Option<(String, String)>, &str) = match rest.rsplit_once('@') {
+            Some((login, host)) => {
+                let (user, password) = login.split_once(':').unwrap_or((login, ""));
+                (Some((String::from(user), String::from(password))), host)
+            }
+            None => (None, rest),
+        };
+        if host.is_empty() {
+            return Err(String::from("no host"));
+        }
+        let address: String = if host
+            .rsplit_once(':')
+            .is_some_and(|(_, port)| port.parse::<u16>().is_ok())
+        {
+            String::from(host)
+        } else {
+            format!("{host}:1883")
+        };
+        Ok(Self {
+            address,
+            login,
+            discovery_prefix: String::from("homeassistant"),
+        })
+    }
+}
 
 /// Where detections come from.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -75,6 +144,25 @@ pub struct Config {
     pub translations: Option<PathBuf>,
     /// A fugleramme-style art folder; `None` draws generated birds.
     pub art_dir: Option<PathBuf>,
+    /// The page shown to frames that do not ask for one.
+    pub view: PageView,
+    /// Frames with settings of their own, chosen by `frame=`.
+    pub frames: Vec<FrameSettings>,
+    /// Where the garden is, for the weather on the story page; `None` for no weather.
+    pub place: Option<Place>,
+    /// Where Open-Meteo is.
+    pub weather_url: String,
+    /// Minutes the panel sleeps while a bird new for the year is about; 0 to keep
+    /// [`poll_minutes`](Self::poll_minutes).
+    pub alert_poll_minutes: u8,
+    /// How long after a new bird was last heard the shorter sleep lasts, in minutes.
+    pub alert_minutes: u32,
+    /// How often the year, week and story are asked for again, besides when the birds change.
+    pub almanac_refresh: Duration,
+    /// Where to announce frames to Home Assistant.
+    pub mqtt: Option<Mqtt>,
+    /// A folder of firmware to offer frames.
+    pub firmware_dir: Option<PathBuf>,
 }
 
 /// A setting that could not be read.
@@ -117,7 +205,7 @@ impl Config {
         } else {
             Source::Live(birdnet_url)
         };
-        Ok(Self {
+        let mut config = Self {
             source,
             login: lookup("BIRDNET_PASSWORD")
                 .filter(|password| !password.is_empty())
@@ -142,7 +230,79 @@ impl Config {
             language: lookup("LANGUAGE").unwrap_or_else(|| String::from("en")),
             translations: path(&lookup, "TRANSLATIONS"),
             art_dir: path(&lookup, "ART_DIR"),
-        })
+            view: parsed(&lookup, "VIEW", PageView::Today)?,
+            frames: Vec::new(),
+            place: place(&lookup)?,
+            weather_url: lookup("WEATHER_URL")
+                .filter(|url| !url.trim().is_empty())
+                .unwrap_or_else(|| String::from("http://api.open-meteo.com")),
+            alert_poll_minutes: parsed(&lookup, "ALERT_POLL_MINUTES", 5)?,
+            alert_minutes: parsed(&lookup, "ALERT_MINUTES", 60)?,
+            almanac_refresh: Duration::from_secs(60 * parsed(&lookup, "ALMANAC_MINUTES", 30)?),
+            mqtt: optional(&lookup, "MQTT_URL")?,
+            firmware_dir: path(&lookup, "FIRMWARE_DIR"),
+        };
+        if let Some(mqtt) = &mut config.mqtt {
+            if let Some(prefix) =
+                lookup("MQTT_DISCOVERY_PREFIX").filter(|prefix| !prefix.trim().is_empty())
+            {
+                mqtt.discovery_prefix = String::from(prefix.trim());
+            }
+        }
+        if let Some(text) = lookup("FRAMES") {
+            config.frames =
+                FrameSettings::parse_all(&text, &config.default_frame()).map_err(|error| {
+                    ConfigError {
+                        variable: "FRAMES",
+                        problem: error.to_string(),
+                    }
+                })?;
+        }
+        Ok(config)
+    }
+
+    /// Returns the settings of frames that do not give a name, or give one not in `FRAMES`.
+    #[must_use]
+    pub fn default_frame(&self) -> FrameSettings {
+        FrameSettings {
+            name: String::from(frame_http::DEFAULT_FRAME),
+            layout: self.layout,
+            view: self.view,
+            panel: self.panel,
+            rotation: self.rotation,
+            max_birds: self.max_birds,
+            names: self.names,
+            heading: self.heading.clone(),
+        }
+    }
+
+    /// Returns the settings of the frame called `name`, or the default frame's.
+    #[must_use]
+    pub fn frame(&self, name: &str) -> FrameSettings {
+        self.frames
+            .iter()
+            .find(|frame| frame.name == name)
+            .cloned()
+            .unwrap_or_else(|| self.default_frame())
+    }
+}
+
+/// Reads `LATITUDE` and `LONGITUDE`, which go together.
+fn place(lookup: &impl Fn(&str) -> Option<String>) -> Result<Option<Place>, ConfigError> {
+    let latitude: Option<f32> = optional(lookup, "LATITUDE")?;
+    let longitude: Option<f32> = optional(lookup, "LONGITUDE")?;
+    match (latitude, longitude) {
+        (Some(latitude), Some(longitude)) if latitude.abs() <= 90.0 && longitude.abs() <= 180.0 => {
+            Ok(Some(Place {
+                latitude,
+                longitude,
+            }))
+        }
+        (None, None) => Ok(None),
+        _ => Err(ConfigError {
+            variable: "LATITUDE",
+            problem: String::from("set both LATITUDE and LONGITUDE, in degrees"),
+        }),
     }
 }
 
@@ -272,6 +432,46 @@ mod test {
         assert_eq!(config.language, "sv");
         assert!(!config.names);
         assert_eq!(config.heading.as_deref(), Some("Fåglar"));
+    }
+
+    #[test]
+    fn frames_views_weather_and_home_assistant() {
+        let config = config(&[
+            ("BIRDNET_URL", "mock"),
+            ("LAYOUT", "list"),
+            ("VIEW", "story"),
+            ("FRAMES", "hall:layout=collage;desk:panel=7.3"),
+            ("LATITUDE", "59.33"),
+            ("LONGITUDE", "18.07"),
+            ("MQTT_URL", "mqtt://frame:s3cret@broker.lan"),
+        ])
+        .expect("valid");
+        assert_eq!(config.frame("hall").layout, Layout::Collage);
+        assert_eq!(config.frame("desk").layout, Layout::List);
+        assert_eq!(config.frame("desk").view, PageView::Story);
+        assert_eq!(config.frame("attic").name, "default");
+        assert_eq!(config.place.map(|place| place.latitude), Some(59.33));
+        let mqtt: Mqtt = config.mqtt.expect("an MQTT broker");
+        assert_eq!(mqtt.address, "broker.lan:1883");
+        assert_eq!(
+            mqtt.login,
+            Some((String::from("frame"), String::from("s3cret")))
+        );
+        assert!(!format!("{mqtt:?}").contains("s3cret"), "kept out of logs");
+        let half = config_error(&[("BIRDNET_URL", "mock"), ("LATITUDE", "59")]);
+        assert_eq!(half, Some("LATITUDE"));
+        assert_eq!(
+            config_error(&[("BIRDNET_URL", "mock"), ("FRAMES", "Hall")]),
+            Some("FRAMES")
+        );
+        assert_eq!(
+            config_error(&[("BIRDNET_URL", "mock"), ("MQTT_URL", "http://x")]),
+            Some("MQTT_URL")
+        );
+    }
+
+    fn config_error(pairs: &[(&str, &str)]) -> Option<&'static str> {
+        config(pairs).err().map(|error| error.variable)
     }
 
     #[test]

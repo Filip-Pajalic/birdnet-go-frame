@@ -36,6 +36,7 @@ mod artist;
 mod day_facts;
 mod layout;
 mod page_style;
+mod page_view;
 mod panel_bytes;
 mod year_facts;
 
@@ -43,5 +44,6 @@ pub use artist::Artist;
 pub use day_facts::{CHART_SPECIES, DayFacts};
 pub use layout::{Layout, ParseLayoutError};
 pub use page_style::PageStyle;
+pub use page_view::{PageView, ParseViewError};
 pub use panel_bytes::panel_bytes;
 pub use year_facts::{ARRIVAL_DAYS, YearFacts};

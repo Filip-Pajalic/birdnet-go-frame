@@ -107,7 +107,7 @@ fn span(options: &StoryOptions) -> (usize, usize) {
         .map(|mark| (mark.minute / 60).min(23) as usize);
     let first: usize = marked.clone().fold(first, usize::min);
     let last: usize = marked.fold(last, usize::max);
-    let hours: usize = (last + 1 - first).max(FEWEST_HOURS).min(24);
+    let hours: usize = (last + 1 - first).clamp(FEWEST_HOURS, 24);
     (first.min(24 - hours), hours)
 }
 

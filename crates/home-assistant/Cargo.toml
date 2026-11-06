@@ -1,0 +1,15 @@
+[package]
+name = "home-assistant"
+description = "Announces frames to Home Assistant over MQTT discovery: battery, last wake, firmware."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+birdnet-client.workspace = true
+frame-http.workspace = true
+
+[lints]
+workspace = true
