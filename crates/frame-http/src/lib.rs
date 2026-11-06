@@ -19,7 +19,7 @@ mod png_writer;
 mod rendered_page;
 mod target;
 
-pub use frame_server::FrameServer;
+pub use frame_server::{FrameServer, SleepPlan};
 pub use page_store::{PageMaker, PageStore};
 pub use panel_body::PanelBody;
 pub use rendered_page::{RenderError, RenderedPage};

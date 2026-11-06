@@ -9,6 +9,7 @@
 mod artist;
 mod config;
 mod poller;
+mod quiet_hours;
 
 use std::process::ExitCode;
 use std::sync::{Arc, Mutex};
@@ -52,7 +53,17 @@ fn main() -> ExitCode {
     };
     let store: Arc<PageStore> = Arc::new(PageStore::new(default_target));
     let server: FrameServer = match FrameServer::bind(&config.listen, Arc::clone(&store)) {
-        Ok(server) => server,
+        Ok(server) => match config.quiet_hours {
+            Some(quiet) => {
+                let offset_seconds: i64 = i64::from(config.utc_offset_minutes) * 60;
+                server.with_sleep_plan(move |poll_seconds| {
+                    let local: i64 = poller::now_unix_seconds() + offset_seconds;
+                    let of_day: u32 = u32::try_from(local.rem_euclid(86_400)).unwrap_or(0);
+                    quiet.sleep_seconds(of_day, poll_seconds)
+                })
+            }
+            None => server,
+        },
         Err(error) => {
             eprintln!(
                 "birdnet-go-frame: cannot listen on {}: {error}",

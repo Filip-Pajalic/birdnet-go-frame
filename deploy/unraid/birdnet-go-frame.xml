@@ -22,6 +22,7 @@
   <Config Name="Panel" Target="PANEL" Default="13.3" Mode="" Description="13.3 or 7.3: the panel served to clients that do not name one." Type="Variable" Display="advanced" Required="false" Mask="false">13.3</Config>
   <Config Name="Rotation" Target="ROTATION" Default="0" Mode="" Description="0, 90, 180 or 270: how the panel hangs. 90 and 270 are portrait." Type="Variable" Display="advanced" Required="false" Mask="false">0</Config>
   <Config Name="Poll minutes" Target="POLL_MINUTES" Default="15" Mode="" Description="How long the panel sleeps between checks." Type="Variable" Display="advanced" Required="false" Mask="false">15</Config>
+  <Config Name="Quiet hours" Target="QUIET_HOURS" Default="" Mode="" Description="Local hours the panel sleeps through in one go, e.g. 22-6. Empty: it wakes every poll, day and night." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="Window hours" Target="WINDOW_HOURS" Default="24" Mode="" Description="How far back detections count, rounded out to whole days." Type="Variable" Display="advanced" Required="false" Mask="false">24</Config>
   <Config Name="Layout" Target="LAYOUT" Default="collage" Mode="" Description="collage (pictures) or list (names and counts)." Type="Variable" Display="advanced" Required="false" Mask="false">collage</Config>
   <Config Name="Names" Target="NAMES" Default="true" Mode="" Description="Whether the collage writes each bird's name under it." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>

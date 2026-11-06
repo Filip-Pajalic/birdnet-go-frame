@@ -206,3 +206,24 @@ fn a_panel_wakes_draws_and_then_keeps_its_page() {
         state = wake.state;
     }
 }
+
+#[test]
+fn a_sleep_plan_sets_the_panels_max_age() {
+    let store: Arc<PageStore> = Arc::new(PageStore::new(Target::Panel {
+        panel: PanelSize::Inches7Point3,
+        rotation: Rotation::Degrees0,
+    }));
+    let server = FrameServer::bind("127.0.0.1:0", Arc::clone(&store))
+        .expect("bind")
+        .with_sleep_plan(|poll_seconds| poll_seconds * 8);
+    let address: String = server.local_addr().expect("address").to_string();
+    thread::spawn(move || server.run());
+    store.publish(Box::new(|target: Target| {
+        let resolution = target.resolution();
+        let page = IndexedImage::new(resolution, Ink::White);
+        let preview = Canvas::new(resolution, Rgb::WHITE);
+        RenderedPage::for_target(target, &page, &preview, 15).ok()
+    }));
+    let head: String = raw(&address, "GET /panel HTTP/1.1\r\n\r\n");
+    assert!(head.contains("Cache-Control: max-age=7200"), "{head}");
+}

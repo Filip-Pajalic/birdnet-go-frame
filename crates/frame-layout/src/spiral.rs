@@ -108,13 +108,18 @@ impl Page {
         }
     }
 
-    /// The first position on an outward walk from the middle where `shape` fits.
+    /// The first position on an outward walk from the middle where `shape` fits. The rings are
+    /// ellipses with the page's proportions, so a cluster grows into the corners of a wide or
+    /// tall page instead of leaving them bare as circles would.
     fn first_free(&self, shape: &Shape) -> Option<(usize, usize)> {
         if shape.width > self.width || shape.height > self.height {
             return None;
         }
         let (centre_x, centre_y) = (self.width as f32 / 2.0, self.height as f32 / 2.0);
-        let reach: f32 = libm::hypotf(self.width as f32, self.height as f32);
+        // Ring radii are measured along the short side; the long side is stretched.
+        let short: f32 = self.width.min(self.height).max(1) as f32;
+        let stretch: (f32, f32) = (self.width as f32 / short, self.height as f32 / short);
+        let reach: f32 = libm::hypotf(centre_x / stretch.0, centre_y / stretch.1) + STEP;
         let half: (f32, f32) = (shape.width as f32 / 2.0, shape.height as f32 / 2.0);
         let try_at = |px: f32, py: f32| -> Option<(usize, usize)> {
             let (left, top) = (px - half.0, py - half.1);
@@ -130,12 +135,17 @@ impl Page {
         }
         let mut radius: f32 = STEP;
         while radius <= reach {
-            let count: usize = ((2.0 * PI * radius / STEP) as usize).max(8);
+            // About STEP pixels apart along the ellipse (Ramanujan's perimeter, roughly).
+            let (across, down) = (radius * stretch.0, radius * stretch.1);
+            let perimeter: f32 = PI
+                * (3.0 * (across + down)
+                    - libm::sqrtf((3.0 * across + down) * (across + 3.0 * down)));
+            let count: usize = ((perimeter / STEP) as usize).max(8);
             for index in 0..count {
                 let angle: f32 = 2.0 * PI * index as f32 / count as f32;
                 let spot = try_at(
-                    centre_x + radius * libm::cosf(angle),
-                    centre_y + radius * libm::sinf(angle),
+                    centre_x + across * libm::cosf(angle),
+                    centre_y + down * libm::sinf(angle),
                 );
                 if spot.is_some() {
                     return spot;
@@ -185,6 +195,27 @@ mod test {
             assert!(page.fits(&shape, x, y), "overlap at {x},{y}");
             page.place(&shape, x, y);
         }
+    }
+
+    #[test]
+    fn a_wide_page_fills_sideways() {
+        let footprints: Vec<Footprint> = (0..12).map(|_| square(20)).collect();
+        let corners = pack(&footprints, 300, 100).expect("room enough");
+        let (left, right) = corners
+            .iter()
+            .fold((usize::MAX, 0), |(low, high), &(x, _)| {
+                (low.min(x), high.max(x + 20))
+            });
+        let (top, bottom) = corners
+            .iter()
+            .fold((usize::MAX, 0), |(low, high), &(_, y)| {
+                (low.min(y), high.max(y + 20))
+            });
+        let (across, down) = (right - left, bottom - top);
+        assert!(
+            across >= 2 * down,
+            "{across} x {down}: the cluster takes the page's shape"
+        );
     }
 
     #[test]

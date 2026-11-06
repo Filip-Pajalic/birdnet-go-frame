@@ -25,6 +25,12 @@ const MAX_SHARE: f32 = 0.7;
 /// Times the set is shrunk by [`SHRINK`] looking for a size that fits.
 const ATTEMPTS: i32 = 20;
 const SHRINK: f32 = 0.9;
+/// When the first size fits with room to spare, the set grows by this much a step, up to
+/// [`GROW_STEPS`] times, so a page of a few birds fills it instead of leaving bare paper.
+const GROW: f32 = 1.06;
+const GROW_STEPS: i32 = 8;
+/// Halvings tried between the first size that fits and the one before it.
+const SIZE_REFINE: usize = 3;
 /// The smallest a bird is drawn, in pack pixels.
 const SMALLEST: usize = 24;
 /// The smallest a name is set, in pack pixels.
@@ -212,6 +218,11 @@ impl Collage {
 /// Packed sprites, their corners, and the name size they were packed with.
 type Packed = (Vec<Sprite>, Vec<(usize, usize)>, f32);
 
+/// The name size `packed` used, or none when names are off.
+fn packed_name(packed: &Packed, name_px: Option<f32>) -> Option<f32> {
+    name_px.map(|_| packed.2)
+}
+
 /// The area birds are packed into, in pack pixels.
 struct Window {
     left: f32,
@@ -235,11 +246,39 @@ impl Packer<'_> {
     /// back towards a share of the middle bird's size, as far as the packing allows. Returns
     /// the sprites, their corners (centred) and the name size used.
     fn fit(&self, name_px: Option<f32>) -> Option<Packed> {
-        let (shrink, packed): (f32, Packed) = (0..ATTEMPTS).find_map(|step| {
-            let shrink: f32 = libm::powf(SHRINK, step as f32);
-            let px: Option<f32> = name_px.map(|px| (px * shrink).max(SMALLEST_NAME));
-            Some((shrink, self.attempt(shrink, px)?))
-        })?;
+        let (step, mut shrink, mut packed): (i32, f32, Packed) =
+            (0..ATTEMPTS).find_map(|step| {
+                let shrink: f32 = libm::powf(SHRINK, step as f32);
+                let px: Option<f32> = name_px.map(|px| (px * shrink).max(SMALLEST_NAME));
+                Some((step, shrink, self.attempt(shrink, px)?))
+            })?;
+        if step == 0 {
+            // Room to spare: grow until the next step would not fit or a bird gets too big.
+            let short: f32 = self.window.width.min(self.window.height) as f32;
+            let heaviest: f32 = self.weights.iter().copied().fold(0.0, f32::max);
+            for _ in 0..GROW_STEPS {
+                let bigger: f32 = shrink * GROW;
+                if self.base * bigger * heaviest > short * MAX_SHARE {
+                    break;
+                }
+                match self.attempt(bigger, packed_name(&packed, name_px)) {
+                    Some(grown) => (shrink, packed) = (bigger, grown),
+                    None => break,
+                }
+            }
+        } else {
+            // The step before did not fit; the best size lies between. Halve the gap a few
+            // times, so the birds come out as big as the page allows, out to its corners.
+            let mut fails: f32 = shrink / SHRINK;
+            for _ in 0..SIZE_REFINE {
+                let middle: f32 = (shrink + fails) / 2.0;
+                let px: Option<f32> = name_px.map(|px| (px * middle).max(SMALLEST_NAME));
+                match self.attempt(middle, px) {
+                    Some(grown) => (shrink, packed) = (middle, grown),
+                    None => fails = middle,
+                }
+            }
+        }
         let Some(largest) = name_px else {
             return Some(packed);
         };

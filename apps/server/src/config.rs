@@ -7,6 +7,8 @@ use std::{env, fmt};
 
 use frame_core::{PanelSize, Rotation};
 
+use crate::quiet_hours::QuietHours;
+
 /// Where detections come from.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Source {
@@ -50,6 +52,8 @@ pub struct Config {
     pub rotation: Rotation,
     /// Minutes the panel sleeps between checks, sent as `Cache-Control: max-age` on `/panel`.
     pub poll_minutes: u8,
+    /// Local hours the panel sleeps through in one go, e.g. 22 to 6.
+    pub quiet_hours: Option<QuietHours>,
     /// How far back detections count.
     pub window_hours: u32,
     /// The garden's time zone, minutes east of UTC.
@@ -119,6 +123,7 @@ impl Config {
             panel: parsed(&lookup, "PANEL", PanelSize::Inches13Point3)?,
             rotation: parsed(&lookup, "ROTATION", Rotation::Degrees0)?,
             poll_minutes: parsed(&lookup, "POLL_MINUTES", 15)?,
+            quiet_hours: optional(&lookup, "QUIET_HOURS")?,
             window_hours: parsed(&lookup, "WINDOW_HOURS", 24)?,
             utc_offset_minutes: parsed(&lookup, "UTC_OFFSET_MINUTES", 0)?,
             refresh: Duration::from_secs(parsed(&lookup, "REFRESH_SECONDS", 60)?),
@@ -156,6 +161,27 @@ where
     }
 }
 
+/// Like [`parsed`], for a setting that may be left out or empty.
+fn optional<T: FromStr>(
+    lookup: &impl Fn(&str) -> Option<String>,
+    variable: &'static str,
+) -> Result<Option<T>, ConfigError>
+where
+    T::Err: fmt::Display,
+{
+    match lookup(variable).filter(|value| !value.trim().is_empty()) {
+        None => Ok(None),
+        Some(text) => text
+            .trim()
+            .parse()
+            .map(Some)
+            .map_err(|error: T::Err| ConfigError {
+                variable,
+                problem: format!("cannot read {text:?}: {error}"),
+            }),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
@@ -178,6 +204,7 @@ mod test {
             Source::Live(String::from("http://birdnet:8080"))
         );
         assert_eq!(config.poll_minutes, 15);
+        assert_eq!(config.quiet_hours, None);
         assert_eq!(config.rotation, Rotation::Degrees0);
         assert_eq!(config.panel, PanelSize::Inches13Point3);
         assert_eq!(config.layout, Layout::Collage);
@@ -186,6 +213,16 @@ mod test {
         assert!(config.names);
         assert_eq!(config.language, "en");
         assert_eq!(config.art_dir, None);
+    }
+
+    #[test]
+    fn quiet_hours() {
+        let night = config(&[("BIRDNET_URL", "mock"), ("QUIET_HOURS", "22-6")]).expect("valid");
+        assert_eq!(night.quiet_hours, "22-6".parse().ok());
+        let empty = config(&[("BIRDNET_URL", "mock"), ("QUIET_HOURS", " ")]).expect("valid");
+        assert_eq!(empty.quiet_hours, None);
+        let bad = config(&[("BIRDNET_URL", "mock"), ("QUIET_HOURS", "night")]);
+        assert_eq!(bad.map_err(|error| error.variable), Err("QUIET_HOURS"));
     }
 
     #[test]

@@ -11,11 +11,24 @@ use crate::panel_body::PanelBody;
 use crate::rendered_page::RenderedPage;
 use crate::target::Target;
 
+/// Seconds a panel should sleep if asked now, given the page's own poll time in seconds.
+pub type SleepPlan = dyn Fn(u32) -> u32 + Send + Sync;
+
 /// Serves the pages in a [`PageStore`].
-#[derive(Debug)]
 pub struct FrameServer {
     server: Server,
     store: Arc<PageStore>,
+    sleep: Arc<SleepPlan>,
+}
+
+impl std::fmt::Debug for FrameServer {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("FrameServer")
+            .field("server", &self.server)
+            .field("store", &self.store)
+            .finish_non_exhaustive()
+    }
 }
 
 impl FrameServer {
@@ -28,7 +41,16 @@ impl FrameServer {
         Ok(Self {
             server: Server::bind(address)?,
             store,
+            sleep: Arc::new(|poll_seconds| poll_seconds),
         })
+    }
+
+    /// Decides how long panels sleep, e.g. longer at night: `sleep` gets the page's poll time
+    /// in seconds and returns the `max-age` to send. By default it is the poll time.
+    #[must_use]
+    pub fn with_sleep_plan(mut self, sleep: impl Fn(u32) -> u32 + Send + Sync + 'static) -> Self {
+        self.sleep = Arc::new(sleep);
+        self
     }
 
     /// Returns the address actually bound, useful when binding port 0 in tests.
@@ -43,11 +65,13 @@ impl FrameServer {
     /// Answers requests until the process exits.
     pub fn run(&self) {
         let store: Arc<PageStore> = Arc::clone(&self.store);
-        self.server.run(move |request| answer(&store, request));
+        let sleep: Arc<SleepPlan> = Arc::clone(&self.sleep);
+        self.server
+            .run(move |request| answer(&store, sleep.as_ref(), request));
     }
 }
 
-fn answer(store: &PageStore, request: &Request) -> Response {
+fn answer(store: &PageStore, sleep: &SleepPlan, request: &Request) -> Response {
     let path: &str = request.path();
     if path == "/" {
         return Response::new(200, INDEX).with_header("Content-Type", "text/html; charset=utf-8");
@@ -81,7 +105,7 @@ fn answer(store: &PageStore, request: &Request) -> Response {
     };
     match path {
         "/panel" => match &page.panel {
-            Some(body) => panel(request, &page, body),
+            Some(body) => panel(request, &page, body, sleep),
             None => Response::text(500, "the page could not be packed"),
         },
         "/frame.png" => cached(
@@ -110,7 +134,7 @@ const INDEX: &str = "<!doctype html><meta charset=utf-8><title>birdnet-go-frame<
 
 /// Sends the panel's bytes, compressed when the client accepts `deflate`, with how long it
 /// should sleep as the time the page stays fresh.
-fn panel(request: &Request, page: &RenderedPage, body: &PanelBody) -> Response {
+fn panel(request: &Request, page: &RenderedPage, body: &PanelBody, sleep: &SleepPlan) -> Response {
     let compressed: bool = request
         .header("Accept-Encoding")
         .is_some_and(accepts_deflate);
@@ -121,10 +145,11 @@ fn panel(request: &Request, page: &RenderedPage, body: &PanelBody) -> Response {
     } else {
         (&body.plain, page.etag.clone())
     };
-    let fresh: String = if page.poll_minutes == 0 {
+    let seconds: u32 = sleep(u32::from(page.poll_minutes) * 60);
+    let fresh: String = if seconds == 0 {
         no_cache()
     } else {
-        format!("max-age={}", u32::from(page.poll_minutes) * 60)
+        format!("max-age={seconds}")
     };
     let response: Response = cached(request, &etag, bytes, "application/octet-stream", fresh)
         .with_header("Vary", "Accept-Encoding");
