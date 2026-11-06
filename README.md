@@ -110,7 +110,7 @@ driving the panel, or on the ESP32 itself.
 
 | Path | What | State |
 | --- | --- | --- |
-| `crates/frame-core` | `no_std`: inks, panel geometry, the controllers' byte layout, CRC-32 | Done; pixel bytes match fugleramme's |
+| `crates/frame-core` | `no_std`: inks, panel geometry, the controllers' byte layout, CRC-32, a zlib inflater | Done; pixel bytes match fugleramme's |
 | `crates/lite-json` | `no_std` + `alloc`: a small JSON reader, in place of serde | Done |
 | `crates/birdnet-model` | `no_std` + `alloc`: BirdNET-Go response types | Done |
 | `crates/birdnet-client` | `no_std` + `alloc`: API client, generic over an `HttpTransport` | Done (no private-mode login yet) |
@@ -128,6 +128,7 @@ driving the panel, or on the ESP32 itself.
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
 | `crates/panel-t133a01` | `no_std`: the 13.3" panel's two controllers over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
+| `crates/panel-wake` | `no_std` + `alloc`: each wake's request, unpacking and checking the page, sleep and back-off, RTC state | Done; tested against the real server |
 | `crates/transport-esp`, `tools/art-packer` | ESP32 networking, art on an SD card | Planned |
 | `apps/ee02-thin`, `apps/ee02-standalone`, `apps/linux-panel` | ESP32 and Pi firmware | Planned |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |

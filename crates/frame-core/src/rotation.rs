@@ -30,6 +30,12 @@ impl Rotation {
         }
     }
 
+    /// Returns the turn in degrees: 0, 90, 180 or 270.
+    #[must_use]
+    pub fn degrees(self) -> u16 {
+        u16::from(self.quarter_turns()) * 90
+    }
+
     /// Returns whether the page is portrait on a landscape panel.
     #[must_use]
     pub fn is_portrait(self) -> bool {

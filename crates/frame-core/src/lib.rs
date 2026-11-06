@@ -10,6 +10,7 @@ extern crate alloc;
 
 mod crc32;
 mod indexed_image;
+mod inflate;
 mod ink;
 mod page_size_error;
 pub mod panel_bytes;
@@ -20,6 +21,7 @@ mod rotation;
 
 pub use crc32::Crc32;
 pub use indexed_image::IndexedImage;
+pub use inflate::{InflateError, inflate_zlib};
 pub use ink::Ink;
 pub use page_size_error::PageSizeError;
 pub use panel_size::{PanelSize, ParsePanelSizeError};

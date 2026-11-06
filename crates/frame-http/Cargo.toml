@@ -12,5 +12,9 @@ frame-core.workspace = true
 frame-raster.workspace = true
 lan-http.workspace = true
 
+[dev-dependencies]
+# The panel's side of /panel, to prove the two agree.
+panel-wake.workspace = true
+
 [lints]
 workspace = true

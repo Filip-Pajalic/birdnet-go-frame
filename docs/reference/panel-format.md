@@ -65,8 +65,8 @@ each, with no split.
 ## Reading it on a device
 
 1. Connect, send the request above, and read the status. On `304`, go back to sleep.
-2. Inflate the body into PSRAM as it arrives (the ESP32-S3 has an inflater in ROM; in Rust,
-   `miniz_oxide` works without `std`).
+2. Inflate the body into the page buffer in PSRAM (`frame_core::inflate_zlib` needs no
+   allocation; `panel-wake` does steps 2 to 5 and keeps the ETag in RTC memory).
 3. Check the inflated length, and that the stream ended cleanly or its CRC-32 matches the `ETag`.
 4. Send the bytes to the controllers in the order above, refresh, and keep the `ETag`.
 5. Sleep for the `max-age`.

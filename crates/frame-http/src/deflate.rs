@@ -459,105 +459,13 @@ impl BitWriter {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use super::*;
 
-    /// Reads bits least significant first.
-    struct Bits<'a> {
-        data: &'a [u8],
-        at: usize,
-    }
-
-    impl Bits<'_> {
-        fn bit(&mut self) -> u32 {
-            let value: u32 = u32::from(self.data[self.at / 8] >> (self.at % 8)) & 1;
-            self.at += 1;
-            value
-        }
-
-        fn read(&mut self, width: u8) -> u32 {
-            (0..width).fold(0, |value, index| value | (self.bit() << index))
-        }
-
-        fn symbol(&mut self, table: &HashMap<(u8, u32), usize>) -> usize {
-            let mut code: u32 = 0;
-            for length in 1..=15 {
-                code = (code << 1) | self.bit();
-                if let Some(&symbol) = table.get(&(length, code)) {
-                    return symbol;
-                }
-            }
-            panic!("no code matches");
-        }
-    }
-
-    fn table(lengths: &[u8]) -> HashMap<(u8, u32), usize> {
-        canonical_codes(lengths)
-            .into_iter()
-            .enumerate()
-            .filter(|&(symbol, _)| lengths[symbol] > 0)
-            .map(|(symbol, code)| ((lengths[symbol], code), symbol))
-            .collect()
-    }
-
-    /// A test-only inflater for dynamic-Huffman blocks, to prove the stream decodes.
+    /// Inflates with the panel's own inflater, which checks the Adler-32 too.
     fn inflate(stream: &[u8]) -> Vec<u8> {
-        assert_eq!(u16::from_be_bytes([stream[0], stream[1]]) % 31, 0);
-        let mut bits = Bits {
-            data: &stream[2..stream.len() - 4],
-            at: 0,
-        };
-        let mut out: Vec<u8> = Vec::new();
-        loop {
-            let last: bool = bits.read(1) == 1;
-            assert_eq!(bits.read(2), 2, "dynamic block");
-            let literal_used: usize = bits.read(5) as usize + 257;
-            let distance_used: usize = bits.read(5) as usize + 1;
-            let length_used: usize = bits.read(4) as usize + 4;
-            let mut length_lengths: [u8; 19] = [0; 19];
-            for &symbol in &CODE_LENGTH_ORDER[..length_used] {
-                length_lengths[symbol] = bits.read(3) as u8;
-            }
-            let length_table = table(&length_lengths);
-            let mut lengths: Vec<u8> = Vec::new();
-            while lengths.len() < literal_used + distance_used {
-                match bits.symbol(&length_table) {
-                    16 => {
-                        let previous: u8 = *lengths.last().expect("a length to repeat");
-                        let times: u32 = 3 + bits.read(2);
-                        lengths.extend((0..times).map(|_| previous));
-                    }
-                    17 => lengths.extend((0..3 + bits.read(3)).map(|_| 0)),
-                    18 => lengths.extend((0..11 + bits.read(7)).map(|_| 0)),
-                    length => lengths.push(length as u8),
-                }
-            }
-            let literals = table(&lengths[..literal_used]);
-            let distances = table(&lengths[literal_used..]);
-            loop {
-                let symbol: usize = bits.symbol(&literals);
-                match symbol {
-                    0..=255 => out.push(symbol as u8),
-                    256 => break,
-                    _ => {
-                        let index: usize = symbol - 257;
-                        let length: usize = usize::from(LENGTH_BASE[index])
-                            + bits.read(LENGTH_EXTRA[index]) as usize;
-                        let index: usize = bits.symbol(&distances);
-                        let distance: usize = usize::from(DISTANCE_BASE[index])
-                            + bits.read(DISTANCE_EXTRA[index]) as usize;
-                        for _ in 0..length {
-                            out.push(out[out.len() - distance]);
-                        }
-                    }
-                }
-            }
-            if last {
-                break;
-            }
-        }
-        assert_eq!(stream[stream.len() - 4..], adler32(&out).to_be_bytes());
+        let mut out: Vec<u8> = vec![0; 1 << 20];
+        let length: usize = frame_core::inflate_zlib(stream, &mut out).expect("inflates");
+        out.truncate(length);
         out
     }
 

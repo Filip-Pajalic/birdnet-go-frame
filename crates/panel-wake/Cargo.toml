@@ -1,0 +1,14 @@
+[package]
+name = "panel-wake"
+description = "What a panel does each time it wakes: ask for /panel, unpack and check the page, plan the sleep."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+frame-core.workspace = true
+
+[lints]
+workspace = true

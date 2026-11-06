@@ -70,7 +70,7 @@ jobs:
           cargo build --locked --target thumbv7em-none-eabihf
           -p frame-core -p birdnet-model -p birdnet-client -p birdnet-mock
           -p frame-layout -p frame-raster -p art-pack -p art-mock -p bird-sizes
-          -p lite-json -p page-text -p panel-t133a01
+          -p lite-json -p page-text -p panel-t133a01 -p panel-wake
 
   docs:
     name: Docs build without warnings

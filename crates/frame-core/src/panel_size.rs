@@ -26,6 +26,16 @@ impl PanelSize {
     }
 }
 
+impl fmt::Display for PanelSize {
+    /// Writes the diagonal as the server's `panel=` takes it: `7.3` or `13.3`.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Inches7Point3 => "7.3",
+            Self::Inches13Point3 => "13.3",
+        })
+    }
+}
+
 /// The error returned for a panel size other than `7.3` or `13.3`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ParsePanelSizeError;

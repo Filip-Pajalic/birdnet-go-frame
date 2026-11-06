@@ -18,6 +18,7 @@ members = [
     "crates/lite-json",
     "crates/page-text",
     "crates/panel-t133a01",
+    "crates/panel-wake",
     "crates/transport-lan",
 ]
 
@@ -44,6 +45,7 @@ lan-http = { path = "crates/lan-http", version = "0.1.0" }
 lite-json = { path = "crates/lite-json", version = "0.1.0" }
 page-text = { path = "crates/page-text", version = "0.1.0" }
 panel-t133a01 = { path = "crates/panel-t133a01", version = "0.1.0" }
+panel-wake = { path = "crates/panel-wake", version = "0.1.0" }
 transport-lan = { path = "crates/transport-lan", version = "0.1.0" }
 
 # Third-party crates. Keep this list short: see docs/explanation/dependencies.md before adding one.

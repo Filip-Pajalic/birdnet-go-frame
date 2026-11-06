@@ -147,3 +147,62 @@ fn serves_every_size_asked_for() {
     assert_eq!(fetch("/panel?panel=5").status, 400);
     assert_eq!(fetch("/preview.png?w=99999&h=2").status, 400);
 }
+
+#[test]
+fn a_panel_wakes_draws_and_then_keeps_its_page() {
+    use panel_wake::{ResponseHead, SleepLimits, WakeState, page_request};
+
+    let store: Arc<PageStore> = Arc::new(PageStore::new(Target::Panel {
+        panel: PanelSize::Inches13Point3,
+        rotation: Rotation::Degrees0,
+    }));
+    let server = FrameServer::bind("127.0.0.1:0", Arc::clone(&store)).expect("bind");
+    let address: String = server.local_addr().expect("address").to_string();
+    thread::spawn(move || server.run());
+    // Stripes of every ink, so the page is not trivially compressible.
+    let target = Target::Panel {
+        panel: PanelSize::Inches13Point3,
+        rotation: Rotation::Degrees90,
+    };
+    let resolution = target.resolution();
+    let pixels: Vec<Ink> = (0..resolution.area())
+        .map(|index| Ink::ALL[(index / 7 + index / 1200) % 6])
+        .collect();
+    let page = IndexedImage::from_pixels(resolution, pixels).expect("fills");
+    let preview = Canvas::new(resolution, Rgb::WHITE);
+    let expected: Vec<u8> =
+        panel_bytes::pack(PanelSize::Inches13Point3, &page, Rotation::Degrees90).expect("packs");
+    store.publish(Box::new(move |asked: Target| {
+        RenderedPage::for_target(asked, &page, &preview, 30).ok()
+    }));
+
+    let mut glass: Vec<u8> = vec![0; panel_bytes::len(PanelSize::Inches13Point3)];
+    let mut state = WakeState::default();
+    for wake_number in 0..2 {
+        let request: String = page_request(
+            &address,
+            PanelSize::Inches13Point3,
+            Some(Rotation::Degrees90),
+            state.etag(),
+        );
+        let reply: Vec<u8> = raw_bytes(&address, &request);
+        let (head_text, body) = split(&reply);
+        let head = ResponseHead::parse(head_text.as_bytes()).expect("HTTP");
+        let wake = state.after_response(&head, body, &mut glass, SleepLimits::default());
+        assert_eq!(wake.error, None);
+        assert_eq!(wake.sleep_seconds, 30 * 60);
+        if wake_number == 0 {
+            assert!(wake.show, "the first wake draws");
+            assert!(
+                head.deflate && body.len() < expected.len() / 4,
+                "{}",
+                body.len()
+            );
+            assert_eq!(glass, expected);
+        } else {
+            assert!(!wake.show, "the second wake keeps the page");
+            assert_eq!(head.status, 304);
+        }
+        state = wake.state;
+    }
+}

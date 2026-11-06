@@ -2,7 +2,7 @@
 
 | Crate | `no_std` | Purpose | Key items |
 | --- | --- | --- | --- |
-| `frame-core` | yes | Shared page format | `Ink`, `Rotation`, `PanelSize`, `IndexedImage`, `PageSizeError`, `Crc32`, `panel_bytes::pack` |
+| `frame-core` | yes | Shared page format, and unpacking it | `Ink`, `Rotation`, `PanelSize`, `IndexedImage`, `PageSizeError`, `Crc32`, `panel_bytes::pack`, `inflate_zlib` |
 | `lite-json` | yes (alloc) | A small JSON reader, in place of serde | `Json`, `JsonError` |
 | `birdnet-model` | yes (alloc) | BirdNET-Go response types | `SpeciesSummary`, `Detection`, `ScientificName` |
 | `birdnet-client` | yes (alloc) | API client | `BirdnetClient<T>`, `HttpTransport`, `DateWindow`, `CivilDate` |
@@ -18,6 +18,7 @@
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
+| `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `page_request` |
 
 | App | Binary | Uses |
 | --- | --- | --- |

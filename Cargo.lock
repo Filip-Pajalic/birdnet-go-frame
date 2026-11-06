@@ -122,6 +122,7 @@ dependencies = [
  "frame-core",
  "frame-raster",
  "lan-http",
+ "panel-wake",
 ]
 
 [[package]]
@@ -191,6 +192,13 @@ name = "panel-t133a01"
 version = "0.1.0"
 dependencies = [
  "embedded-hal",
+]
+
+[[package]]
+name = "panel-wake"
+version = "0.1.0"
+dependencies = [
+ "frame-core",
 ]
 
 [[package]]
