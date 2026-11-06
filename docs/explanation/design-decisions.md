@@ -61,7 +61,7 @@ places:
 
 | Trait | Lets you swap |
 | --- | --- |
-| `HttpTransport` (`birdnet-client`) | Desktop networking (`transport-lan`), the simulated station (`birdnet-mock`), or ESP32 networking (planned) |
+| `HttpTransport` (`birdnet-client`) | Desktop networking (`transport-lan`), the simulated station (`birdnet-mock`), or ESP32 networking for a panel that renders its own page (planned) |
 | `ArtSource` (`art-pack`) | Where bird pictures come from: generated (`art-mock`), fugleramme's webp folders (`art-webp`), or an SD card (planned) |
 | `embedded-hal` 1.0 traits (`panel-t133a01`) | Which board drives the panel: ESP32, a Raspberry Pi, or the mock bus in its tests |
 

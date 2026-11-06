@@ -29,7 +29,7 @@ flowchart LR
 | --- | --- | --- |
 | BirdNET-Go | Unraid | Detects birds from audio. birdnet-go-frame only reads its HTTP API. |
 | Server (`apps/server`) | Unraid | Polls BirdNET-Go, redraws the page when the set of species changes, serves it. |
-| Panel firmware | ESP32-S3 | Wakes on a timer, asks for the page with its ETag, redraws only on a change, sleeps. Built from `panel-wake` (what to ask, what to do with the answer, how long to sleep) and `panel-t133a01` (the panel's controllers); the app around them is next. |
+| Panel firmware | ESP32-S3 | Wakes on a timer, asks for the page with its ETag, redraws only on a change, sleeps. `apps/ee02-thin`, built from `panel-wake` (what to ask, what to do with the answer, how long to sleep, what to remember), `transport-esp` (Wi-Fi with fast rejoin, the HTTP request) and `panel-t133a01` (the panel's controllers). See [the firmware reference](../reference/firmware.md). |
 
 ## One cycle, step by step
 

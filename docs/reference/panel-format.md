@@ -71,6 +71,8 @@ each, with no split.
 4. Send the bytes to the controllers in the order above, refresh, and keep the `ETag`.
 5. Sleep for the `max-age`.
 
+`apps/ee02-thin` does exactly this; see [the firmware reference](firmware.md).
+
 ## Why not fugleramme's `.e6`
 
 fugleramme's EE02 firmware is MicroPython, where decoding a PNG is out of reach, so it asks for

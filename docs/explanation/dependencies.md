@@ -10,6 +10,8 @@ SPI, pin and delay traits every embedded Rust HAL implements. `panel-t133a01` is
 it, so the same driver runs on the ESP32 and against the mock bus in its tests. The server does
 not link it.
 
+The ESP32 firmware has its own list: see [The firmware](#the-firmware).
+
 ## What is used
 
 ```mermaid
@@ -46,6 +48,37 @@ vulnerability, and here it only parses the font embedded in our own binary, neve
 the network, so `deny.toml` accepts it with that reason. If fontdue does not move to a maintained
 parser, the options are a fork of fontdue on `skrifa`, or pre-rendering the glyphs the pages use
 into a small bitmap font at build time, which would remove all eight of fontdue's crates.
+
+## The firmware
+
+`apps/ee02-thin` and `crates/transport-esp` build only for the ESP32-S3, in their own workspace
+with their own `Cargo.lock`. Their twelve direct third-party crates all come from the two projects
+that make embedded Rust on the ESP32 work: Espressif's [esp-rs](https://github.com/esp-rs) and
+[Embassy](https://embassy.dev). Every one has its default features turned off.
+
+| Crate | Why | Licence |
+| --- | --- | --- |
+| `esp-hal` | The chip: clocks, GPIO and pad holds, SPI, PSRAM, RTC memory, deep sleep | MIT OR Apache-2.0 |
+| `esp-radio` | Wi-Fi, around Espressif's binary radio driver. Still a 1.0 beta, the newest release | MIT OR Apache-2.0 |
+| `esp-rtos` | The scheduler `esp-radio` needs, and the embassy executor the firmware runs on | MIT OR Apache-2.0 |
+| `esp-alloc` | The heap: internal RAM for the radio, PSRAM for the 960 KB page | MIT OR Apache-2.0 |
+| `esp-bootloader-esp-idf` | The app descriptor the ESP-IDF second-stage bootloader checks | MIT OR Apache-2.0 |
+| `esp-println`, `esp-backtrace` | Logs and panic messages over the USB serial port | MIT OR Apache-2.0 |
+| `embassy-net` | TCP/IP and DHCP (on `smoltcp`); TCP and IPv4 only, no DNS, no UDP sockets | MIT OR Apache-2.0 |
+| `embassy-executor`, `embassy-time`, `embassy-futures` | The async runtime's types, timeouts, and running the network stack beside the request without a spawned task | MIT OR Apache-2.0 |
+| `portable-atomic` | Atomics esp-hal lets live in RTC memory, so keeping state through deep sleep needs no `unsafe`. Already a dependency of esp-hal | Apache-2.0 OR MIT |
+
+They bring about 120 more crates, most of them build-time only (proc macros, `syn`, `toml_edit`
+for esp-hal's configuration). That is the price of Espressif's supported stack, and smaller than
+the alternative: `esp-idf-svc` builds all of ESP-IDF in C with CMake and Python. Things the
+firmware deliberately does without: `static_cell` (the network stack lives in the fetch's own
+stack frame, not a `'static`), `log` (it prints directly), `heapless`, `embedded-io-async`, an
+HTTP client crate (`transport-esp::get` is 60 lines over a TCP socket, and `panel-wake` reads
+the response) and a zlib crate (`frame_core::inflate_zlib`).
+
+Dependabot watches the firmware's lock file as one group, since Espressif's crates release
+together, and the CI firmware build checks each update. `cargo deny` runs on the root workspace
+only.
 
 ## What was replaced, and with what
 

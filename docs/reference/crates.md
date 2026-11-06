@@ -18,19 +18,19 @@
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
-| `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `page_request` |
+| `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `page_request` |
+| `transport-esp` | yes (alloc) | ESP32 Wi-Fi with fast rejoin and one HTTP GET, on `esp-radio` and `embassy-net`. Built only with the Xtensa toolchain, outside the root workspace | `join`, `network_config`, `wait_for_address`, `get`, `rejoin`, `WifiCredentials`, `TransportError` |
 
 | App | Binary | Uses |
 | --- | --- | --- |
 | `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + bird-sizes + page-text + layout + raster + http |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
+| `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
 
 ## Planned
 
 | Crate or app | Purpose |
 | --- | --- |
-| `transport-esp` | `HttpTransport` and Wi-Fi for the ESP32 |
-| `apps/ee02-thin` | ESP32 firmware that fetches `/panel`: Wi-Fi and deep sleep around `panel-wake` and `panel-t133a01` |
 | `apps/ee02-standalone` | ESP32 firmware that renders the page itself |
 | `apps/linux-panel` | Raspberry Pi that renders and drives the panel |
 | `tools/art-packer` | Converts fugleramme's webp art to `.artp`, so the ESP32 can read plates from an SD card |

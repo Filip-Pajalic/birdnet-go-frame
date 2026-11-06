@@ -16,8 +16,12 @@ flowchart LR
 
 - Most wakes end at the 304: the server only changes the page when the set of species changes.
 - A real redraw is dominated by the panel refresh, which takes about 20 to 30 seconds.
-- Joining Wi-Fi is the biggest cost of a 304 wake. Remembering the access point, channel and a
-  static IP makes it much faster (for the firmware app, `apps/ee02-thin`).
+- Joining Wi-Fi is the biggest cost of a 304 wake. `apps/ee02-thin` remembers the access point,
+  its channel and the last DHCP lease in RTC memory (`panel_wake::Rejoin`), so later wakes skip
+  the channel scan and the DHCP round trip and reuse the address as a static one. A wake that
+  fails with them forgets them, so the next one scans and asks DHCP again.
+- The radio is off before the panel refresh starts, so the 30 seconds of refresh cost only the
+  panel's own current.
 
 The figures in this page are rough estimates until the power milestone measures them.
 
