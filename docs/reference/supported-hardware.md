@@ -36,9 +36,9 @@ to the panel. For the 13.3" panel that means PSRAM.
 | **ESP32-S3** with PSRAM (EE02, XIAO ESP32-S3 Sense or Plus, ESP32-S3-WROOM-1 N*R2/R8) | `xtensa-esp32s3-none-elf` | **Yes**: `ee02-thin` targets it | Fits; needs a 7.3" driver | Other S3 boards need the pin table in `apps/ee02-thin/src/glass.rs` and, for quad PSRAM, `PsramMode::QuadSpi` in `main.rs` |
 | ESP32-S3 without PSRAM | `xtensa-esp32s3-none-elf` | No: the page does not fit in 512 KB of SRAM next to Wi-Fi | Possibly | |
 | ESP32 (original) with PSRAM (WROVER) | `xtensa-esp32-none-elf` | Possible, untried | Possible | Needs a build of `ee02-thin` for that chip |
-| ESP32-C3, C6, H2 | `riscv32imc` / `riscv32imac` | No: no PSRAM | Possible, tight | Would also need streaming inflate |
+| ESP32-C3, C6 | `riscv32imc` / `riscv32imac` | No: no PSRAM | Possible, tight | Would also need streaming inflate |
 | ESP32-C5, C61 with PSRAM | RISC-V | Possible, untried | Possible | esp-hal support for their radios is newer |
-| ESP32-P4 | RISC-V | No: no Wi-Fi of its own | No | |
+| ESP32-H2, P4 | RISC-V | No: no Wi-Fi of their own | No | |
 
 The libraries the firmware shares with the server (`frame-core`, `panel-wake`,
 `panel-t133a01`) are `no_std` and build for any of these; only `apps/ee02-thin` and
