@@ -52,6 +52,18 @@ impl DateWindow {
         }
     }
 
+    /// Returns the whole calendar year before the one at `now_unix_seconds`, from the first of
+    /// January to the last of December.
+    #[must_use]
+    pub fn previous_year(now_unix_seconds: i64, utc_offset_minutes: i32) -> Self {
+        let this_year: CivilDate =
+            Self::local_date(now_unix_seconds, utc_offset_minutes).start_of_year();
+        Self {
+            start: this_year.year_earlier(),
+            end: this_year.add_days(-1),
+        }
+    }
+
     /// Returns the same dates a year earlier.
     #[must_use]
     pub fn year_earlier(self) -> Self {
@@ -125,6 +137,9 @@ mod test {
         assert_eq!(year.start.to_string(), "2026-01-01");
         assert_eq!(week.year_earlier().start.to_string(), "2025-10-31");
         assert!(week.contains(year.end) && !week.contains(year.start));
+        let last = DateWindow::previous_year(1_793_955_600, 0);
+        assert_eq!(last.start.to_string(), "2025-01-01");
+        assert_eq!(last.end.to_string(), "2025-12-31");
     }
 
     #[test]

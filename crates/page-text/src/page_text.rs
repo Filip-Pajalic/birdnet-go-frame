@@ -22,6 +22,9 @@ pub struct PageText {
     pub heading_week: String,
     /// The heading of the rarest page (`heading_rarest`).
     pub heading_rarest: String,
+    /// The heading of a page with no birds of its own, drawing one bird heard before
+    /// (`bird_of_the_day`).
+    pub bird_of_the_day: String,
     /// The heading when a bird is new for the year; `{name}` stands for it (`new_for_year`).
     pub new_for_year: String,
     /// The heading of the day's story (`story_heading`).
@@ -105,6 +108,7 @@ impl PageText {
             unreachable: String::from("Cannot reach BirdNET-Go"),
             heading_week: String::from("Heard this week"),
             heading_rarest: String::from("Rarest today"),
+            bird_of_the_day: String::from("Bird of the day"),
             new_for_year: String::from("New this year: {name}"),
             story_heading: String::from("The day so far"),
             first_song: String::from("First song {time}, {name}"),
@@ -181,6 +185,7 @@ impl PageText {
             "unreachable" => Some(&mut self.unreachable),
             "heading_week" => Some(&mut self.heading_week),
             "heading_rarest" => Some(&mut self.heading_rarest),
+            "bird_of_the_day" => Some(&mut self.bird_of_the_day),
             "new_for_year" => Some(&mut self.new_for_year),
             "story_heading" => Some(&mut self.story_heading),
             "first_song" => Some(&mut self.first_song),

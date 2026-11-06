@@ -129,6 +129,7 @@ mod test {
                 assert_ne!(words.more, english.more, "{code}");
                 assert_ne!(words.updated, english.updated, "{code}");
                 assert_ne!(words.unreachable, english.unreachable, "{code}");
+                assert_ne!(words.bird_of_the_day, english.bird_of_the_day, "{code}");
             }
             assert!(words.more.contains("{count}"), "{code}");
             assert!(words.updated.contains("{time}"), "{code}");

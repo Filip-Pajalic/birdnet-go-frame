@@ -192,6 +192,7 @@ fn draw<A: ArtSource>(
         new_today: &extras.new_today,
         day: extras.day.as_ref(),
         year: extras.year.as_ref(),
+        known: &extras.known,
         footer: &birds.footer,
     };
     artist.draw_view(view, &data, target.resolution())

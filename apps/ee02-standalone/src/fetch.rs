@@ -123,6 +123,12 @@ pub async fn fetch(
             let species: Vec<SpeciesSummary> = BirdnetAnswer::parse(&answer)?.species()?;
             fetched.answer(summary, species);
         }
+        // A page with no birds asks for the year, then last year, for the bird of the day.
+        while let Some((summary, path)) = fetched.next_fallback() {
+            let answer: Vec<u8> = ask(stack, birdnet, &path).await?;
+            let species: Vec<SpeciesSummary> = BirdnetAnswer::parse(&answer)?.species()?;
+            fetched.answer(summary, species);
+        }
         for path in fetched.hourly_paths() {
             let answer: Vec<u8> = ask(stack, birdnet, &path).await?;
             let hours: Vec<SpeciesHours> = BirdnetAnswer::parse(&answer)?.hours()?;

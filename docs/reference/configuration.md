@@ -88,6 +88,7 @@ file named by `TRANSLATIONS` has the same shape and wins word by word, so it can
 | `updated` | Foot of the list page | `{time}` |
 | `unreachable` | Heading when BirdNET-Go cannot be reached | |
 | `heading_week`, `heading_rarest` | Headings of the week and rarest pages | |
+| `bird_of_the_day` | Heading of a page with no birds of its own, showing one bird heard before | |
 | `new_for_year` | Heading when a bird is new for the year | `{name}` |
 | `story_heading` | Heading of the story page | |
 | `first_song`, `last_song` | The day's first and latest singer | `{time}`, `{name}` |

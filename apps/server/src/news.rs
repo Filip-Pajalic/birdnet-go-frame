@@ -21,6 +21,9 @@ pub struct Extras {
     pub day: Option<DayFacts>,
     /// The year so far.
     pub year: Option<YearFacts>,
+    /// This year's birds, or last year's while this year has none: where a page with no birds
+    /// of its own finds the bird of the day.
+    pub known: Vec<SpeciesSummary>,
     /// Counts fetches, so a page can tell new extras from old.
     pub generation: u64,
 }
@@ -89,6 +92,11 @@ impl<W: HttpTransport> News<W> {
         let year: Vec<SpeciesSummary> =
             client.species_summary(DateWindow::year_to_date(now, offset))?;
         let last_year: Vec<SpeciesSummary> = client.species_summary(week_window.year_earlier())?;
+        let known: Vec<SpeciesSummary> = if year.is_empty() {
+            client.species_summary(DateWindow::previous_year(now, offset))?
+        } else {
+            year.clone()
+        };
         let today_only: Vec<SpeciesSummary> =
             client.species_summary(DateWindow::days_back(now, offset, 1))?;
         let (recent, before) = YearFacts::arrival_windows(today);
@@ -118,6 +126,7 @@ impl<W: HttpTransport> News<W> {
             year: Some(YearFacts::new(almanac, arrivals, &week, &last_year)),
             week,
             new_today,
+            known,
             generation: 0,
         })
     }
