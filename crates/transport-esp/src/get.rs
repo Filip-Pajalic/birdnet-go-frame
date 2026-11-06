@@ -75,6 +75,11 @@ pub async fn get(
                 head.content_length
                     .map(|length| response.len() - body.len() + length)
             });
+            // Grown once to the full length, not doubled on the way: a firmware image is
+            // megabytes, and doubling would want twice that while it copies.
+            if let Some(expected) = expected {
+                response.reserve_exact(expected.min(limit).saturating_sub(response.len()));
+            }
         }
         if expected.is_some_and(|expected| response.len() >= expected) {
             break;
