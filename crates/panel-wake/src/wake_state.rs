@@ -111,6 +111,13 @@ impl WakeState {
         self.failed(WakeError::Network, limits)
     }
 
+    /// A new page came but the panel failed to show it. Call it on the state the wake started
+    /// with, not the one [`after_response`](Self::after_response) gave: the old ETag stays, so
+    /// the next wake downloads the page again instead of hearing `304`.
+    pub fn after_panel_failure(self, limits: SleepLimits) -> Wake {
+        self.failed(WakeError::Panel, limits)
+    }
+
     /// Keeps the page on the glass and backs off: each failure in a row doubles the sleep.
     fn failed(self, error: WakeError, limits: SleepLimits) -> Wake {
         let failures: u8 = self.failures.saturating_add(1);

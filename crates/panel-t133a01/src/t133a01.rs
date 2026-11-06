@@ -7,8 +7,8 @@ use embedded_hal::spi::{self, SpiBus};
 use crate::commands::{self, Chips};
 use crate::panel_error::PanelError;
 
-/// Bytes in one page: 1200x1600 pixels, two a byte.
-const PAGE_LEN: usize = 1200 * 1600 / 2;
+/// Bytes in one page: 1200x1600 pixels, two a byte. [`T133a01::draw`] takes exactly this many.
+pub const PAGE_LEN: usize = 1200 * 1600 / 2;
 /// Bytes sent between short pauses while a controller takes its half: 64 rows of 300 bytes.
 const CHUNK: usize = 64 * 300;
 /// How long BUSY may stay high after the refresh command before the refresh counts as not
