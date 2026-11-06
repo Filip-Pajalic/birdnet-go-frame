@@ -12,7 +12,7 @@
 | `art-pack` | yes (alloc) | Bird cut-outs, their `.artp` format, bundles of them for flash, no art, and plain ovals for tests | `ArtImage`, `ArtSource`, `ArtBundle`, `NoArt`, `OutlineArt`, `Rgba`, `Subject` |
 | `art-webp` | no | fugleramme's art folders: plate per day, paper halo toned and feathered; the border's plants, built in | `ArtFolder`, `BorderSprays` |
 | `bird-sizes` | yes | AVONET body masses for BirdNET's species, and the name-keyed table they and the facts are read with | `BirdSizes`, `NameTable` |
-| `bird-facts` | yes | A few facts per species (AVONET and Wikidata, built in), one told a day about a page's main bird | `BirdFacts`, `Fact` |
+| `bird-facts` | yes | Notes on about 140 Swedish birds in English and Swedish, and numbers for every species (Wikidata and AVONET), built in; one told a day about a page's main bird | `BirdFacts`, `Fact` |
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
 | `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline, round the border's plants; which border a date wears | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `StoryPage`, `SeasonPage`, `CornerSprays`, `Spray`, `BorderTheme`, `Border`, `ImageBlock`, `ShapeBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |

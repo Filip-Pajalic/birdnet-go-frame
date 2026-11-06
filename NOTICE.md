@@ -76,9 +76,9 @@ CC BY-NC-SA 4.0: https://github.com/tphakala/birdnet-go
   Included as `crates/bird-sizes/data/bird_sizes.csv`, taken from fugleramme's
   `assets/bird_sizes.csv`, filtered to the species in BirdNET's v2.4 labels and rounded to three
   significant figures (see the `ATTRIBUTION.md` beside it).
-- AVONET range sizes, latitudes, migration, trophic niche and lifestyle (same citation and
-  licence), from its `AVONET2_eBird.xlsx` and `AVONET1_BirdLife.csv`, and Wikidata's wingspans,
-  incubation periods and longest observed lifespans (https://www.wikidata.org/, CC0 1.0):
+- AVONET wing lengths (same citation and licence), from its `AVONET2_eBird.xlsx`, used to check
+  Wikidata's wingspans, and Wikidata's wingspans, incubation periods and longest observed
+  lifespans (https://www.wikidata.org/, CC0 1.0):
   included as `crates/bird-facts/data/bird_facts.csv`, built by `build_bird_facts.py` beside it
   (see the `ATTRIBUTION.md` there for the changes made).
 - OpenFauna scientific-name aliases: https://github.com/tphakala/openfauna, CC BY-SA 4.0.

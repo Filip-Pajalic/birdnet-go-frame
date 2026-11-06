@@ -26,7 +26,7 @@ fugleramme does, and sized as big as the page allows so the cluster reaches its 
 Besides today's birds, a frame can show the week, today's rarest birds, the day's story and the
 year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
 drawn first and biggest, and frames wake every 5 minutes while it is about. The bird pages end
-with a fun fact about their main bird (from a table built in, no cloud), and every page wears a
+with something special about their main bird, a habit, song, record or folklore (built in, no cloud), and every page wears a
 seasonal border of plants cut from 1885 botanical plates: mistletoe, blossom, meadow flowers,
 rowan and oak, and holly, pussy willow or Midsummer daisies on those holidays. On every ESP32 frame the previous and next
 buttons step through all five pages. Frames report battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).

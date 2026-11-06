@@ -19,7 +19,7 @@ The server reads environment variables at start-up.
 | `LAYOUT` | `collage` | `collage` or `list` | `collage` packs a picture of every bird by its outline, heavier birds bigger. `list` writes names and counts only. |
 | `MAX_BIRDS` | `0` | number | Most birds on a page, most heard first. `0` shows every bird heard, as fugleramme does. |
 | `NAMES` | `true` | `true` or `false` | Whether the collage writes each bird's name under it. |
-| `FACTS` | `true` | `true` or `false` | Whether today's, the week's and the rarest page end with one line about their main bird (the first one: a bird new for the year, the rarest, or the most heard), a different fact each day. From a table built into the server; nothing is looked up online. See [Pages and views](../explanation/pages-and-views.md#a-fact-about-the-main-bird). |
+| `FACTS` | `true` | `true` or `false` | Whether today's, the week's and the rarest page end with one line about their main bird (the first one: a bird new for the year, the rarest, or the most heard), something special about it, a different one each day. From tables built into the server; nothing is looked up online. See [Pages and views](../explanation/pages-and-views.md#a-fact-about-the-main-bird). |
 | `BORDER` | `season` | `season`, `off`, or a theme | The border of plants from period botanical plates in two corners of every page. `season` follows the date: mistletoe and Christmas rose in winter, blossom in spring, meadow flowers in summer, rowan and oak in autumn, and holly, pussy willow or Midsummer daisies on those holidays. A theme's name (`frost`, `blossom`, `meadow`, `autumn`, `christmas`, `easter`, `midsummer`) keeps that one all year. A negative `LATITUDE` turns the seasons round. See [Pages and views](../explanation/pages-and-views.md#seasonal-borders). |
 | `HEADING` | unset | text | A heading over the page. Unset: none on the collage (birds only, like fugleramme), the translated "Heard in the garden" on the list. |
 | `LANGUAGE` | `en` | language code | Language of the page's own words (heading, "No birds heard yet", "Updated 07:30"), e.g. `sv`, `nb`, `de`, `pt-BR`. A regional code falls back to its main language, then to English. Bird names come from BirdNET-Go in its own language setting. |
@@ -96,17 +96,11 @@ file named by `TRANSLATIONS` has the same shape and wins word by word, so it can
 | `weather` | The weather line | `{sky}`, `{now}`, `{low}`, `{high}` |
 | `sunrise`, `sunset` | Marks on the chart | |
 | `sky_clear`, `sky_partly_cloudy`, `sky_overcast`, `sky_fog`, `sky_drizzle`, `sky_rain`, `sky_snow`, `sky_thunder`, `sky_unknown` | What the sky is doing | |
-| `fact_line` | The line about the main bird | `{name}`, `{fact}` |
+| `fact_line` | The line about the main bird; `{fact}` is a note, or one of the numbers below | `{name}`, `{fact}` |
 | `fact_weight`, `fact_weight_one` | Its weight, in sugar cubes (`_one` for about one) | `{weight}`, `{count}` |
 | `fact_wingspan` | Its wingspan | `{cm}` |
 | `fact_incubation` | Days its eggs take to hatch | `{days}` |
 | `fact_oldest` | The oldest one known | `{years}` |
-| `fact_range`, `fact_range_millions`, `fact_range_europe` | Its range in km², in millions of km², or in Europes | `{area}`, `{millions}`, `{times}` |
-| `fact_north`, `fact_south` | How far north or south it is found | `{degrees}` |
-| `fact_resident`, `fact_partial`, `fact_migrant` | Whether it migrates | |
-| `fact_diet`, `fact_omnivore` | What it eats; `fact_diet` takes one of the `food_` words | `{food}` |
-| `food_invertebrates`, `food_seeds`, `food_fruit`, `food_nectar`, `food_plants`, `food_water_plants`, `food_water_animals`, `food_vertebrates`, `food_carrion` | Foods, for `fact_diet` | |
-| `fact_aerial`, `fact_aquatic`, `fact_terrestrial`, `fact_perching` | Where it spends its time | |
 | `season_heading` | Heading of the season page | |
 | `year_count` | Species this year | `{count}` |
 | `arrivals`, `no_arrivals` | The arrivals column, and its line when it is empty | |

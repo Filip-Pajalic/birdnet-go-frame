@@ -73,28 +73,29 @@ out.
 ![Today's collage in autumn's border of rowan and oak, with a line about the great tit at its foot](../images/view-today.jpg)
 
 Today's, the week's and the rarest page end with one line about their main bird, the one drawn
-first: a bird new for the year, the rarest, or else the most heard. Each species has up to ten
-facts, and the line tells a different one each day, in an order of the species' own, so it
+first: a bird new for the year, the rarest, or else the most heard. The line tells something
+special about it: a habit, its song, a record or a piece of folklore. A species has a few such
+notes, and the line tells a different one each day, in an order of the species' own, so it
 changes daily but not between wakes:
 
-| Fact | Example | Source |
-| --- | --- | --- |
-| Weight, in sugar cubes of 4 g | Great Tit: weighs about 16 g, as much as 4 sugar cubes | AVONET |
-| Wingspan | Eurasian Magpie: 56 cm from wingtip to wingtip | Wikidata |
-| Incubation | Eurasian Blackbird: the eggs hatch after about 13 days | Wikidata |
-| Oldest known | House Sparrow: the oldest one known lived 19 years | Wikidata |
-| Range, against Europe | Great Tit: its range is 3 times the size of Europe | AVONET |
-| How far north or south | Great Tit: found as far north as 71° N | AVONET |
-| Migration | Common Swift: a migrant, with a summer home and a winter one | AVONET |
-| Diet | Eurasian Bullfinch: eats almost anything | AVONET |
-| Where it lives | Common Swift: spends most of its life on the wing | AVONET |
+| Kind | Example |
+| --- | --- |
+| Habit | Great Tit: in hard winters it has been seen killing and eating sleeping bats |
+| Song | Song Thrush: sings each phrase two or three times over |
+| Record | Common Swift: can stay in the air for ten months without landing |
+| Folklore | Common Raven: Odin's ravens Hugin and Munin flew out each day to bring news |
 
-The table is built into the server and the standalone firmware (`crates/bird-facts`, about
-260 KB); nothing is looked up online. Its sources, AVONET (CC BY 4.0) and Wikidata (CC0), are
-credited in `crates/bird-facts/data/ATTRIBUTION.md` and NOTICE.md, never on the page. The words
-are in English and Swedish; other languages fall back to English until translated (keys
-`fact_*` and `food_*` in [Translations](../reference/configuration.md#translations)). `FACTS=false`
-turns the line off.
+The notes cover about 140 birds common in Sweden, in English and Swedish, and were written for
+this project (`crates/bird-facts/data/notes_en.csv` and `notes_sv.csv`). For any other bird, or
+a page in another language, the line tells a number instead: its weight in sugar cubes of 4 g
+(AVONET), its wingspan, how long its eggs take to hatch, or the oldest one known (Wikidata).
+
+The tables are built into the server and the standalone firmware (`crates/bird-facts`, about
+80 KB); nothing is looked up online. The numbers' sources, AVONET (CC BY 4.0) and Wikidata
+(CC0), are credited in `crates/bird-facts/data/ATTRIBUTION.md` and NOTICE.md, never on the page.
+The numbers' words are in English and Swedish; other languages fall back to English until
+translated (keys `fact_*` in [Translations](../reference/configuration.md#translations)).
+`FACTS=false` turns the line off.
 
 ## Seasonal borders
 

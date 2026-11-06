@@ -313,7 +313,9 @@ impl<A: ArtSource> Artist<A> {
             return String::new();
         };
         let name: String = bird.scientific_name.to_string();
-        let fact: Option<Fact> = self.facts.fact_of_the_day(&name, day);
+        let fact: Option<Fact> = self
+            .facts
+            .fact_of_the_day(&name, &self.style.words.language, day);
         fact.map_or_else(String::new, |fact| {
             fun_fact::fun_fact(&label(bird), fact, &self.style.words)
         })

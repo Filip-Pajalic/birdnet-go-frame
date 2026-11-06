@@ -1,6 +1,6 @@
 [package]
 name = "bird-facts"
-description = "A few facts per bird species (AVONET and Wikidata), for a line about the page's main bird. no_std."
+description = "Notes and numbers per bird species, for a line about the page's main bird. no_std."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

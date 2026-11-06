@@ -94,6 +94,9 @@ impl Translations {
             let Some((_, words)) = self.languages.iter().find(|(known, _)| known == code) else {
                 continue;
             };
+            if code == main {
+                text.language = String::from(main);
+            }
             for (key, word) in words {
                 if let Some(slot) = text.slot(key) {
                     slot.clone_from(word);
@@ -143,6 +146,9 @@ mod test {
         let finland = translations.page_text("sv-FI");
         assert_eq!(finland.heading, "Hört på gården");
         assert_eq!(finland.nothing_heard, "Inga fåglar hörda än");
+        assert_eq!(finland.language, "sv");
+        assert_eq!(translations.page_text("no").language, "nb");
+        assert_eq!(translations.page_text("zz").language, "en");
         assert_eq!(translations.page_text("no").heading, "Hørt i hagen");
         assert_eq!(translations.page_text("xx").heading, "Heard in the garden");
         assert_eq!(translations.page_text("").heading, "Heard in the garden");

@@ -5,6 +5,9 @@ use alloc::string::{String, ToString};
 /// The words on the page in one language.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PageText {
+    /// The language the words are in, e.g. `sv`: the main part of the code asked for when
+    /// there is a translation for it, else `en`. Not a translation key.
+    pub language: String,
     /// The heading of the list page (`heading`).
     pub heading: String,
     /// Shown when no bird has been heard (`nothing_heard`).
@@ -87,52 +90,6 @@ pub struct PageText {
     pub fact_incubation: String,
     /// The oldest one known; `{years}` (`fact_oldest`).
     pub fact_oldest: String,
-    /// Its range under a million km²; `{area}`, e.g. `45 000` (`fact_range`).
-    pub fact_range: String,
-    /// Its range in millions of km²; `{millions}` (`fact_range_millions`).
-    pub fact_range_millions: String,
-    /// A range at least twice Europe's size; `{times}` (`fact_range_europe`).
-    pub fact_range_europe: String,
-    /// How far north it is found; `{degrees}` (`fact_north`).
-    pub fact_north: String,
-    /// How far south it is found; `{degrees}` (`fact_south`).
-    pub fact_south: String,
-    /// It does not migrate (`fact_resident`).
-    pub fact_resident: String,
-    /// Some migrate and some stay (`fact_partial`).
-    pub fact_partial: String,
-    /// It migrates (`fact_migrant`).
-    pub fact_migrant: String,
-    /// What it mostly eats; `{food}` is one of the `food_` words (`fact_diet`).
-    pub fact_diet: String,
-    /// Insects and other invertebrates (`food_invertebrates`).
-    pub food_invertebrates: String,
-    /// Seeds (`food_seeds`).
-    pub food_seeds: String,
-    /// Fruit (`food_fruit`).
-    pub food_fruit: String,
-    /// Nectar (`food_nectar`).
-    pub food_nectar: String,
-    /// Land plants (`food_plants`).
-    pub food_plants: String,
-    /// Water plants (`food_water_plants`).
-    pub food_water_plants: String,
-    /// Fish and other animals caught in water (`food_water_animals`).
-    pub food_water_animals: String,
-    /// Land vertebrates (`food_vertebrates`).
-    pub food_vertebrates: String,
-    /// Carrion (`food_carrion`).
-    pub food_carrion: String,
-    /// It eats anything (`fact_omnivore`).
-    pub fact_omnivore: String,
-    /// It lives in the air (`fact_aerial`).
-    pub fact_aerial: String,
-    /// It lives on water (`fact_aquatic`).
-    pub fact_aquatic: String,
-    /// It feeds on the ground (`fact_terrestrial`).
-    pub fact_terrestrial: String,
-    /// It lives in trees and bushes (`fact_perching`).
-    pub fact_perching: String,
 }
 
 impl PageText {
@@ -140,6 +97,7 @@ impl PageText {
     #[must_use]
     pub fn english() -> Self {
         Self {
+            language: String::from("en"),
             heading: String::from("Heard in the garden"),
             nothing_heard: String::from("No birds heard yet"),
             more: String::from("and {count} more"),
@@ -181,29 +139,6 @@ impl PageText {
             fact_wingspan: String::from("{cm} cm from wingtip to wingtip"),
             fact_incubation: String::from("the eggs hatch after about {days} days"),
             fact_oldest: String::from("the oldest one known lived {years} years"),
-            fact_range: String::from("its range covers {area} km²"),
-            fact_range_millions: String::from("its range covers {millions} million km²"),
-            fact_range_europe: String::from("its range is {times} times the size of Europe"),
-            fact_north: String::from("found as far north as {degrees}° N"),
-            fact_south: String::from("found as far south as {degrees}° S"),
-            fact_resident: String::from("stays put all year round"),
-            fact_partial: String::from("some fly south for the winter, some stay"),
-            fact_migrant: String::from("a migrant, with a summer home and a winter one"),
-            fact_diet: String::from("eats mostly {food}"),
-            food_invertebrates: String::from("insects and other small creatures"),
-            food_seeds: String::from("seeds"),
-            food_fruit: String::from("fruit and berries"),
-            food_nectar: String::from("nectar"),
-            food_plants: String::from("plants"),
-            food_water_plants: String::from("water plants"),
-            food_water_animals: String::from("fish and other water creatures"),
-            food_vertebrates: String::from("small animals such as mice and lizards"),
-            food_carrion: String::from("carrion"),
-            fact_omnivore: String::from("eats almost anything"),
-            fact_aerial: String::from("spends most of its life on the wing"),
-            fact_aquatic: String::from("lives mostly on the water"),
-            fact_terrestrial: String::from("finds its food on the ground"),
-            fact_perching: String::from("lives up in the trees and bushes"),
         }
     }
 
@@ -280,29 +215,6 @@ impl PageText {
             "fact_wingspan" => Some(&mut self.fact_wingspan),
             "fact_incubation" => Some(&mut self.fact_incubation),
             "fact_oldest" => Some(&mut self.fact_oldest),
-            "fact_range" => Some(&mut self.fact_range),
-            "fact_range_millions" => Some(&mut self.fact_range_millions),
-            "fact_range_europe" => Some(&mut self.fact_range_europe),
-            "fact_north" => Some(&mut self.fact_north),
-            "fact_south" => Some(&mut self.fact_south),
-            "fact_resident" => Some(&mut self.fact_resident),
-            "fact_partial" => Some(&mut self.fact_partial),
-            "fact_migrant" => Some(&mut self.fact_migrant),
-            "fact_diet" => Some(&mut self.fact_diet),
-            "food_invertebrates" => Some(&mut self.food_invertebrates),
-            "food_seeds" => Some(&mut self.food_seeds),
-            "food_fruit" => Some(&mut self.food_fruit),
-            "food_nectar" => Some(&mut self.food_nectar),
-            "food_plants" => Some(&mut self.food_plants),
-            "food_water_plants" => Some(&mut self.food_water_plants),
-            "food_water_animals" => Some(&mut self.food_water_animals),
-            "food_vertebrates" => Some(&mut self.food_vertebrates),
-            "food_carrion" => Some(&mut self.food_carrion),
-            "fact_omnivore" => Some(&mut self.fact_omnivore),
-            "fact_aerial" => Some(&mut self.fact_aerial),
-            "fact_aquatic" => Some(&mut self.fact_aquatic),
-            "fact_terrestrial" => Some(&mut self.fact_terrestrial),
-            "fact_perching" => Some(&mut self.fact_perching),
             _ => None,
         }
     }
