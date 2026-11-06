@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use frame_core::Resolution;
 
 use crate::align::Align;
-use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body};
+use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::text_block::TextBlock;
 use crate::text_style::TextStyle;
@@ -56,7 +56,14 @@ impl SeasonPage {
     #[must_use]
     pub fn layout(resolution: Resolution, options: &SeasonOptions) -> PageLayout {
         let mut page = PageLayout::new(resolution);
-        let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
+        let body: Body = page_frame::frame(
+            &mut page,
+            &Furniture {
+                heading: &options.heading,
+                fact: "",
+                footer: &options.footer,
+            },
+        );
         let headline_size: f32 = body.heading_size * 0.75;
         let mut top: i32 = body.top + headline_size as i32;
         page.text.push(TextBlock {

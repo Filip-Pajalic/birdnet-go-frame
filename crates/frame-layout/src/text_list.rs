@@ -8,7 +8,7 @@ use birdnet_model::SpeciesSummary;
 use frame_core::Resolution;
 
 use crate::align::Align;
-use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body};
+use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::text_block::TextBlock;
 use crate::text_style::TextStyle;
@@ -20,6 +20,8 @@ pub struct TextListOptions {
     pub heading: String,
     /// A small line at the foot, e.g. when the page was drawn. Empty for none.
     pub footer: String,
+    /// A line about the main bird, over the footer. Empty for none, the default.
+    pub fact: String,
     /// Most species shown; the rest are summarised in one line.
     pub max_species: usize,
     /// The line shown when nothing has been heard.
@@ -33,6 +35,7 @@ impl Default for TextListOptions {
         Self {
             heading: String::from("Heard in the garden"),
             footer: String::new(),
+            fact: String::new(),
             max_species: 24,
             empty: String::from("No birds heard yet"),
             more: String::from("and {count} more"),
@@ -53,7 +56,14 @@ impl TextList {
         options: &TextListOptions,
     ) -> PageLayout {
         let mut page = PageLayout::new(resolution);
-        let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
+        let body: Body = page_frame::frame(
+            &mut page,
+            &Furniture {
+                heading: &options.heading,
+                fact: &options.fact,
+                footer: &options.footer,
+            },
+        );
         if species.is_empty() {
             page_frame::nothing_heard(&mut page, &body, &options.empty);
         } else {

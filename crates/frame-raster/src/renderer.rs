@@ -9,6 +9,7 @@ use frame_layout::{Align, PageLayout, TextBlock, TextStyle};
 
 use crate::canvas::Canvas;
 use crate::draw_image::draw_image;
+use crate::draw_mark::draw_mark;
 use crate::font_error::FontError;
 
 /// Glyph coverage, of 255, from which a pixel is inked. Lower than half so the italic's
@@ -53,12 +54,15 @@ impl Renderer {
         self.paper
     }
 
-    /// Draws `layout` on a fresh paper-coloured canvas: its pictures first, taken from `art` by
-    /// [`frame_layout::ImageBlock::art`], then its shapes, then its text. Pictures missing from `art` are
-    /// skipped.
+    /// Draws `layout` on a fresh paper-coloured canvas: its ornament first, then its pictures,
+    /// taken from `art` by [`frame_layout::ImageBlock::art`], then its shapes, then its text.
+    /// Pictures missing from `art` are skipped.
     #[must_use]
     pub fn render(&self, layout: &PageLayout, art: &[ArtImage]) -> Canvas {
         let mut canvas = Canvas::new(layout.resolution, self.paper);
+        for mark in &layout.ornament {
+            draw_mark(&mut canvas, mark);
+        }
         for block in &layout.images {
             if let Some(picture) = art.get(block.art) {
                 draw_image(&mut canvas, block, picture);

@@ -21,9 +21,22 @@ pub(crate) struct Body {
     pub(crate) footer_size: f32,
 }
 
-/// Adds the heading and footer to `page` and returns the space left between them. An empty
-/// heading or footer is left out and its space given to the body.
-pub(crate) fn frame(page: &mut PageLayout, heading: &str, footer: &str) -> Body {
+/// The words at the top and foot of a page. Any may be empty, and is then left out.
+pub(crate) struct Furniture<'a> {
+    pub(crate) heading: &'a str,
+    /// A line about the page's main bird, over the footer.
+    pub(crate) fact: &'a str,
+    pub(crate) footer: &'a str,
+}
+
+/// Adds the heading, fact and footer to `page` and returns the space left between them. An
+/// empty one is left out and its space given to the body.
+pub(crate) fn frame(page: &mut PageLayout, words: &Furniture<'_>) -> Body {
+    let Furniture {
+        heading,
+        fact,
+        footer,
+    } = *words;
     let width: i32 = i32::try_from(page.resolution.width).unwrap_or(i32::MAX);
     let height: i32 = i32::try_from(page.resolution.height).unwrap_or(i32::MAX);
     let margin: i32 = width.min(height) / 16;
@@ -51,6 +64,29 @@ pub(crate) fn frame(page: &mut PageLayout, heading: &str, footer: &str) -> Body 
             style: TextStyle::Footer,
         });
     }
+    let mut bottom: i32 = if footer.is_empty() {
+        height - margin
+    } else {
+        height - margin - (footer_size * 1.5) as i32
+    };
+    if !fact.is_empty() {
+        let fact_size: f32 = footer_size * 1.25;
+        let baseline: i32 = if footer.is_empty() {
+            height - margin
+        } else {
+            bottom
+        };
+        page.text.push(TextBlock {
+            text: String::from(fact),
+            x: width / 2,
+            baseline_y: baseline,
+            size_px: fact_size,
+            max_width: Some(width - 2 * margin),
+            align: Align::Centre,
+            style: TextStyle::Footer,
+        });
+        bottom = baseline - (fact_size * 1.6) as i32;
+    }
     Body {
         margin,
         width,
@@ -59,11 +95,7 @@ pub(crate) fn frame(page: &mut PageLayout, heading: &str, footer: &str) -> Body 
         } else {
             margin + (heading_size * 1.8) as i32
         },
-        bottom: if footer.is_empty() {
-            height - margin
-        } else {
-            height - margin - (footer_size * 1.5) as i32
-        },
+        bottom,
         heading_size,
         footer_size,
     }

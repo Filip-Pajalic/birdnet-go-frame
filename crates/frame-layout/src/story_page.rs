@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use frame_core::{Ink, Resolution};
 
 use crate::align::Align;
-use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body};
+use crate::page_frame::{self, AVERAGE_LETTER_WIDTH, Body, Furniture};
 use crate::page_layout::PageLayout;
 use crate::shape_block::ShapeBlock;
 use crate::text_block::TextBlock;
@@ -67,7 +67,14 @@ impl StoryPage {
     #[must_use]
     pub fn layout(resolution: Resolution, options: &StoryOptions) -> PageLayout {
         let mut page = PageLayout::new(resolution);
-        let body: Body = page_frame::frame(&mut page, &options.heading, &options.footer);
+        let body: Body = page_frame::frame(
+            &mut page,
+            &Furniture {
+                heading: &options.heading,
+                fact: "",
+                footer: &options.footer,
+            },
+        );
         let line_size: f32 = body.heading_size * 0.5;
         let mut top: i32 = body.top;
         // Lines that would reach into the footer are left off, the last first.
