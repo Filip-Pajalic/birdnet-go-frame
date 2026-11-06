@@ -23,8 +23,10 @@ pub struct ChorusRow {
     pub label: String,
     /// Detections in each local hour, index 0 for midnight to one.
     pub hours: [u32; 24],
-    /// The ink the row's bars are drawn in.
+    /// The ink the row's bars are engraved in.
     pub ink: Ink,
+    /// Whether the bars are hatched close, darker, as for the whole chorus.
+    pub heavy: bool,
 }
 
 /// A moment marked across the chart, such as sunrise.
@@ -147,7 +149,16 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
     let chart_width: i32 = body.width - body.margin - chart_left;
     let column: f32 = chart_width as f32 / hours as f32;
     let bar: i32 = ((column * 0.72) as i32).max(2);
-    let rule: i32 = (row_height / 40).max(2);
+    // Hairlines, as an engraver's: thicker only on big pages, so they survive dithering.
+    let hair: i32 = ((body.heading_size / 45.0) as i32).max(1);
+    // The left edge of the chart, like the ruled margin of a table in an old natural history.
+    page.shapes.push(ShapeBlock {
+        x: chart_left - hair * 3,
+        y: chart_top,
+        width: hair,
+        height: rows * row_height,
+        ink: Ink::Black,
+    });
 
     for (index, row) in shown.iter().enumerate() {
         let index: i32 = i32::try_from(index).unwrap_or(0);
@@ -162,10 +173,10 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
             style: TextStyle::Name,
         });
         page.shapes.push(ShapeBlock {
-            x: chart_left,
+            x: chart_left - hair * 3,
             y: baseline,
-            width: chart_width,
-            height: rule,
+            width: chart_width + hair * 3,
+            height: hair,
             ink: Ink::Black,
         });
         let loudest: u32 = row.hours.iter().copied().max().unwrap_or(0).max(1);
@@ -177,16 +188,17 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
             let height: i32 = (i64::from(tallest) * i64::from(count) / i64::from(loudest))
                 .try_into()
                 .unwrap_or(tallest)
-                .max(rule * 2);
+                .max(hair * 3);
             let left: i32 =
                 chart_left + (offset as f32 * column + (column - bar as f32) / 2.0) as i32;
-            page.shapes.push(ShapeBlock {
+            let bar_box = ShapeBlock {
                 x: left,
                 y: baseline - height,
                 width: bar,
                 height,
                 ink: row.ink,
-            });
+            };
+            push_engraved(&mut page.shapes, bar_box, hair, row.heavy);
         }
     }
 
@@ -197,17 +209,18 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
             continue;
         }
         let x: i32 = chart_left + (hour * column) as i32;
-        let dash: i32 = (row_height / 6).max(6);
+        // A dotted hairline, as engravers marked a reference line.
+        let dot: i32 = hair * 2;
         let mut y: i32 = chart_top;
         while y < chart_end {
             page.shapes.push(ShapeBlock {
-                x: x - rule / 2,
+                x: x - hair / 2,
                 y,
-                width: rule,
-                height: dash.min(chart_end - y),
-                ink: Ink::Blue,
+                width: hair,
+                height: dot.min(chart_end - y),
+                ink: Ink::Black,
             });
-            y += dash * 2;
+            y += dot * 3;
         }
         // Centred over its line, unless that would run off the page.
         let half: i32 =
@@ -240,6 +253,13 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
     };
     for hour in (first_hour..=first_hour + hours).filter(|hour| hour % step == 0) {
         let offset: i32 = i32::try_from(hour - first_hour).unwrap_or(0);
+        page.shapes.push(ShapeBlock {
+            x: chart_left + (offset as f32 * column) as i32 - hair / 2,
+            y: chart_end,
+            width: hair,
+            height: hair * 4,
+            ink: Ink::Black,
+        });
         page.text.push(TextBlock {
             text: format!("{:02}", hour % 24),
             x: chart_left + (offset as f32 * column) as i32,
@@ -249,6 +269,32 @@ fn push_chart(page: &mut PageLayout, body: &Body, options: &StoryOptions) {
             align: Align::Centre,
             style: TextStyle::Footer,
         });
+    }
+}
+
+/// Adds a bar engraved in `bar.ink`: outlined in hairlines and hatched with upright lines, close
+/// when `heavy`, the way a plate's engraver shaded a block.
+fn push_engraved(shapes: &mut Vec<ShapeBlock>, bar: ShapeBlock, hair: i32, heavy: bool) {
+    if bar.width <= hair * 4 {
+        shapes.push(bar);
+        return;
+    }
+    for (x, width) in [(bar.x, hair), (bar.x + bar.width - hair, hair)] {
+        shapes.push(ShapeBlock { x, width, ..bar });
+    }
+    shapes.push(ShapeBlock {
+        height: hair,
+        ..bar
+    });
+    let step: i32 = if heavy { hair * 2 } else { hair * 3 };
+    let mut x: i32 = bar.x + step;
+    while x + hair < bar.x + bar.width - hair {
+        shapes.push(ShapeBlock {
+            x,
+            width: hair,
+            ..bar
+        });
+        x += step;
     }
 }
 
@@ -281,6 +327,7 @@ mod test {
             label: String::from(label),
             hours: counts,
             ink: Ink::Green,
+            heavy: false,
         }
     }
 
@@ -335,10 +382,11 @@ mod test {
         ];
         for resolution in [Resolution::new(1600, 1200), Resolution::new(480, 800)] {
             let page = StoryPage::layout(resolution, &options(rows.clone()));
+            // Each bar has one horizontal edge, its top; the hatching and sides are upright.
             let bars: usize = page
                 .shapes
                 .iter()
-                .filter(|shape| shape.ink == Ink::Green)
+                .filter(|shape| shape.ink == Ink::Green && shape.width > shape.height)
                 .count();
             assert_eq!(bars, 4);
             for shape in &page.shapes {

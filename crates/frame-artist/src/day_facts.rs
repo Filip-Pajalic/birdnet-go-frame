@@ -121,7 +121,8 @@ impl DayFacts {
         rows.push(ChorusRow {
             label: words.whole_chorus.clone(),
             hours: self.story.chorus,
-            ink: Ink::Blue,
+            ink: Ink::Black,
+            heavy: true,
         });
         // Birds new for the year first, so a small page that cannot fit every row keeps them.
         let mut ordered: Vec<&SpeciesHours> = self.hours.iter().collect();
@@ -145,7 +146,9 @@ impl DayFacts {
             rows.push(ChorusRow {
                 label: named,
                 hours: counts.hours,
-                ink: if is_new { Ink::Red } else { Ink::Green },
+                // Black hatching like the rest of the page; red, the rubric, for a new bird.
+                ink: if is_new { Ink::Red } else { Ink::Black },
+                heavy: false,
             });
         }
         StoryOptions {

@@ -38,10 +38,12 @@ turns up once in a while is, however common elsewhere.
 
 ## The day's story
 
-![The story page on the 13.3-inch panel: four lines, then a bar chart per bird by hour, with sunrise and sunset marked](../images/view-story.png)
+![The story page on the 13.3-inch panel: four lines, then an engraved bar chart per bird by hour, with sunrise and sunset marked by dotted lines](../images/view-story.png)
 
-Each row is one of the day's eight most heard birds, plus any new for the year (in red, first);
-the top row, in blue, is every bird together. Bars are scaled per row, so a quiet bird's
+The chart is drawn the way the plates were printed: hairline rules, bars outlined and hatched like
+an engraver's shading, dotted reference lines, and the italic serif of the rest of the page. Each
+row is one of the day's eight most heard birds, plus any new for the year (first, hatched in red,
+the rubric colour of old books); the top row, hatched closest, is every bird together. Bars are scaled per row, so a quiet bird's
 pattern shows as clearly as a loud one's: the chart is about *when*, not *how many*. The chart
 spans the hours anything sang, sunrise and sunset, and at least ten hours. Rows that do not fit at
 a legible size are left off from the bottom, so the 7.3-inch panel shows fewer:
@@ -56,7 +58,7 @@ out.
 
 ## The season
 
-![The season page: 39 species this year, three spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
+![The season page: 37 species this year, two spring arrivals, this week against last year's, and the numbered year list](../images/view-season.png)
 
 - **Just arrived** lists the birds heard in the last 21 days that were not heard in the 60 days
   before: spring's migrants, autumn's winter thrushes, and rarities.
