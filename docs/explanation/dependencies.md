@@ -5,6 +5,11 @@ The server has **eleven third-party crates**: the font rasteriser `fontdue` and 
 Everything else is in this repository. This page explains why, and what a new
 dependency has to clear.
 
+The panel side adds one: `embedded-hal` 1.0 (MIT OR Apache-2.0, no dependencies of its own), the
+SPI, pin and delay traits every embedded Rust HAL implements. `panel-t133a01` is written against
+it, so the same driver runs on the ESP32 and against the mock bus in its tests. The server does
+not link it.
+
 ## What is used
 
 ```mermaid

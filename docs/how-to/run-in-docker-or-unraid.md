@@ -43,14 +43,37 @@ BirdNET-Go usually holds port 8080 on the host, so the example publishes the fra
 
 ## On Unraid
 
-1. **Docker** tab, **Add Container**.
-2. Repository: `ghcr.io/filip-pajalic/birdnet-go-frame:edge` (or a release tag, or your own build).
-3. Port: container `8080`, host `8081`.
-4. Variables: `BIRDNET_URL` (BirdNET-Go's address as the container sees it, e.g. the Unraid IP and
-   BirdNET-Go's port), `UTC_OFFSET_MINUTES`, `LANGUAGE` and `ART_DIR=/art/classic`. Add a path
-   mapping from `/mnt/user/appdata/birdnet-go-frame/art` to `/art` (read only). Add any others from
-   [Configuration](../reference/configuration.md).
-5. Apply, then open `http://<unraid-ip>:8081/`.
+### Add the container from the template
+
+1. Open a terminal on Unraid (the **>_** icon) and fetch the template:
+
+   ```bash
+   wget -O /boot/config/plugins/dockerMan/templates-user/my-birdnet-go-frame.xml \
+     https://raw.githubusercontent.com/Filip-Pajalic/birdnet-go-frame/main/deploy/unraid/birdnet-go-frame.xml
+   ```
+
+2. **Docker** tab, **Add Container**, and pick **birdnet-go-frame** from the **Template** list.
+3. Set **BirdNET-Go URL** to BirdNET-Go's address as the container sees it, e.g.
+   `http://192.168.1.10:8080` (the Unraid IP and BirdNET-Go's port), and **Time zone offset**
+   to your garden's (60 for Sweden in winter). Leave **Art style** empty for now.
+4. **Apply**, then open `http://<unraid-ip>:8081/`. You should see generated birds for the
+   species your station has heard today.
+
+The template is in the repository at
+[`deploy/unraid/birdnet-go-frame.xml`](../../deploy/unraid/birdnet-go-frame.xml). **Show more
+settings** reveals the panel, rotation, poll time and layout.
+
+### Add fugleramme's plates
+
+Unraid has no git, so fetch the plates with a throwaway git container, from the same terminal:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/Filip-Pajalic/birdnet-go-frame/main/scripts/fetch-art.sh |
+  docker run --rm -i -v /mnt/user/appdata/birdnet-go-frame/art:/art --entrypoint sh alpine/git -s classic /art
+```
+
+It downloads about 250 MB and ends with `1355 plates in /art/classic`. Then edit the container,
+set **Art style** to `/art/classic`, and apply. The page now uses the plates.
 
 Give Unraid a fixed IP or a reliable hostname, so the panel always finds the server.
 

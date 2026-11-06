@@ -127,10 +127,11 @@ driving the panel, or on the ESP32 itself.
 | `crates/frame-http` | Serves `/panel`, `/frame.png`, `/preview.png`; a small zlib compressor for them | Done |
 | `apps/server` | The server for Unraid / Docker | Done |
 | `apps/fake-birdnet` | The simulated BirdNET-Go over HTTP | Done |
-| `crates/transport-esp`, `crates/panel-t133a01`, `tools/art-packer` | ESP32 networking, panel driver, art on an SD card | Planned |
+| `crates/panel-t133a01` | `no_std`: the 13.3" panel's two controllers over `embedded-hal` 1.0, tested against a mock bus | Done; untried on hardware |
+| `crates/transport-esp`, `tools/art-packer` | ESP32 networking, art on an SD card | Planned |
 | `apps/ee02-thin`, `apps/ee02-standalone`, `apps/linux-panel` | ESP32 and Pi firmware | Planned |
 | `assets/` | Fonts, each with its licence and an `ATTRIBUTION.md` | |
-| `deploy/` | Dockerfile | |
+| `deploy/` | Dockerfile, Unraid template | |
 | `scripts/fetch-art.sh` | Downloads a fugleramme art style for `ART_DIR` | |
 | `.github/` | CI, release and container workflows, Dependabot, issue and PR templates | |
 

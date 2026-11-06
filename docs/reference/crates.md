@@ -17,6 +17,7 @@
 | `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `ImageBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
+| `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 
 | App | Binary | Uses |
 | --- | --- | --- |
@@ -27,7 +28,6 @@
 
 | Crate or app | Purpose |
 | --- | --- |
-| `panel-t133a01` | 13.3" Spectra 6 driver on `embedded-hal` 1.0 traits |
 | `transport-esp` | `HttpTransport` and Wi-Fi on `esp-idf-svc` |
 | `apps/ee02-thin` | ESP32 firmware that fetches `/panel` |
 | `apps/ee02-standalone` | ESP32 firmware that renders the page itself |

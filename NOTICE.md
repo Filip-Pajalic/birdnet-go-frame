@@ -10,7 +10,7 @@ Parts of this project are derived from fugleramme: https://github.com/arnegiacom
 - the paper-halo blending in `crates/art-webp/src/halo.rs`, from `render/paper.py`, and the
   plate choice per day in `art_folder.rs`, from `names.py`;
 - the panel boost in `crates/frame-raster/src/pop.rs`, from `render/dither.py`;
-- the panel command sequence in `crates/panel-t133a01` (planned).
+- the panel command sequence and refresh checks in `crates/panel-t133a01`, from `examples/ee02/main.py`.
 
 Files containing ported code say so in their header comment.
 
