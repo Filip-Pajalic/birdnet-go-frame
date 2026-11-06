@@ -382,6 +382,8 @@ dependencies = [
  "esp-radio",
  "esp-rtos",
  "frame-core",
+ "glass-esp",
+ "panel-ed2208",
  "panel-setup",
  "panel-t133a01",
  "panel-wake",
@@ -1199,6 +1201,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glass-esp"
+version = "0.1.0"
+dependencies = [
+ "esp-hal",
+ "panel-ed2208",
+ "panel-t133a01",
+]
+
+[[package]]
 name = "hash32"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1451,6 +1462,14 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "panel-ed2208"
+version = "0.1.0"
+dependencies = [
+ "embedded-hal 1.0.0",
+ "frame-core",
+]
 
 [[package]]
 name = "panel-setup"

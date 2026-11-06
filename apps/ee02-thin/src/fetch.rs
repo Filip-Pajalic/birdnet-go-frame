@@ -11,13 +11,14 @@ use embassy_time::Duration;
 use esp_hal::peripherals::WIFI;
 use esp_println::println;
 use esp_radio::wifi::{ControllerConfig, Interface, WifiController};
-use frame_core::PanelSize;
 use panel_setup::FrameSettings;
 use panel_wake::{
     ChipId, FirmwareImage, FrameAddress, PageRequest, Rejoin, ResponseHead, SleepLimits,
     SleepMemory, Wake,
 };
 use transport_esp::{Joined, TransportError, WifiCredentials};
+
+use crate::board;
 
 /// How long a join to one access point on a known channel may take.
 const REJOIN_TIMEOUT: Duration = Duration::from_secs(4);
@@ -31,8 +32,6 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(15);
 const RESPONSE_LIMIT: usize = 1_000_000;
 /// The longest firmware kept: one app slot in `partitions.csv`, plus the response's head.
 const FIRMWARE_LIMIT: usize = 0x3c_0000 + 1_024;
-/// The firmware's name in its application description, which a download must match.
-const PROJECT: &str = env!("CARGO_PKG_NAME");
 /// The running firmware's version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -145,7 +144,7 @@ async fn exchange(
         frame: Some(settings.frame.as_str()),
         battery_millivolts,
         firmware: Some(VERSION),
-        ..PageRequest::new(&host, PanelSize::Inches13Point3)
+        ..PageRequest::new(&host, board::PANEL)
     }
     .to_http();
     let work = async {
@@ -218,7 +217,7 @@ async fn download(
         );
         return None;
     }
-    let length: usize = match FirmwareImage::check(body, ChipId::ESP32_S3, PROJECT) {
+    let length: usize = match FirmwareImage::check(body, ChipId::ESP32_S3, board::PROJECT) {
         Ok(image) if image.version == version => image.len,
         Ok(image) => {
             println!(

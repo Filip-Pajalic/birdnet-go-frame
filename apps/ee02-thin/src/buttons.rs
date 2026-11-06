@@ -1,11 +1,10 @@
-//! The EE02's three buttons: which one woke the frame, and waking on them again.
+//! The board's three buttons: which one woke the frame, and waking on them again.
 //!
-//! The pins are those of Seeed's EE0x boards (KEY1 GPIO2, KEY2 GPIO3, KEY3 GPIO5, all pulled
-//! up and low when pressed), from Seeed's PlatformIO cookbook for the family.
+//! Each board's pins are in `board.rs`; on both, the buttons are pulled up and low when
+//! pressed.
 
 use esp_hal::delay::Delay;
-use esp_hal::gpio::{Event, Input, InputConfig, Pull, WakeupConfig};
-use esp_hal::peripherals::{GPIO2, GPIO3, GPIO5};
+use esp_hal::gpio::{Event, Input, InputConfig, InputPin, Pull, WakeupConfig};
 use esp_println::println;
 use panel_wake::Button;
 
@@ -34,7 +33,11 @@ pub enum Asked {
 
 impl<'d> Buttons<'d> {
     /// Takes the buttons' pins.
-    pub fn new(refresh: GPIO2<'d>, previous: GPIO3<'d>, next: GPIO5<'d>) -> Self {
+    pub fn new(
+        refresh: impl InputPin + 'd,
+        previous: impl InputPin + 'd,
+        next: impl InputPin + 'd,
+    ) -> Self {
         let config: InputConfig = InputConfig::default().with_pull(Pull::Up);
         Self {
             refresh: Input::new(refresh, config),

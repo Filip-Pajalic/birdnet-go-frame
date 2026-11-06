@@ -12,7 +12,7 @@ Parts of this project are derived from fugleramme: https://github.com/arnegiacom
 - the panel boost in `crates/frame-raster/src/pop.rs`, from `render/dither.py`;
 - the panel command sequence and refresh checks in `crates/panel-t133a01`, from `examples/ee02/main.py`;
 - the EE02 wiring and the panel's power-up and power-down (load switch first, pins held low
-  through deep sleep) in `apps/ee02-thin/src/glass.rs`, from the same file.
+  through deep sleep) in `crates/glass-esp/src/ee02.rs`, from the same file.
 
 Files containing ported code say so in their header comment.
 
@@ -61,7 +61,8 @@ The 7.3" panel's register values in `crates/panel-ed2208/src/commands.rs`, and i
 refresh and sleep order, follow Zephyr's ED2208 driver, `drivers/display/display_ed2208_gca.c`,
 https://github.com/zephyrproject-rtos/zephyr, Copyright (c) 2026 The Zephyr Project
 Contributors, Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0). The pins of
-Seeed's reTerminal E1002 come from that project's board files.
+Seeed's reTerminal E1002 panel, in `crates/glass-esp/src/e1002.rs`, come from that project's
+board files.
 
 ## BirdNET-Go
 

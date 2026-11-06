@@ -8,7 +8,8 @@
 //! a setup hotspot instead.
 //!
 //! The decisions are `panel-wake`'s and `panel-setup`'s, the radio is `transport-esp`'s and the
-//! glass is `panel-t133a01`'s; this binary wires them to the board. See
+//! glass is `glass-esp`'s; this binary wires them to the board, which the `board-ee02`
+//! (default) or `board-e1002` feature picks (the reTerminal E1002 and its 7.3" panel). See
 //! `docs/how-to/flash-ee02-thin.md` and `docs/reference/firmware.md`.
 
 #![no_std]
@@ -17,9 +18,9 @@
 extern crate alloc;
 
 mod battery;
+mod board;
 mod buttons;
 mod fetch;
-mod glass;
 mod memory;
 mod settings;
 mod setup;
@@ -43,12 +44,21 @@ use panel_wake::{SleepLimits, SleepMemory, Wake};
 
 use crate::buttons::{Asked, Buttons};
 use crate::fetch::{Fetched, Offer};
-use crate::glass::GlassPins;
 use crate::setup::Outcome;
 
 // The descriptor the ESP-IDF bootloader checks before it starts the app, and which an update's
-// version is read from.
-esp_bootloader_esp_idf::esp_app_desc!();
+// version and board are read from.
+esp_bootloader_esp_idf::esp_app_desc!(
+    env!("CARGO_PKG_VERSION"),
+    board::PROJECT,
+    esp_bootloader_esp_idf::BUILD_TIME,
+    esp_bootloader_esp_idf::BUILD_DATE,
+    esp_bootloader_esp_idf::ESP_IDF_COMPATIBLE_VERSION,
+    esp_bootloader_esp_idf::MMU_PAGE_SIZE,
+    0,
+    u16::MAX,
+    esp_bootloader_esp_idf::SECURE_VERSION
+);
 
 /// One wake, from reset to deep sleep.
 #[esp_rtos::main]
@@ -70,10 +80,9 @@ async fn main(_spawner: Spawner) -> ! {
 
     let limits = SleepLimits::default();
     let mut flash = FlashStorage::new(peripherals.FLASH);
-    let mut buttons = Buttons::new(peripherals.GPIO2, peripherals.GPIO3, peripherals.GPIO5);
+    let mut buttons: Buttons<'_> = board::buttons!(peripherals);
     let asked: Asked = buttons.asked();
-    let battery: Option<u16> =
-        battery::read(peripherals.ADC1, peripherals.GPIO1, peripherals.GPIO6);
+    let battery: Option<u16> = board::battery!(peripherals);
     if let Some(millivolts) = battery {
         println!("ee02: battery {millivolts} mV");
     }
@@ -105,7 +114,7 @@ async fn main(_spawner: Spawner) -> ! {
     }
     println!("ee02: asking for the {} page", memory.view);
 
-    let mut page: Vec<u8> = vec![0; panel_t133a01::PAGE_LEN];
+    let mut page: Vec<u8> = vec![0; board::PAGE_LEN];
     let Fetched {
         wake,
         rejoin,
@@ -121,18 +130,12 @@ async fn main(_spawner: Spawner) -> ! {
     )
     .await;
     let wake: Wake = if wake.show {
-        let pins = GlassPins {
-            spi: peripherals.SPI2,
-            sck: peripherals.GPIO7,
-            mosi: peripherals.GPIO9,
-            cs0: peripherals.GPIO44,
-            cs1: peripherals.GPIO41,
-            dc: peripherals.GPIO10,
-            rst: peripherals.GPIO38,
-            busy: peripherals.GPIO4,
-            power: peripherals.GPIO43,
-        };
-        show(pins, &page, wake, memory, limits)
+        let refresh = board::show!(peripherals, &page);
+        if let Err(error) = &refresh.slept {
+            // The picture is on the glass by now, so this only gets a log line.
+            println!("ee02: putting the panel to sleep: {error}");
+        }
+        shown(refresh.shown, wake, memory, limits)
     } else {
         wake
     };
@@ -175,15 +178,14 @@ async fn main(_spawner: Spawner) -> ! {
     power.sleep_deep(RtcSleepConfig::deep())
 }
 
-/// Draws `page` and returns `wake`, or the failure wake when the panel did not take it.
-fn show(
-    pins: GlassPins<'_>,
-    page: &[u8],
+/// Returns `wake` when the page reached the glass, or the failure wake when it did not.
+fn shown<E: core::fmt::Display>(
+    refresh: Result<u32, E>,
     wake: Wake,
     memory: SleepMemory,
     limits: SleepLimits,
 ) -> Wake {
-    match glass::show(pins, page) {
+    match refresh {
         Ok(milliseconds) => {
             println!("ee02: refreshed in {milliseconds} ms");
             wake

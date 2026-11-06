@@ -12,6 +12,13 @@ publish = false
 # on a laptop never needs that toolchain.
 [workspace]
 
+[features]
+# The board: the XIAO EE02 with the 13.3" panel by default, or Seeed's reTerminal E1002 with the
+# 7.3" panel (`--no-default-features --features board-e1002`). See src/board.rs.
+default = ["board-ee02"]
+board-ee02 = []
+board-e1002 = []
+
 [dependencies]
 embassy-executor = { version = "0.10.0", default-features = false }
 embassy-futures = { version = "0.1.2", default-features = false }
@@ -27,6 +34,8 @@ esp-println = { version = "0.18.0", default-features = false, features = ["esp32
 esp-radio = { version = "1.0.0-beta.1", default-features = false, features = ["esp-alloc", "esp32s3", "unstable", "wifi"] }
 esp-rtos = { version = "0.4.0", default-features = false, features = ["embassy", "esp-alloc", "esp-radio", "esp32s3"] }
 frame-core = { path = "../../crates/frame-core", version = "0.1.0" }
+glass-esp = { path = "../../crates/glass-esp", version = "0.1.0" }
+panel-ed2208 = { path = "../../crates/panel-ed2208", version = "0.1.0" }
 panel-setup = { path = "../../crates/panel-setup", version = "0.1.0" }
 panel-t133a01 = { path = "../../crates/panel-t133a01", version = "0.1.0" }
 panel-wake = { path = "../../crates/panel-wake", version = "0.1.0" }

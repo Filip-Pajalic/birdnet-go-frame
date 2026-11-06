@@ -7,6 +7,11 @@
 //! file instead, on any computer, and `--once` draws one page and exits.
 
 mod board;
+// Only the Linux board writes through it; its tests run everywhere.
+#[cfg_attr(
+    not(target_os = "linux"),
+    allow(dead_code, reason = "only the Linux board uses it")
+)]
 mod chunked_bus;
 mod config;
 
