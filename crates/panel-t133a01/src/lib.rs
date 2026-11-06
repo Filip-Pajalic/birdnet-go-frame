@@ -24,4 +24,4 @@ mod panel_error;
 mod t133a01;
 
 pub use panel_error::PanelError;
-pub use t133a01::{Pins, T133a01};
+pub use t133a01::{PAGE_LEN, Pins, T133a01};

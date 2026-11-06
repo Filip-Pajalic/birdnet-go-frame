@@ -26,6 +26,8 @@ pub enum WakeError {
     Damaged,
     /// The connection failed before a response, e.g. no Wi-Fi.
     Network,
+    /// A new page came but the panel could not show it.
+    Panel,
 }
 
 impl fmt::Display for WakeError {
@@ -42,6 +44,7 @@ impl fmt::Display for WakeError {
             ),
             Self::Damaged => formatter.write_str("the page arrived damaged"),
             Self::Network => formatter.write_str("cannot reach the frame"),
+            Self::Panel => formatter.write_str("the panel did not take the page"),
         }
     }
 }

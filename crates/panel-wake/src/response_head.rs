@@ -56,6 +56,37 @@ impl ResponseHead {
         Some(head)
     }
 
+    /// Splits a response read so far into its head and the body bytes after it.
+    ///
+    /// Returns `None` until the blank line that ends the head has arrived, or when the status
+    /// line is not HTTP.
+    ///
+    /// ```
+    /// use panel_wake::ResponseHead;
+    ///
+    /// let (head, body) =
+    ///     ResponseHead::split(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nab").expect("a head");
+    /// assert_eq!((head.status, body), (200, &b"ab"[..]));
+    /// assert!(!head.is_complete(body));
+    /// assert!(ResponseHead::split(b"HTTP/1.1 200 OK\r\nContent-Le").is_none());
+    /// ```
+    #[must_use]
+    pub fn split(response: &[u8]) -> Option<(Self, &[u8])> {
+        let end: usize = response
+            .windows(4)
+            .position(|window| window == b"\r\n\r\n")?;
+        let head = Self::parse(&response[..end])?;
+        Some((head, &response[end + 4..]))
+    }
+
+    /// Whether `body` is all of this response's body, by its `Content-Length`. Without one, the
+    /// body ends only when the server closes the connection, so this says `false`.
+    #[must_use]
+    pub fn is_complete(&self, body: &[u8]) -> bool {
+        self.content_length
+            .is_some_and(|length| body.len() >= length)
+    }
+
     /// The CRC-32 the server put in the `ETag`: the page's, before compression.
     #[must_use]
     pub fn page_crc(&self) -> Option<u32> {
@@ -88,5 +119,18 @@ mod test {
                 .expect("HTTP");
         assert_eq!((unchanged.status, unchanged.max_age), (304, None));
         assert!(ResponseHead::parse(b"SSH-2.0-OpenSSH").is_none());
+    }
+
+    #[test]
+    fn splits_off_the_body_once_the_head_is_in() {
+        let response: &[u8] = b"HTTP/1.1 304 Not Modified\r\nContent-Length: 0\r\n\r\n";
+        let (head, body) = ResponseHead::split(response).expect("a head");
+        assert_eq!((head.status, body.len()), (304, 0));
+        assert!(head.is_complete(body));
+        for cut in 0..response.len() - 1 {
+            assert!(ResponseHead::split(&response[..cut]).is_none(), "{cut}");
+        }
+        let (unsized_head, _) = ResponseHead::split(b"HTTP/1.1 200 OK\r\n\r\nabc").expect("a head");
+        assert!(!unsized_head.is_complete(b"abc"));
     }
 }
