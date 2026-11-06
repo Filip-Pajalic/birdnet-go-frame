@@ -14,7 +14,7 @@ mod pop;
 mod renderer;
 
 pub use canvas::Canvas;
-pub use dither::dither;
+pub use dither::{dither, dither_scaled};
 pub use font_error::FontError;
-pub use pop::pop;
+pub use pop::{pop, pop_in_place};
 pub use renderer::Renderer;

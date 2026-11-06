@@ -20,7 +20,8 @@
 //!     SpeciesSummary::parse_list(br#"[{"scientific_name":"Parus major","common_name":"Great Tit","count":3}]"#)
 //!         .expect("valid JSON");
 //! let page = artist.draw(&species, "Updated 07:30", Resolution::new(800, 480));
-//! let bytes = frame_artist::panel_bytes(&page, artist.paper(), PanelSize::Inches7Point3, Rotation::Degrees0)
+//! let paper = artist.paper();
+//! let bytes = frame_artist::panel_bytes(page, paper, PanelSize::Inches7Point3, Rotation::Degrees0)
 //!     .expect("an 800x480 page fits the 7.3-inch panel");
 //! assert_eq!(bytes.len(), 192_000);
 //! ```

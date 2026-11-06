@@ -22,12 +22,6 @@ impl Canvas {
         }
     }
 
-    /// Wraps pixels already drawn; `pixels` must hold one colour per pixel of `resolution`.
-    pub(crate) fn from_pixels(resolution: Resolution, pixels: Vec<Rgb>) -> Self {
-        debug_assert_eq!(pixels.len(), resolution.area());
-        Self { resolution, pixels }
-    }
-
     /// Returns the canvas size.
     #[must_use]
     pub fn resolution(&self) -> Resolution {
@@ -38,6 +32,11 @@ impl Canvas {
     #[must_use]
     pub fn pixels(&self) -> &[Rgb] {
         &self.pixels
+    }
+
+    /// Returns all pixels, row by row, to change in place.
+    pub(crate) fn pixels_mut(&mut self) -> &mut [Rgb] {
+        &mut self.pixels
     }
 
     /// Blends `colour` over the pixel at (`x`, `y`) with `coverage` from 0 (none) to 255 (full).
