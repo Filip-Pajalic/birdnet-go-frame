@@ -33,3 +33,4 @@ The docs follow [Diátaxis](https://diataxis.fr/): four kinds of page for four d
 - [How the image is made](explanation/image-pipeline.md)
 - [Power, polling and refresh](explanation/power-and-refresh.md)
 - [Design decisions](explanation/design-decisions.md)
+- [Dependencies: why there are so few](explanation/dependencies.md)

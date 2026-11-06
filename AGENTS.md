@@ -18,12 +18,22 @@ and [`docs/explanation/image-pipeline.md`](docs/explanation/image-pipeline.md) e
 
 - `crates/` holds libraries only. `apps/` holds thin binaries that wire libraries together and
   read configuration; no logic belongs there that a library could own.
-- Libraries are `no_std` + `alloc` unless their job needs an OS (`transport-ureq`, `frame-http`).
-  Keep it that way: the same code must compile for the ESP32. Do not add `std` to `frame-core`,
-  `birdnet-model`, `birdnet-client`, `birdnet-mock`, `frame-layout` or `frame-raster`.
-- Platform differences go behind small generic traits (`HttpTransport`, later `embedded-hal`),
+- Libraries are `no_std` + `alloc` unless their job needs an OS (`lan-http`, `transport-lan`,
+  `frame-http`). Keep it that way: the same code must compile for the ESP32, and CI builds those
+  crates for a bare-metal target. Do not add `std` to `frame-core`, `birdnet-model`,
+  `birdnet-client`, `birdnet-mock`, `art-pack`, `art-mock`, `bird-sizes`, `frame-layout` or
+  `frame-raster`.
+- Platform differences go behind small generic traits (`HttpTransport`, `ArtSource`, later
+  `embedded-hal`),
   not `cfg` branches inside libraries. Prefer generics over `dyn`.
 - See [`docs/reference/crates.md`](docs/reference/crates.md) for what each crate owns.
+
+## Dependencies
+
+The server has eight third-party crates, all from `fontdue`. Do not add one without a strong
+reason: read [`docs/explanation/dependencies.md`](docs/explanation/dependencies.md), turn off
+default features, add a row there, and make sure `cargo deny check` passes. Small jobs (JSON,
+HTTP, PNG) are done in-repo on purpose.
 
 ## Commands
 
@@ -35,7 +45,9 @@ BIRDNET_URL=mock cargo run -p server                       # run against the sim
 cargo run -p fake-birdnet -- 127.0.0.1:8090                # simulated BirdNET-Go over HTTP
 ```
 
-Run fmt, clippy and tests before every commit; CI runs the same with `--locked`.
+Run fmt, clippy and tests before every commit; CI runs the same with `--locked`, plus tests on
+Linux, macOS and Windows, the minimum Rust version (1.87, set by fontdue), a bare-metal build of
+the `no_std` crates, `cargo doc` and `cargo deny`.
 
 ## Code style
 
@@ -58,7 +70,8 @@ often get wrong:
 
 ## Testing
 
-- Use `birdnet-mock` (`MockTransport` with a fixed clock) instead of network calls in tests.
+- Use `birdnet-mock` (`MockTransport` with a fixed clock) instead of network calls in tests, and
+  `art-mock` instead of image files.
 - Add a JSON fixture under `crates/birdnet-model/tests/fixtures/` when BirdNET-Go sends a shape
   the parser mishandles.
 - `crates/frame-core/tests/e6_golden.rs` guards byte compatibility with fugleramme. Never update
@@ -72,7 +85,8 @@ often get wrong:
 - Never commit fugleramme's bird artwork (CC BY-SA 4.0, about 245 MB). It is downloaded at install
   time with its `ATTRIBUTION.md` and `manifest.json`.
 - Fonts go under `assets/fonts/<family>/` with their `OFL.txt`, listed in
-  `assets/fonts/ATTRIBUTION.md`.
+  `assets/fonts/ATTRIBUTION.md`. Data files sit with the crate that embeds them, with an
+  `ATTRIBUTION.md` (e.g. `crates/bird-sizes/data/`).
 - Do not copy code from BirdNET-Go (CC BY-NC-SA 4.0); only call its HTTP API.
 
 ## Docs
@@ -81,6 +95,13 @@ Docs live in `docs/` and follow [Diátaxis](https://diataxis.fr/): tutorials, ho
 reference, explanation. Put a new page in the one section that matches its purpose, link it from
 `docs/README.md`, and use Mermaid for diagrams. When behaviour, configuration or an endpoint
 changes, update the matching reference page in the same commit.
+
+## Releases and CI
+
+Workflows are in `.github/workflows/`: `ci.yml` (every push to main and every pull request,
+fork-safe, read-only), `release.yml` (on `v*` tags: binaries for Linux, macOS and Windows with
+checksums on a GitHub release), `docker.yml` (image to `ghcr.io` from main and tags). Never
+switch a workflow to `pull_request_target` or give PR jobs write permissions or secrets.
 
 ## Commits
 

@@ -1,12 +1,19 @@
 # How the image is made
 
+![The collage drawn from the simulated garden](../images/collage-mock.png)
+
 A page goes through five stages, from BirdNET-Go's JSON to the bytes the panel's controllers
 expect. Each stage is a separate crate with plain data in and out, so each can be tested alone.
 
 ```mermaid
 flowchart TD
     json["BirdNET-Go JSON<br/>species summary"] -->|"birdnet-model<br/>parse, drop non-birds, merge spellings, sort"| species["Vec&lt;SpeciesSummary&gt;"]
-    species -->|"frame-layout<br/>TextList::layout"| layout["PageLayout<br/>text blocks with positions and sizes"]
+    species --> sizes["bird-sizes<br/>body mass per species"]
+    species --> art["ArtSource (art-mock)<br/>a cut-out per species"]
+    sizes -->|"size_weights<br/>mass^0.14"| collage
+    art -->|aspect ratios| collage
+    collage["frame-layout<br/>Collage::layout (or TextList)"] --> layout["PageLayout<br/>image blocks + text blocks"]
+    art -->|pictures| canvas
     layout -->|"frame-raster<br/>Renderer::render"| canvas["Canvas<br/>full-colour RGB, as it hangs"]
     canvas -->|"frame-raster<br/>dither"| page["IndexedImage<br/>one of six inks per pixel"]
     page -->|"frame-core<br/>e6::encode"| e6["/frame.e6<br/>header + 960,000 bytes"]
@@ -26,22 +33,57 @@ last `WINDOW_HOURS` in your time zone. The parser:
 
 ## 2. Lay out (`frame-layout`)
 
-Layout decides *what goes where* without drawing anything. The output is a `PageLayout`: a list
-of text blocks, each with text, position, size, alignment and a role (heading, name, detail,
-footer).
+Layout decides *what goes where* without drawing anything. The output is a `PageLayout`: image
+blocks (which picture, where, how big, mirrored or not) and text blocks (text, position, size,
+alignment and a role: heading, name, detail, footer). Both layouts share the heading at the top
+and the "Updated HH:MM" footer.
 
-The current layout, `TextList`, puts a heading at the top, the species with their counts below it
-and an "Updated HH:MM" footer at the bottom. Long lists on a landscape page get two columns.
-All names share one font size, small enough for the longest name to fit beside its count.
+### The collage (`LAYOUT=collage`, the default)
 
-The illustrated collage from fugleramme (art sized by body mass and packed onto the page) will be
-a second layout producing the same kind of `PageLayout`.
+Each bird gets a picture from an `ArtSource` and a size from its body mass:
+
+1. **Mass.** `bird-sizes` looks the species up in AVONET's body masses (6,421 species BirdNET
+   can detect; unknown species get the median).
+2. **Weight.** `size_weights` turns masses into relative sizes, as in fugleramme:
+   `(mass / geometric mean) ^ 0.14`. A wood pigeon (490 g) comes out about 1.9 times the size of
+   a goldcrest (5.5 g), not 90 times, so small birds stay visible.
+3. **Box.** The weight sets the square root of the picture's area, so a magpie's long tail
+   widens its box without making the bird huge.
+4. **Rows.** Birds, most heard first, fill rows from the top, each row about as wide as the
+   others. Every row count from one to the number of birds is tried, and for each the largest
+   scale that fits is found by bisection. The row count that draws birds largest wins.
+5. **Placing.** In each row the tallest bird is in the middle, smaller ones outwards. Birds stand
+   on a shared shelf with their name centred underneath, and each one faces the middle of the
+   page (pictures right of centre are mirrored).
+
+```mermaid
+flowchart LR
+    birds["birds, most heard first<br/>weight + aspect ratio"] --> split["split into R rows<br/>of equal width"]
+    split --> fit["bisect the largest scale<br/>where every row fits"]
+    fit -->|"try R = 1 … n"| best["keep the R with<br/>the largest scale"]
+    best --> place["tallest in the middle,<br/>shelf, names, face inwards"]
+```
+
+Until real art is supported, pictures come from `art-mock`: it paints a simple perched bird for
+any species from ellipses, polygons and round-ended lines, with a dark outline and anti-aliased
+edges. Eighteen garden birds have their own shape and plumage; any other species gets a shape
+and colours derived from a hash of its name, the same every time. The pictures are cut-outs with
+transparent backgrounds, like fugleramme's art, so sizing, packing and drawing are exercised
+exactly as they will be with real pictures.
+
+### The list (`LAYOUT=list`)
+
+`TextList` puts the species with their counts under the heading. Long lists on a landscape page
+get two columns. All names share one font size, small enough for the longest name to fit beside
+its count.
 
 ## 3. Draw (`frame-raster`)
 
 The renderer starts from a white canvas the size of the page *as it hangs* (1600x1200 landscape or
-1200x1600 portrait) and draws each block with the embedded EB Garamond Italic, using `fontdue`.
-Names and the heading are black, counts are red.
+1200x1600 portrait). It draws the pictures first, scaling each into its block by averaging the
+source pixels under every target pixel and blending by the picture's transparency. Then it draws
+each text block with the embedded EB Garamond Italic, using `fontdue`. Names and the heading are
+black, counts are red.
 
 Glyph edges are drawn hard (coverage of 50% or more is ink, less is paper). Smooth grey edges look
 nice on a monitor, but the next stage would turn them into coloured specks, because grey is not

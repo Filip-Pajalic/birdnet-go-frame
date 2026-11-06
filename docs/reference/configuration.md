@@ -12,6 +12,8 @@ The server reads environment variables at start-up.
 | `UTC_OFFSET_MINUTES` | `0` | minutes | The garden's time zone, minutes east of UTC. Used for the date range and the "Updated" time. Not adjusted for daylight saving. |
 | `REFRESH_SECONDS` | `60` | seconds | How often the server asks BirdNET-Go for news. |
 | `HEADING` | `Heard in the garden` | text | Page heading. |
+| `LAYOUT` | `collage` | `collage` or `list` | `collage` draws a picture of every bird, heavier birds bigger. `list` writes names and counts only. |
+| `MAX_BIRDS` | `15` | number | Most birds pictured on the collage; the rest are counted in an "and N more" line. |
 
 An invalid value stops the server with a message naming the variable, e.g.
 `ROTATION: cannot read "45": rotation must be 0, 90, 180 or 270`.

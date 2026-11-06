@@ -1,13 +1,22 @@
 # Run the server in Docker or on Unraid
 
-## Build the image
+## Get the image
+
+Published images for amd64 and arm64 are on GitHub Container Registry:
+
+| Tag | Follows |
+| --- | --- |
+| `ghcr.io/filip-pajalic/birdnet-go-frame:edge` | the `main` branch |
+| `ghcr.io/filip-pajalic/birdnet-go-frame:0.2.0`, `:0.2` | releases |
+
+Or build it yourself:
 
 ```bash
 docker build -f deploy/Dockerfile -t birdnet-go-frame .
 ```
 
-The image is `FROM scratch` and holds only the static server binary (about 1.8 MB, most of it the
-embedded font) and `fake-birdnet`.
+The image is `FROM scratch` and holds only the static server binary (about 1.5 MB, the font and
+the bird-size table included) and `fake-birdnet`. It runs as an unprivileged user.
 
 ## Run it
 
@@ -15,7 +24,7 @@ embedded font) and `fake-birdnet`.
 docker run -d --name birdnet-go-frame -p 8081:8080 \
   -e BIRDNET_URL=http://192.168.1.10:8080 \
   -e UTC_OFFSET_MINUTES=60 \
-  birdnet-go-frame
+  ghcr.io/filip-pajalic/birdnet-go-frame:edge
 ```
 
 BirdNET-Go usually holds port 8080 on the host, so the example publishes the frame on 8081.
@@ -23,7 +32,7 @@ BirdNET-Go usually holds port 8080 on the host, so the example publishes the fra
 ## On Unraid
 
 1. **Docker** tab, **Add Container**.
-2. Repository: the image you built or pushed (e.g. `ghcr.io/<you>/birdnet-go-frame`).
+2. Repository: `ghcr.io/filip-pajalic/birdnet-go-frame:edge` (or a release tag, or your own build).
 3. Port: container `8080`, host `8081`.
 4. Variables: `BIRDNET_URL` (BirdNET-Go's address as the container sees it, e.g. the Unraid IP and
    BirdNET-Go's port) and `UTC_OFFSET_MINUTES`. Add any others from

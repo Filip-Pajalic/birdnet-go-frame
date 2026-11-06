@@ -33,8 +33,13 @@ says "No birds heard yet".
 
 ## 2. Look at the page
 
-Open <http://localhost:8080/> in a browser. You see the full-colour preview: a heading, the
-species heard today with their counts, and the time the page was drawn.
+Open <http://localhost:8080/> in a browser. You see the full-colour preview: a heading, a
+picture of every species heard today with its name, and the time the page was drawn. Heavier
+birds are drawn bigger, and every bird faces the middle of the page. The pictures are generated
+(no artwork is downloaded), so they are simple, but they are sized and placed exactly as real art
+would be.
+
+![The collage from the simulated garden](../images/collage-mock.png)
 
 Now open <http://localhost:8080/frame.png>. This is the same page reduced to the panel's six inks,
 in the panel's native landscape orientation.
@@ -61,7 +66,17 @@ Stop the server with Ctrl+C and start it rotated a quarter turn:
 BIRDNET_URL=mock ROTATION=90 cargo run --release -p server
 ```
 
-Reload <http://localhost:8080/>: the page is now 1200x1600 and the list uses one column.
+Reload <http://localhost:8080/>: the page is now 1200x1600 and the birds rearrange into more,
+narrower rows.
+
+## 5. Try the text page
+
+```bash
+BIRDNET_URL=mock LAYOUT=list cargo run --release -p server
+```
+
+The page now lists names and counts, most heard first, which some people prefer on a small
+panel.
 
 ## What you have done
 

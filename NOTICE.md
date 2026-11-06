@@ -53,6 +53,9 @@ CC BY-NC-SA 4.0: https://github.com/tphakala/birdnet-go
 
 - AVONET body masses: Tobias, J.A. et al. (2022). AVONET: morphological, ecological and
   geographical data for all birds. Ecology Letters. doi:10.1111/ele.13898. CC BY 4.0.
+  Included as `crates/bird-sizes/data/bird_sizes.csv`, taken from fugleramme's
+  `assets/bird_sizes.csv`, filtered to the species in BirdNET's v2.4 labels and rounded to three
+  significant figures (see the `ATTRIBUTION.md` beside it).
 - OpenFauna scientific-name aliases: https://github.com/tphakala/openfauna, CC BY-SA 4.0.
 
 ## Fonts
