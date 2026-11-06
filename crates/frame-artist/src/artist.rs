@@ -7,17 +7,22 @@ use alloc::vec::Vec;
 
 use art_pack::{ArtImage, ArtSource};
 use bird_sizes::BirdSizes;
-use birdnet_model::SpeciesSummary;
+use birdnet_model::{ScientificName, SpeciesSummary};
 use frame_core::{Resolution, Rgb};
 use frame_layout::{
-    Collage, CollageBird, CollageOptions, PageLayout, Silhouette, TextList, TextListOptions,
-    size_weights,
+    Collage, CollageBird, CollageOptions, PageLayout, SeasonPage, Silhouette, StoryPage, TextList,
+    TextListOptions, size_weights,
 };
 use frame_raster::{Canvas, Renderer};
 use page_text::PageText;
 
+use crate::day_facts::DayFacts;
 use crate::layout::Layout;
 use crate::page_style::PageStyle;
+use crate::year_facts::YearFacts;
+
+/// How much bigger a featured bird is drawn than its weight alone would make it.
+const FEATURED_BOOST: f32 = 2.2;
 
 /// A species' picture and its outline, worked out once a day.
 struct Picture {
@@ -62,6 +67,17 @@ impl<A: ArtSource> Artist<A> {
         &self.style.words
     }
 
+    /// Returns how pages are set out.
+    #[must_use]
+    pub fn style(&self) -> &PageStyle {
+        &self.style
+    }
+
+    /// Sets pages out with `style` from now on, e.g. another frame's. Pictures stay cached.
+    pub fn set_style(&mut self, style: PageStyle) {
+        self.style = style;
+    }
+
     /// Starts day `day` (days since 1970): art sources may pick another plate for a species,
     /// so cached pictures are forgotten.
     pub fn start_day(&mut self, day: i64) {
@@ -79,21 +95,74 @@ impl<A: ArtSource> Artist<A> {
         footer: &str,
         resolution: Resolution,
     ) -> Canvas {
+        self.draw_featured(species, None, None, footer, resolution)
+    }
+
+    /// Like [`draw`](Self::draw), with `heading` instead of the style's and `featured` (one
+    /// of `species`, e.g. a bird new for the year) put first: drawn biggest on the collage,
+    /// and kept on it whatever the style's most birds.
+    pub fn draw_featured(
+        &mut self,
+        species: &[SpeciesSummary],
+        featured: Option<&ScientificName>,
+        heading: Option<&str>,
+        footer: &str,
+        resolution: Resolution,
+    ) -> Canvas {
+        let mut ordered: Vec<SpeciesSummary> = species.to_vec();
+        if let Some(featured) = featured {
+            if let Some(index) = ordered
+                .iter()
+                .position(|row| row.scientific_name == *featured)
+            {
+                let row: SpeciesSummary = ordered.remove(index);
+                ordered.insert(0, row);
+            }
+        }
+        let featured: Option<&ScientificName> = featured.filter(|name| {
+            ordered
+                .first()
+                .is_some_and(|row| row.scientific_name == **name)
+        });
         let shown: &[SpeciesSummary] = match self.style.max_birds {
-            0 => species,
-            limit => &species[..species.len().min(limit)],
+            0 => &ordered,
+            limit => &ordered[..ordered.len().min(limit)],
         };
         match self.style.layout {
             Layout::List => {
-                let heading: String = self
-                    .style
-                    .heading
-                    .clone()
+                let heading: String = heading
+                    .map(String::from)
+                    .or_else(|| self.style.heading.clone())
                     .unwrap_or_else(|| self.style.words.heading.clone());
-                self.draw_list(species, &heading, footer, resolution)
+                self.draw_list(&ordered, &heading, footer, resolution)
             }
-            Layout::Collage => self.draw_collage(shown, resolution),
+            Layout::Collage => {
+                let heading: String = heading
+                    .map(String::from)
+                    .or_else(|| self.style.heading.clone())
+                    .unwrap_or_default();
+                let shown: Vec<SpeciesSummary> = shown.to_vec();
+                self.draw_collage(&shown, featured.is_some(), &heading, resolution)
+            }
         }
+    }
+
+    /// Draws the day's story: who sang first and last, the weather, and a chart of when each
+    /// bird sang.
+    #[must_use]
+    pub fn draw_story(&self, day: &DayFacts, footer: &str, resolution: Resolution) -> Canvas {
+        let layout: PageLayout =
+            StoryPage::layout(resolution, &day.story_options(&self.style.words, footer));
+        self.renderer.render(&layout, &[])
+    }
+
+    /// Draws the year so far: how many species, the latest arrivals, this week against the
+    /// same week last year, and the year list.
+    #[must_use]
+    pub fn draw_season(&self, year: &YearFacts, footer: &str, resolution: Resolution) -> Canvas {
+        let layout: PageLayout =
+            SeasonPage::layout(resolution, &year.season_options(&self.style.words, footer));
+        self.renderer.render(&layout, &[])
     }
 
     /// Draws the page saying BirdNET-Go cannot be reached, with `problem` underneath.
@@ -123,7 +192,14 @@ impl<A: ArtSource> Artist<A> {
         self.renderer.render(&layout, &[])
     }
 
-    fn draw_collage(&mut self, species: &[SpeciesSummary], resolution: Resolution) -> Canvas {
+    /// Draws the collage of `species`, the first drawn bigger when `featured`.
+    fn draw_collage(
+        &mut self,
+        species: &[SpeciesSummary],
+        featured: bool,
+        heading: &str,
+        resolution: Resolution,
+    ) -> Canvas {
         for row in species {
             self.ensure_picture(&row.scientific_name.to_string());
         }
@@ -143,7 +219,14 @@ impl<A: ArtSource> Artist<A> {
             .iter()
             .map(|(row, _)| self.sizes.mass_grams(&row.scientific_name.to_string()))
             .collect();
-        let weights: Vec<f32> = size_weights(&masses);
+        let mut weights: Vec<f32> = size_weights(&masses);
+        let first_pictured: bool = pictured
+            .first()
+            .zip(species.first())
+            .is_some_and(|((row, _), first)| row.scientific_name == first.scientific_name);
+        if let Some(weight) = weights.first_mut().filter(|_| featured && first_pictured) {
+            *weight *= FEATURED_BOOST;
+        }
         let mut art: Vec<ArtImage> = Vec::with_capacity(pictured.len());
         let mut birds: Vec<CollageBird> = Vec::with_capacity(pictured.len());
         for ((row, picture), weight) in pictured.into_iter().zip(weights) {
@@ -164,7 +247,7 @@ impl<A: ArtSource> Artist<A> {
             art.push(picture.art.clone());
         }
         let options = CollageOptions {
-            heading: self.style.heading.clone().unwrap_or_default(),
+            heading: heading.to_owned(),
             empty: self.style.words.nothing_heard.clone(),
             names: self.style.names,
             ..CollageOptions::default()

@@ -2,7 +2,9 @@
 //!
 //! [`Artist`] picks the layout ([`Layout`]), finds each bird's picture and size, and renders a
 //! [`frame_raster::Canvas`]; [`panel_bytes`] turns that into the bytes a Spectra 6 panel's
-//! controllers take. The server, the Raspberry Pi app and the standalone ESP32 firmware all draw
+//! controllers take. [`Artist::draw_featured`] puts one bird first and biggest (the rare-bird
+//! alert), [`Artist::draw_story`] draws the day's story from [`DayFacts`] and
+//! [`Artist::draw_season`] the year so far from [`YearFacts`]. The server, the Raspberry Pi app and the standalone ESP32 firmware all draw
 //! with it. `no_std` with `alloc`.
 //!
 //! ```
@@ -31,11 +33,15 @@
 extern crate alloc;
 
 mod artist;
+mod day_facts;
 mod layout;
 mod page_style;
 mod panel_bytes;
+mod year_facts;
 
 pub use artist::Artist;
+pub use day_facts::{CHART_SPECIES, DayFacts};
 pub use layout::{Layout, ParseLayoutError};
 pub use page_style::PageStyle;
 pub use panel_bytes::panel_bytes;
+pub use year_facts::{ARRIVAL_DAYS, YearFacts};
