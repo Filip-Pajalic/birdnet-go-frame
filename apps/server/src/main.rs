@@ -6,7 +6,6 @@
 //! environment variables; see the README. `BIRDNET_URL=mock` runs against a built-in
 //! simulated station, so it works out of the box.
 
-mod artist;
 mod config;
 mod poller;
 mod quiet_hours;
@@ -20,12 +19,12 @@ use art_pack::ArtSource;
 use art_webp::ArtFolder;
 use birdnet_client::BirdnetClient;
 use birdnet_mock::MockTransport;
+use frame_artist::{Artist, PageStyle};
 use frame_http::{FrameServer, PageStore, Target};
 use frame_raster::Renderer;
 use page_text::{PageText, Translations};
 use transport_lan::LanTransport;
 
-use crate::artist::{Artist, PageStyle};
 use crate::config::{Config, Source};
 use crate::poller::SharedArtist;
 

@@ -7,11 +7,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use art_pack::ArtSource;
 use birdnet_client::{BirdnetClient, DateWindow, HttpTransport};
 use birdnet_model::SpeciesSummary;
+use frame_artist::Artist;
 use frame_core::{IndexedImage, Rgb};
 use frame_http::{PageStore, RenderedPage, Target};
 use frame_raster::Canvas;
 
-use crate::artist::Artist;
 use crate::config::Config;
 
 const SECONDS_PER_DAY: i64 = 86_400;

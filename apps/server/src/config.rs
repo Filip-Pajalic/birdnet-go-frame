@@ -5,6 +5,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use std::{env, fmt};
 
+use frame_artist::Layout;
 use frame_core::{PanelSize, Rotation};
 
 use crate::quiet_hours::QuietHours;
@@ -16,27 +17,6 @@ pub enum Source {
     Live(String),
     /// The built-in simulated station (`BIRDNET_URL=mock`).
     Mock,
-}
-
-/// Which page to draw.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Layout {
-    /// A picture of every bird, heavier birds bigger (`LAYOUT=collage`, the default).
-    Collage,
-    /// Names and counts only (`LAYOUT=list`).
-    List,
-}
-
-impl FromStr for Layout {
-    type Err = String;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        match text.to_ascii_lowercase().as_str() {
-            "collage" => Ok(Self::Collage),
-            "list" => Ok(Self::List),
-            _ => Err(String::from("expected `collage` or `list`")),
-        }
-    }
 }
 
 /// BirdNET-Go's login, for its private mode. The password never shows in debug output.

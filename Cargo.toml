@@ -10,6 +10,7 @@ members = [
     "crates/birdnet-client",
     "crates/birdnet-mock",
     "crates/birdnet-model",
+    "crates/frame-artist",
     "crates/frame-core",
     "crates/frame-http",
     "crates/frame-layout",
@@ -40,6 +41,7 @@ bird-sizes = { path = "crates/bird-sizes", version = "0.1.0" }
 birdnet-client = { path = "crates/birdnet-client", version = "0.1.0" }
 birdnet-mock = { path = "crates/birdnet-mock", version = "0.1.0" }
 birdnet-model = { path = "crates/birdnet-model", version = "0.1.0" }
+frame-artist = { path = "crates/frame-artist", version = "0.1.0" }
 frame-core = { path = "crates/frame-core", version = "0.1.0" }
 frame-http = { path = "crates/frame-http", version = "0.1.0" }
 frame-layout = { path = "crates/frame-layout", version = "0.1.0" }

@@ -1,0 +1,23 @@
+[package]
+name = "frame-artist"
+description = "Draws the page for a list of birds: picks the layout, finds each bird's picture and size, renders. no_std with alloc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+art-pack.workspace = true
+bird-sizes.workspace = true
+birdnet-model.workspace = true
+frame-core.workspace = true
+frame-layout.workspace = true
+frame-raster.workspace = true
+page-text.workspace = true
+
+[dev-dependencies]
+art-mock.workspace = true
+
+[lints]
+workspace = true

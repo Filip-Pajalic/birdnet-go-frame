@@ -16,6 +16,7 @@
 | `page-text` | yes (alloc) | The page's words in a dozen languages, from a translations JSON | `Translations`, `PageText` |
 | `frame-layout` | yes (alloc) | Page layout as data; the collage's spiral packing by outline | `PageLayout`, `Collage`, `Silhouette`, `TextList`, `ImageBlock`, `TextBlock`, `size_weights` |
 | `frame-raster` | yes (alloc) | Drawing, the panel boost, and dithering | `Renderer`, `Canvas`, `pop`, `dither` |
+| `frame-artist` | yes (alloc) | Draws the page for a list of birds: layout choice, pictures, sizes, and the panel's bytes. Shared by the server and the apps that draw their own page | `Artist`, `PageStyle`, `Layout`, `panel_bytes` |
 | `frame-http` | no | HTTP endpoints, PNG and zlib encoding | `FrameServer`, `PageStore`, `RenderedPage`, `PanelBody`, `Target` |
 | `panel-t133a01` | yes | The 13.3" Spectra 6 panel's two controllers on `embedded-hal` 1.0 | `T133a01`, `Pins`, `PanelError` |
 | `panel-wake` | yes (alloc) | A panel's wake: the request, reading the answer, unpacking and checking the page, planning the sleep, what to keep in RTC memory | `WakeState`, `ResponseHead`, `Wake`, `SleepLimits`, `SleepMemory`, `Rejoin`, `FrameAddress`, `page_request` |
@@ -23,7 +24,7 @@
 
 | App | Binary | Uses |
 | --- | --- | --- |
-| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + bird-sizes + page-text + layout + raster + http |
+| `apps/server` | `birdnet-go-frame` | client + (transport-lan or mock) + (art-webp or art-mock) + page-text + artist + raster + http |
 | `apps/fake-birdnet` | `fake-birdnet` | mock + lan-http |
 | `apps/ee02-thin` | `ee02-thin` (ESP32-S3 firmware) | panel-wake + transport-esp + panel-t133a01 + frame-core, on esp-hal; its own workspace |
 

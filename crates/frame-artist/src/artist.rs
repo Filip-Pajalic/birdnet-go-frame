@@ -1,6 +1,9 @@
 //! Draws pages: picks the layout, finds each bird's picture and size, renders.
 
-use std::collections::HashMap;
+use alloc::borrow::ToOwned;
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 use art_pack::{ArtImage, ArtSource};
 use bird_sizes::BirdSizes;
@@ -13,21 +16,8 @@ use frame_layout::{
 use frame_raster::{Canvas, Renderer};
 use page_text::PageText;
 
-use crate::config::Layout;
-
-/// How pages are set out, from the settings.
-pub struct PageStyle {
-    /// Which page to draw.
-    pub layout: Layout,
-    /// Most birds on a page; 0 for every bird heard.
-    pub max_birds: usize,
-    /// Whether the collage names its birds.
-    pub names: bool,
-    /// A heading to print; `None` for the collage's bare page and the list's translated one.
-    pub heading: Option<String>,
-    /// The page's words in the chosen language.
-    pub words: PageText,
-}
+use crate::layout::Layout;
+use crate::page_style::PageStyle;
 
 /// A species' picture and its outline, worked out once a day.
 struct Picture {
@@ -39,18 +29,21 @@ struct Picture {
 pub struct Artist<A: ArtSource> {
     renderer: Renderer,
     art: A,
-    pictures: HashMap<String, Option<Picture>>,
+    pictures: BTreeMap<String, Option<Picture>>,
     day: Option<i64>,
     sizes: BirdSizes<'static>,
     style: PageStyle,
 }
 
 impl<A: ArtSource> Artist<A> {
+    /// Creates an artist that draws with `renderer`'s font and paper, `art`'s pictures and
+    /// `style`.
+    #[must_use]
     pub fn new(renderer: Renderer, art: A, style: PageStyle) -> Self {
         Self {
             renderer,
             art,
-            pictures: HashMap::new(),
+            pictures: BTreeMap::new(),
             day: None,
             sizes: BirdSizes::bundled(),
             style,
@@ -58,11 +51,13 @@ impl<A: ArtSource> Artist<A> {
     }
 
     /// Returns the paper pages are drawn on.
+    #[must_use]
     pub fn paper(&self) -> Rgb {
         self.renderer.paper()
     }
 
     /// Returns the page's words.
+    #[must_use]
     pub fn words(&self) -> &PageText {
         &self.style.words
     }

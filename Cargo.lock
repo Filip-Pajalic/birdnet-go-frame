@@ -113,6 +113,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "frame-artist"
+version = "0.1.0"
+dependencies = [
+ "art-mock",
+ "art-pack",
+ "bird-sizes",
+ "birdnet-model",
+ "frame-core",
+ "frame-layout",
+ "frame-raster",
+ "page-text",
+]
+
+[[package]]
 name = "frame-core"
 version = "0.1.0"
 
@@ -215,13 +229,12 @@ dependencies = [
  "art-mock",
  "art-pack",
  "art-webp",
- "bird-sizes",
  "birdnet-client",
  "birdnet-mock",
  "birdnet-model",
+ "frame-artist",
  "frame-core",
  "frame-http",
- "frame-layout",
  "frame-raster",
  "page-text",
  "transport-lan",
