@@ -1,0 +1,15 @@
+[package]
+name = "panel-setup"
+description = "A panel's setup hotspot: its settings record, the setup page and form, and the small DHCP and DNS answers a phone needs to find it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+frame-core.workspace = true
+panel-wake.workspace = true
+
+[lints]
+workspace = true

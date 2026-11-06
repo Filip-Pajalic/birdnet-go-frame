@@ -221,6 +221,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "panel-setup"
+version = "0.1.0"
+dependencies = [
+ "frame-core",
+ "panel-wake",
+]
+
+[[package]]
 name = "panel-t133a01"
 version = "0.1.0"
 dependencies = [

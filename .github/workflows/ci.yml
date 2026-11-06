@@ -75,7 +75,7 @@ jobs:
           cargo build --locked --target thumbv7em-none-eabihf
           -p frame-core -p birdnet-model -p birdnet-client -p birdnet-mock
           -p frame-layout -p frame-raster -p art-pack -p art-mock -p bird-sizes
-          -p lite-json -p page-text -p panel-t133a01 -p panel-wake -p frame-artist -p panel-ed2208
+          -p lite-json -p page-text -p panel-setup -p panel-t133a01 -p panel-wake -p frame-artist -p panel-ed2208
 
   firmware:
     name: ESP32-S3 firmware (ee02-thin)
