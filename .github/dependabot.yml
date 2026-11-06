@@ -8,6 +8,15 @@ updates:
       cargo:
         patterns: ["*"]
     open-pull-requests-limit: 5
+  # The firmware's own workspace and lock file. Espressif's crates move together, so one group.
+  - package-ecosystem: cargo
+    directory: /apps/ee02-thin
+    schedule:
+      interval: weekly
+    groups:
+      firmware:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
   - package-ecosystem: github-actions
     directory: /
     schedule:
