@@ -1,5 +1,8 @@
 //! The date range a species summary is asked for.
 
+use alloc::format;
+use alloc::string::String;
+
 use crate::civil_date::CivilDate;
 
 const SECONDS_PER_DAY: i64 = 86_400;
@@ -26,6 +29,17 @@ impl DateWindow {
             end: CivilDate::from_days_since_epoch(local_now.div_euclid(SECONDS_PER_DAY)),
         }
     }
+
+    /// Returns the path and query of BirdNET-Go's species summary for this window, as
+    /// [`crate::BirdnetClient::species_summary`] asks for it, for a device that sends its own
+    /// requests: `/api/v2/analytics/species/summary?start_date=2026-11-05&end_date=2026-11-06`.
+    #[must_use]
+    pub fn species_summary_path(self) -> String {
+        format!(
+            "/api/v2/analytics/species/summary?start_date={}&end_date={}",
+            self.start, self.end
+        )
+    }
 }
 
 #[cfg(test)]
@@ -33,6 +47,15 @@ mod test {
     use alloc::string::ToString;
 
     use super::*;
+
+    #[test]
+    fn names_the_summary_path() {
+        // 2026-11-06T07:00:00Z, 6 hours back in UTC.
+        assert_eq!(
+            DateWindow::hours_back(1_793_948_400, 0, 6).species_summary_path(),
+            "/api/v2/analytics/species/summary?start_date=2026-11-06&end_date=2026-11-06"
+        );
+    }
 
     #[test]
     fn crosses_midnight() {
