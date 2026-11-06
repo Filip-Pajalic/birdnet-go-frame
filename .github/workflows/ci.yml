@@ -27,6 +27,11 @@ jobs:
       - uses: actions/checkout@v5
       - run: rustup toolchain install nightly --profile minimal -c rustfmt
       - run: cargo +nightly fmt --all --check
+      # The firmware's workspace is excluded from the root one, so check it on its own.
+      - run: cargo +nightly fmt --check
+        working-directory: apps/ee02-thin
+      - run: cargo +nightly fmt --check
+        working-directory: crates/transport-esp
 
   clippy:
     name: Clippy
@@ -71,6 +76,53 @@ jobs:
           -p frame-core -p birdnet-model -p birdnet-client -p birdnet-mock
           -p frame-layout -p frame-raster -p art-pack -p art-mock -p bird-sizes
           -p lite-json -p page-text -p panel-t133a01 -p panel-wake
+
+  firmware:
+    name: ESP32-S3 firmware (ee02-thin)
+    runs-on: ubuntu-latest
+    env:
+      # Pinned: espup's release and Espressif's Rust (1.99.0.0 mis-links the firmware).
+      ESPUP_VERSION: v0.19.0
+      ESP_RUST_VERSION: 1.98.1.0
+      # Placeholder settings: the firmware compiles them in, and CI never flashes it.
+      FRAME_WIFI_SSID: ci
+      FRAME_WIFI_PASSWORD: ci-password
+      FRAME_SERVER: 192.0.2.1:8080
+    defaults:
+      run:
+        working-directory: apps/ee02-thin
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Espressif's Rust toolchain
+        env:
+          # Read-only, for espup's GitHub API calls; nothing is written with it.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/espup" \
+            "https://github.com/esp-rs/espup/releases/download/$ESPUP_VERSION/espup-x86_64-unknown-linux-gnu"
+          chmod +x "$RUNNER_TEMP/espup"
+          "$RUNNER_TEMP/espup" install --targets esp32s3 --toolchain-version "$ESP_RUST_VERSION" \
+            --export-file "$RUNNER_TEMP/export-esp.sh"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/ee02-thin
+      - name: Clippy
+        run: |
+          . "$RUNNER_TEMP/export-esp.sh"
+          cargo clippy --release --locked -- -D warnings
+      - name: Build
+        run: |
+          . "$RUNNER_TEMP/export-esp.sh"
+          cargo build --release --locked
+      - name: Report size
+        run: |
+          . "$RUNNER_TEMP/export-esp.sh"
+          {
+            echo "### Firmware size"
+            echo '```'
+            xtensa-esp32s3-elf-size target/xtensa-esp32s3-none-elf/release/ee02-thin
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   docs:
     name: Docs build without warnings
