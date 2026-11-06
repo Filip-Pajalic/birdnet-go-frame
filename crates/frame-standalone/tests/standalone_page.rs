@@ -33,7 +33,7 @@ fn draws_both_panels_from_an_answer_and_then_waits_for_news() {
     let species: Vec<SpeciesSummary> = answer.species().expect("birds");
     let day: i64 = now.div_euclid(86_400);
     let memory = StandaloneMemory::default();
-    let wake: StandaloneWake = memory.after_species(day, &species, Layout::Collage, 15);
+    let wake: StandaloneWake = memory.after_species(day, &[&species], Layout::Collage, 15);
     assert!(wake.show);
     for (panel, length) in [
         (PanelSize::Inches13Point3, 960_000),
@@ -50,7 +50,11 @@ fn draws_both_panels_from_an_answer_and_then_waits_for_news() {
         assert_eq!(bytes.len(), length);
     }
     let shown: StandaloneMemory = memory.after_shown(wake.fingerprint);
-    assert!(!shown.after_species(day, &species, Layout::Collage, 15).show);
+    assert!(
+        !shown
+            .after_species(day, &[&species], Layout::Collage, 15)
+            .show
+    );
 }
 
 #[test]

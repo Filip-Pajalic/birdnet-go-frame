@@ -3,12 +3,12 @@
 use birdnet_model::SpeciesSummary;
 use frame_artist::Layout;
 use frame_core::Crc32;
-use panel_wake::Rejoin;
+use panel_wake::{Button, PageView, Rejoin};
 
 use crate::fingerprint::Fingerprint;
 
-/// Bytes the memory takes before its checksum: flags, failures, two spare, the fingerprint,
-/// then the rejoin record.
+/// Bytes the memory takes before its checksum: flags, failures, the view, one spare, the
+/// fingerprint, then the rejoin record.
 const BYTES: usize = 8 + Rejoin::BYTES;
 /// Those bytes in whole words.
 const STATE_WORDS: usize = BYTES.div_ceil(4);
@@ -32,6 +32,8 @@ pub struct StandaloneMemory {
     pub failures: u8,
     /// How to join the Wi-Fi quickly, if the last wake reached the network.
     pub rejoin: Option<Rejoin>,
+    /// The page the buttons have stepped to.
+    pub view: PageView,
 }
 
 /// What a wake decided after asking BirdNET-Go.
@@ -49,22 +51,41 @@ impl StandaloneMemory {
     /// Words [`to_words`](Self::to_words) gives: the state, then its CRC-32.
     pub const WORDS: usize = STATE_WORDS + 1;
 
-    /// Decides what to do with the birds BirdNET-Go sent: draw them if the page they make on
-    /// `day` (days since 1970) in `layout` is not the one on the glass, and sleep `poll_minutes`
-    /// (at least one).
+    /// Decides what to do with the birds BirdNET-Go sent for [`view`](Self::view): draw them
+    /// if the page they make on `day` (days since 1970) in `layout` is not the one on the
+    /// glass, and sleep `poll_minutes` (at least one). `lists` are the answers the page is
+    /// drawn from, e.g. [`crate::ViewFetch::lists`].
     #[must_use]
     pub fn after_species(
         &self,
         day: i64,
-        species: &[SpeciesSummary],
+        lists: &[&[SpeciesSummary]],
         layout: Layout,
         poll_minutes: u16,
     ) -> StandaloneWake {
-        let fingerprint: Fingerprint = Fingerprint::of(day, species, layout);
+        let fingerprint: Fingerprint = Fingerprint::of(day, self.view, lists, layout);
         StandaloneWake {
             show: self.shown != Some(fingerprint),
             fingerprint,
             sleep_seconds: u32::from(poll_minutes.max(1)) * 60,
+        }
+    }
+
+    /// Returns the memory after `button` woke the frame. Refresh forgets the page on the
+    /// glass, so it is drawn again; previous and next step the view, which draws the new
+    /// page. Either way the failures in a row are forgotten.
+    #[must_use]
+    pub fn after_press(self, button: Button) -> Self {
+        let view: PageView = match button {
+            Button::Refresh => self.view,
+            Button::Previous => self.view.previous(),
+            Button::Next => self.view.next(),
+        };
+        Self {
+            shown: None,
+            failures: 0,
+            view,
+            ..self
         }
     }
 
@@ -101,6 +122,7 @@ impl StandaloneMemory {
         let mut bytes: [u8; STATE_WORDS * 4] = [0; STATE_WORDS * 4];
         bytes[0] = u8::from(self.shown.is_some()) | (u8::from(self.rejoin.is_some()) << 1);
         bytes[1] = self.failures;
+        bytes[2] = self.view.to_byte();
         if let Some(Fingerprint(fingerprint)) = self.shown {
             bytes[4..8].copy_from_slice(&fingerprint.to_le_bytes());
         }
@@ -132,6 +154,7 @@ impl StandaloneMemory {
             shown: (bytes[0] & 1 == 1)
                 .then(|| Fingerprint(u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]))),
             failures: bytes[1],
+            view: PageView::from_byte(bytes[2]),
             rejoin: if bytes[0] & 2 == 2 {
                 Rejoin::from_bytes(&rejoin)
             } else {
@@ -152,13 +175,36 @@ mod test {
         let species: Vec<SpeciesSummary> =
             SpeciesSummary::parse_list(br#"[{"scientific_name":"Parus major","count":3}]"#)
                 .expect("valid JSON");
+        let lists: [&[SpeciesSummary]; 1] = [&species];
         let first: StandaloneWake =
-            StandaloneMemory::default().after_species(10, &species, Layout::Collage, 15);
+            StandaloneMemory::default().after_species(10, &lists, Layout::Collage, 15);
         assert!(first.show);
         assert_eq!(first.sleep_seconds, 900);
         let memory: StandaloneMemory = StandaloneMemory::default().after_shown(first.fingerprint);
-        assert!(!memory.after_species(10, &species, Layout::Collage, 15).show);
-        assert!(memory.after_species(11, &species, Layout::Collage, 15).show);
+        assert!(!memory.after_species(10, &lists, Layout::Collage, 15).show);
+        assert!(memory.after_species(11, &lists, Layout::Collage, 15).show);
+    }
+
+    #[test]
+    fn buttons_step_through_every_view_and_redraw() {
+        let memory: StandaloneMemory = StandaloneMemory::default().after_shown(Fingerprint(3));
+        let mut seen: Vec<PageView> = Vec::new();
+        let mut stepped: StandaloneMemory = memory;
+        for _ in PageView::ALL {
+            seen.push(stepped.view);
+            stepped = stepped.after_press(Button::Next);
+            assert_eq!(stepped.shown, None, "a new view is drawn");
+            assert_eq!(
+                StandaloneMemory::from_words(&stepped.to_words()),
+                stepped,
+                "the view survives deep sleep"
+            );
+        }
+        assert_eq!(seen, PageView::ALL);
+        assert_eq!(stepped.view, PageView::Today);
+        assert_eq!(memory.after_press(Button::Previous).view, PageView::Season);
+        let refreshed: StandaloneMemory = memory.after_press(Button::Refresh);
+        assert_eq!((refreshed.view, refreshed.shown), (PageView::Today, None));
     }
 
     #[test]

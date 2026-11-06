@@ -4,7 +4,7 @@ use alloc::string::String;
 use core::fmt;
 use core::str::FromStr;
 
-use frame_artist::Layout;
+use frame_artist::{Border, Layout};
 use frame_core::Rotation;
 use panel_wake::FrameAddress;
 
@@ -29,6 +29,11 @@ pub struct StandaloneSettings {
     pub max_birds: usize,
     /// Whether the collage names its birds (`FRAME_NAMES`, default true).
     pub names: bool,
+    /// Whether the bird pages end with a line about their main bird (`FRAME_FACTS`, default
+    /// true).
+    pub facts: bool,
+    /// The border round the page (`FRAME_BORDER`: `season`, the default, `off` or a theme).
+    pub border: Border,
 }
 
 /// A setting that could not be read.
@@ -82,6 +87,8 @@ impl StandaloneSettings {
             window_hours: parsed(&get, "FRAME_WINDOW_HOURS", 24)?,
             max_birds: parsed(&get, "FRAME_MAX_BIRDS", Self::MAX_BIRDS)?,
             names: parsed(&get, "FRAME_NAMES", true)?,
+            facts: parsed(&get, "FRAME_FACTS", true)?,
+            border: parsed(&get, "FRAME_BORDER", Border::Season)?,
         })
     }
 }
@@ -123,7 +130,8 @@ mod test {
             (read.poll_minutes, read.window_hours, read.max_birds),
             (15, 24, 12)
         );
-        assert!(read.names);
+        assert!(read.names && read.facts);
+        assert_eq!(read.border, Border::Season);
         assert_eq!(read.language, "en");
     }
 

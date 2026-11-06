@@ -1,10 +1,11 @@
 //! Firmware for an ESP32-S3 with a Spectra 6 panel that needs no frame server.
 //!
-//! Each wake it joins the Wi-Fi (straight to the last access point and address when it can),
-//! asks BirdNET-Go for the time and for the birds heard in the last hours, and draws the page
-//! itself when the birds changed: the same collage or list the server draws, at half size on
-//! the 13.3" panel so it fits in PSRAM, with the art bundled into flash. Then it deep-sleeps
-//! until the next poll.
+//! Each wake it reads the buttons, joins the Wi-Fi (straight to the last access point and
+//! address when it can), asks BirdNET-Go for the time and for what the chosen page shows, and
+//! draws the page itself when that changed: the same pages the server draws (today, the week,
+//! the rarest, the day's story and the season; previous and next step through them, refresh
+//! draws again), at half size on the 13.3" panel so it fits in PSRAM, with the art bundled into
+//! flash. Then it deep-sleeps until the next poll or a press.
 //!
 //! The decisions are `frame-standalone`'s, the drawing is `frame-artist`'s, the radio is
 //! `transport-esp`'s and the glass is `glass-esp`'s; this binary wires them to the board, which
@@ -17,6 +18,7 @@
 extern crate alloc;
 
 mod board;
+mod buttons;
 mod draw;
 mod fetch;
 mod memory;
@@ -24,6 +26,7 @@ mod settings;
 
 use alloc::vec::Vec;
 
+use birdnet_model::SpeciesSummary;
 use embassy_executor::Spawner;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
@@ -33,8 +36,11 @@ use esp_hal::rtc_cntl::sleep::{LowPower, RtcSleepConfig};
 use esp_hal::time::{Duration, Instant};
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
+use frame_artist::PageView;
 use frame_standalone::{StandaloneMemory, StandaloneWake};
+use panel_wake::Button;
 
+use crate::buttons::Buttons;
 use crate::fetch::Heard;
 use crate::settings::Settings;
 
@@ -67,62 +73,74 @@ async fn main(_spawner: Spawner) -> ! {
         board::NAME
     );
 
+    let mut buttons: Buttons<'_> = board::buttons!(peripherals);
+    let pressed: Option<Button> = buttons.pressed();
     let mut power = LowPower::new(peripherals.LPWR);
     let settings: Settings = match settings::load() {
         Ok(settings) => settings,
         Err(problem) => {
             println!("standalone: {problem}; build again with the settings");
-            sleep(&mut power, UNSET_SLEEP_SECONDS)
+            sleep(&mut power, &mut buttons, UNSET_SLEEP_SECONDS)
         }
     };
     let seed: u64 = (u64::from(Rng::new().random()) << 32) | u64::from(Rng::new().random());
-    let memory: StandaloneMemory = memory::load();
+    let mut memory: StandaloneMemory = memory::load();
+    if let Some(button) = pressed {
+        println!("standalone: {button:?} pressed");
+        memory = memory.after_press(button);
+    }
     let poll_minutes: u16 = settings.frame.poll_minutes;
+    // The memory's view and the artist's have the same names; see frame-standalone's tests.
+    let view: PageView = memory.view.as_str().parse().unwrap_or_default();
+    println!("standalone: the {view} page");
 
-    let heard: Heard = match fetch::fetch(peripherals.WIFI, seed, &settings, memory.rejoin).await {
-        Ok(heard) => heard,
-        Err(problem) => {
-            println!("standalone: {problem}");
-            let (kept, seconds): (StandaloneMemory, u32) =
-                memory.after_failure(poll_minutes, false);
-            // A rejoin that led nowhere is forgotten: the next wake scans.
-            let kept = StandaloneMemory {
-                rejoin: None,
-                ..kept
-            };
-            memory::store(&kept);
-            sleep(&mut power, seconds)
-        }
-    };
+    let heard: Heard =
+        match fetch::fetch(peripherals.WIFI, seed, &settings, memory.rejoin, view).await {
+            Ok(heard) => heard,
+            Err(problem) => {
+                println!("standalone: {problem}");
+                let (kept, seconds): (StandaloneMemory, u32) =
+                    memory.after_failure(poll_minutes, false);
+                // A rejoin that led nowhere is forgotten: the next wake scans.
+                let kept = StandaloneMemory {
+                    rejoin: None,
+                    ..kept
+                };
+                memory::store(&kept);
+                sleep(&mut power, &mut buttons, seconds)
+            }
+        };
     let memory = StandaloneMemory {
         rejoin: Some(heard.rejoin),
         ..memory
     };
     let day: i64 = draw::local_day(heard.now, settings.frame.utc_offset_minutes);
+    let lists: Vec<&[SpeciesSummary]> = heard.fetched.lists();
     let wake: StandaloneWake =
-        memory.after_species(day, &heard.species, settings.frame.layout, poll_minutes);
+        memory.after_species(day, &lists, settings.frame.layout, poll_minutes);
     println!(
-        "standalone: {} species heard; {}",
-        heard.species.len(),
+        "standalone: {} lists heard; {}",
+        lists.len(),
         if wake.show {
             "drawing"
         } else {
             "the page has not changed"
         }
     );
+    drop(lists);
     if !wake.show {
         memory::store(&memory.after_shown(wake.fingerprint));
-        sleep(&mut power, wake.sleep_seconds)
+        sleep(&mut power, &mut buttons, wake.sleep_seconds)
     }
 
     let started: Instant = Instant::now();
-    let page: Vec<u8> = match draw::page(&settings.frame, board::PANEL, heard.now, &heard.species) {
+    let page: Vec<u8> = match draw::page(&settings.frame, board::PANEL, heard.now, &heard.fetched) {
         Ok(page) => page,
         Err(problem) => {
             println!("standalone: {problem}");
             let (kept, seconds) = memory.after_failure(poll_minutes, true);
             memory::store(&kept);
-            sleep(&mut power, seconds)
+            sleep(&mut power, &mut buttons, seconds)
         }
     };
     drop(heard);
@@ -146,11 +164,12 @@ async fn main(_spawner: Spawner) -> ! {
         }
     };
     memory::store(&kept);
-    sleep(&mut power, seconds)
+    sleep(&mut power, &mut buttons, seconds)
 }
 
-/// Deep-sleeps for `seconds`; the next wake starts from reset.
-fn sleep(power: &mut LowPower<'_>, seconds: u32) -> ! {
+/// Deep-sleeps for `seconds` or until a button is pressed; the next wake starts from reset.
+fn sleep(power: &mut LowPower<'_>, buttons: &mut Buttons<'_>, seconds: u32) -> ! {
+    buttons.arm();
     println!("standalone: sleeping {seconds} s");
     power.set_wakeup_deadline(Instant::now() + Duration::from_secs(u64::from(seconds)));
     power.sleep_deep(RtcSleepConfig::deep())

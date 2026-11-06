@@ -22,6 +22,7 @@ frame-artist.workspace = true
 frame-core.workspace = true
 frame-raster.workspace = true
 frame-standalone.workspace = true
+panel-wake.workspace = true
 page-text.workspace = true
 panel-ed2208.workspace = true
 panel-t133a01.workspace = true

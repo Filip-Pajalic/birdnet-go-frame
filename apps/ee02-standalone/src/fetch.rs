@@ -1,20 +1,20 @@
-//! The radio part of a wake: join, ask BirdNET-Go for the time and the birds, let go of the
-//! radio.
+//! The radio part of a wake: join, ask BirdNET-Go for the time and what the page shows, let go
+//! of the radio.
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
 
-use birdnet_client::DateWindow;
-use birdnet_model::SpeciesSummary;
+use birdnet_model::{SpeciesHours, SpeciesSummary};
 use embassy_futures::select::{self, Either};
 use embassy_net::{Runner, Stack, StackResources};
 use embassy_time::Duration;
 use esp_hal::peripherals::WIFI;
 use esp_println::println;
 use esp_radio::wifi::{ControllerConfig, Interface, WifiController};
-use frame_standalone::{AnswerError, BirdnetAnswer};
+use frame_artist::PageView;
+use frame_standalone::{AnswerError, BirdnetAnswer, Summary, ViewFetch};
 use panel_wake::{FrameAddress, Rejoin};
 use transport_esp::{Joined, TransportError, WifiCredentials};
 
@@ -26,9 +26,9 @@ const REJOIN_TIMEOUT: Duration = Duration::from_secs(4);
 const JOIN_TIMEOUT: Duration = Duration::from_secs(15);
 /// How long DHCP may take.
 const ADDRESS_TIMEOUT: Duration = Duration::from_secs(10);
-/// How long BirdNET-Go may stall: a species summary over a day can take it a few seconds.
+/// How long BirdNET-Go may stall: a species summary over a year can take it a few seconds.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(20);
-/// The longest answer kept. A summary is about 150 bytes a species.
+/// The longest answer kept. A summary is about 150 bytes a species, the year's included.
 const RESPONSE_LIMIT: usize = 256 * 1024;
 /// Where BirdNET-Go says how it is, with the time in its `Date` header.
 const HEALTH_PATH: &str = "/api/v2/health";
@@ -37,8 +37,8 @@ const HEALTH_PATH: &str = "/api/v2/health";
 pub struct Heard {
     /// The unix time BirdNET-Go's clock gave.
     pub now: i64,
-    /// The birds heard in the window, most first.
-    pub species: Vec<SpeciesSummary>,
+    /// What the page is drawn from.
+    pub fetched: ViewFetch,
     /// How to join quickly next time.
     pub rejoin: Rejoin,
 }
@@ -77,7 +77,7 @@ impl From<AnswerError> for Failure {
 }
 
 /// Joins the Wi-Fi, fast if `remembered` says how, and asks BirdNET-Go for the time and then
-/// for the birds heard in the settings' window. The radio is off again when this returns.
+/// for what page `view` shows (see [`ViewFetch`]). The radio is off again when this returns.
 ///
 /// # Errors
 ///
@@ -87,6 +87,7 @@ pub async fn fetch(
     seed: u64,
     settings: &Settings,
     remembered: Option<Rejoin>,
+    view: PageView,
 ) -> Result<Heard, Failure> {
     let credentials = WifiCredentials {
         ssid: settings.ssid,
@@ -110,17 +111,27 @@ pub async fn fetch(
         let health: Vec<u8> = ask(stack, birdnet, HEALTH_PATH).await?;
         let now: i64 = BirdnetAnswer::parse(&health)?.date.ok_or(Failure::NoDate)?;
         drop(health);
-        let window = DateWindow::hours_back(
+        let mut fetched = ViewFetch::new(
+            view,
             now,
             settings.frame.utc_offset_minutes,
             settings.frame.window_hours,
         );
-        let summary: Vec<u8> = ask(stack, birdnet, &window.species_summary_path()).await?;
-        let species: Vec<SpeciesSummary> = BirdnetAnswer::parse(&summary)?.species()?;
+        let summaries: Vec<(Summary, String)> = fetched.summaries().collect();
+        for (summary, path) in summaries {
+            let answer: Vec<u8> = ask(stack, birdnet, &path).await?;
+            let species: Vec<SpeciesSummary> = BirdnetAnswer::parse(&answer)?.species()?;
+            fetched.answer(summary, species);
+        }
+        for path in fetched.hourly_paths() {
+            let answer: Vec<u8> = ask(stack, birdnet, &path).await?;
+            let hours: Vec<SpeciesHours> = BirdnetAnswer::parse(&answer)?.hours()?;
+            fetched.answer_hours(hours);
+        }
         let rejoin: Rejoin = transport_esp::rejoin(joined, stack).ok_or(TransportError::Address)?;
         Ok(Heard {
             now,
-            species,
+            fetched,
             rejoin,
         })
     };

@@ -8,6 +8,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+bird-almanac.workspace = true
+birdnet-client.workspace = true
 birdnet-model.workspace = true
 frame-artist.workspace = true
 frame-core.workspace = true

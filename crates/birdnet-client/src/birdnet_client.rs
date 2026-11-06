@@ -11,6 +11,7 @@ use lite_json::Json;
 
 use crate::client_error::ClientError;
 use crate::date_window::DateWindow;
+use crate::hourly_path;
 use crate::http_request::HttpRequest;
 use crate::http_response::HttpResponse;
 use crate::http_transport::HttpTransport;
@@ -96,12 +97,7 @@ impl<T: HttpTransport> BirdnetClient<T> {
     ) -> Result<Vec<SpeciesHours>, ClientError<T::Error>> {
         let mut all: Vec<SpeciesHours> = Vec::with_capacity(species.len());
         for batch in species.chunks(Self::HOURLY_BATCH) {
-            let names: Vec<String> = batch
-                .iter()
-                .map(|name| format!("&species={}", query_escape(name)))
-                .collect();
-            let path: String =
-                format!("/analytics/time/hourly/batch?date={date}{}", names.concat());
+            let path: String = hourly_path::hourly_path(date, batch);
             let body: Vec<u8> = self.fetch(&path)?;
             all.extend(SpeciesHours::parse_batch(&body).map_err(ClientError::Parse)?);
         }
@@ -109,7 +105,7 @@ impl<T: HttpTransport> BirdnetClient<T> {
     }
 
     /// The most species BirdNET-Go answers in one hourly batch request.
-    pub const HOURLY_BATCH: usize = 10;
+    pub const HOURLY_BATCH: usize = hourly_path::HOURLY_BATCH;
 
     /// GETs `/api/v2{path}`, logging in once and trying again if BirdNET-Go asks for it.
     fn fetch(&mut self, path: &str) -> Result<Vec<u8>, ClientError<T::Error>> {
@@ -197,7 +193,7 @@ impl<T: HttpTransport> BirdnetClient<T> {
 }
 
 /// `text` percent-encoded for a query value: letters, digits and `-._~` stay as they are.
-fn query_escape(text: &str) -> String {
+pub(crate) fn query_escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || b"-._~".contains(&byte) {

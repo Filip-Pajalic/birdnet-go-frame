@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::{env, fmt};
 
-use frame_artist::Layout;
+use frame_artist::{Border, Layout};
 use frame_core::{PanelSize, Rotation};
 
 /// Where detections come from.
@@ -73,6 +73,10 @@ pub struct Config {
     pub max_birds: usize,
     /// Whether the collage writes each bird's name under it.
     pub names: bool,
+    /// Whether the page ends with a line about its main bird.
+    pub facts: bool,
+    /// The border round the page: `season`, `off` or a theme.
+    pub border: Border,
     /// Language code for the page's own words, e.g. `sv`.
     pub language: String,
     /// A translations file adding to or overriding the bundled one.
@@ -149,6 +153,8 @@ impl Config {
             layout: parsed(&lookup, "LAYOUT", Layout::Collage)?,
             max_birds: parsed(&lookup, "MAX_BIRDS", 0)?,
             names: parsed(&lookup, "NAMES", true)?,
+            facts: parsed(&lookup, "FACTS", true)?,
+            border: parsed(&lookup, "BORDER", Border::Season)?,
             language: lookup("LANGUAGE").unwrap_or_else(|| String::from("en")),
             translations: path(&lookup, "TRANSLATIONS"),
             art_dir: path(&lookup, "ART_DIR"),

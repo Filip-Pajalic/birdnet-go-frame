@@ -29,6 +29,7 @@ use frame_core::{PanelSize, Resolution, panel_bytes};
 use frame_raster::{Canvas, Renderer};
 use frame_standalone::Fingerprint;
 use page_text::{PageText, Translations};
+use panel_wake::PageView;
 use transport_lan::LanTransport;
 
 use crate::board::Board;
@@ -111,6 +112,9 @@ fn run(once: bool) -> Result<(), String> {
         names: config.names,
         heading: config.heading.clone(),
         words: page_words(&config)?,
+        facts: config.facts,
+        border: config.border,
+        southern: false,
     };
     let artist: Artist<Box<dyn ArtSource>> = Artist::new(renderer, art, style);
     let mut frame = Frame {
@@ -173,7 +177,8 @@ impl Frame<'_> {
             Err(error) => return self.unreachable(&error),
         };
         let day: i64 = now.div_euclid(SECONDS_PER_DAY);
-        let fingerprint: Fingerprint = Fingerprint::of(day, &species, config.layout);
+        let fingerprint: Fingerprint =
+            Fingerprint::of(day, PageView::Today, &[&species], config.layout);
         if self.shown == Shown::Birds(fingerprint) {
             return Ok(());
         }

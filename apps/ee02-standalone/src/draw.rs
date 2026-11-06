@@ -7,12 +7,11 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use art_pack::{ArtBundle, ArtSource, NoArt};
-use birdnet_model::SpeciesSummary;
 use esp_println::println;
-use frame_artist::{Artist, PageStyle};
+use frame_artist::{Artist, PageStyle, ViewData};
 use frame_core::{PageSizeError, PanelSize, Resolution};
 use frame_raster::{Canvas, FontError, Renderer};
-use frame_standalone::StandaloneSettings;
+use frame_standalone::{StandaloneSettings, ViewFacts, ViewFetch};
 use page_text::Translations;
 
 /// The page's typeface, as the server's.
@@ -45,7 +44,8 @@ pub fn local_day(now: i64, utc_offset_minutes: i32) -> i64 {
     (now + i64::from(utc_offset_minutes) * 60).div_euclid(SECONDS_PER_DAY)
 }
 
-/// Draws `species`, heard by unix time `now`, as the panel's bytes for `panel`.
+/// Draws the page `fetched` holds, as BirdNET-Go told it at unix time `now`, as the panel's
+/// bytes for `panel`.
 ///
 /// # Errors
 ///
@@ -54,7 +54,7 @@ pub fn page(
     settings: &StandaloneSettings,
     panel: PanelSize,
     now: i64,
-    species: &[SpeciesSummary],
+    fetched: &ViewFetch,
 ) -> Result<Vec<u8>, DrawError> {
     let renderer: Renderer = Renderer::new(FONT).map_err(DrawError::Font)?;
     let style = PageStyle {
@@ -63,6 +63,9 @@ pub fn page(
         names: settings.names,
         heading: None,
         words: Translations::bundled().page_text(&settings.language),
+        facts: settings.facts,
+        border: settings.border,
+        southern: false,
     };
     let mut artist: Artist<Box<dyn ArtSource>> = Artist::new(renderer, art(), style);
     artist.start_day(local_day(now, settings.utc_offset_minutes));
@@ -70,7 +73,9 @@ pub fn page(
         .words()
         .updated(&clock(now, settings.utc_offset_minutes));
     let size: Resolution = frame_standalone::drawing_resolution(panel, settings.rotation);
-    let page: Canvas = artist.draw(species, &footer, size);
+    let facts: ViewFacts = fetched.facts();
+    let data: ViewData<'_> = fetched.data(&facts, &footer);
+    let page: Canvas = artist.draw_view(fetched.view(), &data, size);
     frame_artist::panel_bytes(page, artist.paper(), panel, settings.rotation)
         .map_err(DrawError::Size)
 }

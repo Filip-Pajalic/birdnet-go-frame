@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use birdnet_model::{ParseError, SpeciesSummary};
+use birdnet_model::{ParseError, SpeciesHours, SpeciesSummary};
 
 use crate::http_date;
 
@@ -31,7 +31,7 @@ pub enum AnswerError {
     Unauthorized,
     /// BirdNET-Go answered with another status.
     Status(u16),
-    /// The body is not a species list.
+    /// The body is not the list or counts asked for.
     Parse(ParseError),
 }
 
@@ -43,7 +43,7 @@ impl fmt::Display for AnswerError {
             Self::Unauthorized => formatter
                 .write_str("BirdNET-Go wants a login; turn its private mode off or use the server"),
             Self::Status(status) => write!(formatter, "BirdNET-Go answered {status}"),
-            Self::Parse(error) => write!(formatter, "BirdNET-Go's species list: {error}"),
+            Self::Parse(error) => write!(formatter, "BirdNET-Go's answer: {error}"),
         }
     }
 }
@@ -104,8 +104,21 @@ impl<'a> BirdnetAnswer<'a> {
     /// Returns [`AnswerError::Unauthorized`] for a 401 or 403, [`AnswerError::Status`] for any
     /// other status outside 2xx, or [`AnswerError::Parse`] when the body is not a species list.
     pub fn species(&self) -> Result<Vec<SpeciesSummary>, AnswerError> {
+        SpeciesSummary::parse_list(self.ok_body()?).map_err(AnswerError::Parse)
+    }
+
+    /// Returns the hourly counts in an answer to an hourly batch request.
+    ///
+    /// # Errors
+    ///
+    /// As [`species`](Self::species), when the body is not a batch of hourly counts.
+    pub fn hours(&self) -> Result<Vec<SpeciesHours>, AnswerError> {
+        SpeciesHours::parse_batch(self.ok_body()?).map_err(AnswerError::Parse)
+    }
+
+    fn ok_body(&self) -> Result<&'a [u8], AnswerError> {
         match self.status {
-            200..=299 => SpeciesSummary::parse_list(self.body).map_err(AnswerError::Parse),
+            200..=299 => Ok(self.body),
             401 | 403 => Err(AnswerError::Unauthorized),
             status => Err(AnswerError::Status(status)),
         }

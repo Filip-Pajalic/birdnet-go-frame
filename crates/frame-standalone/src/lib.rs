@@ -19,7 +19,7 @@
 //!
 //! let memory = StandaloneMemory::default();
 //! let day: i64 = 1_793_948_400 / 86_400;
-//! let wake = memory.after_species(day, &species, frame_artist::Layout::Collage, 15);
+//! let wake = memory.after_species(day, &[&species], frame_artist::Layout::Collage, 15);
 //! assert!(wake.show, "nothing was on the glass yet");
 //! ```
 
@@ -34,6 +34,7 @@ mod fingerprint;
 pub mod http_date;
 mod standalone_memory;
 mod standalone_settings;
+mod view_fetch;
 
 pub use birdnet_answer::{AnswerError, BirdnetAnswer};
 pub use birdnet_request::birdnet_request;
@@ -41,3 +42,4 @@ pub use drawing_resolution::drawing_resolution;
 pub use fingerprint::Fingerprint;
 pub use standalone_memory::{StandaloneMemory, StandaloneWake};
 pub use standalone_settings::{SettingsError, StandaloneSettings};
+pub use view_fetch::{Summary, ViewFacts, ViewFetch};
