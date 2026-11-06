@@ -27,8 +27,9 @@ Besides today's birds, a frame can show the week, today's rarest birds, the day'
 year so far (`view=`), each frame its own layout and page (`FRAMES`). A bird new for the year is
 drawn first and biggest, and frames wake every 5 minutes while it is about. The bird pages end
 with something special about their main bird, a habit, song, record or folklore (built in, no cloud), and every page wears a
-seasonal border of plants cut from 1885 botanical plates: mistletoe, blossom, meadow flowers,
-rowan and oak, and holly, pussy willow or Midsummer daisies on those holidays. On every ESP32 frame the previous and next
+seasonal border of Swedish wild plants cut from Lindman's botanical plates: spruce and juniper,
+bird cherry and wood anemone, cornflower and buttercup, oak and bilberry, and lingonberry, pussy
+willow or catchfly on those holidays. On every ESP32 frame the previous and next
 buttons step through all five pages. Frames report battery and last wake to Home Assistant. See [Pages and views](docs/explanation/pages-and-views.md).
 
 | The day so far | The year so far |
@@ -289,8 +290,8 @@ Formatting and the lints it names are enforced in CI (see `rustfmt.toml` and the
   by outline, names tucked under each bird, mass-based sizing), the paper-halo blending and
   panel boost, and the curated 1800s bird artwork this server draws. Code under the MIT License;
   artwork under CC BY-SA 4.0. Credit appears here and in `NOTICE.md`, never on the page itself.
-- **Otto Wilhelm Thomé**, *Flora von Deutschland, Österreich und der Schweiz* (1885): the
-  hand-coloured plates the border's plants are cut from, public domain, via Wikimedia Commons
+- **C. A. M. Lindman**, *Bilder ur Nordens Flora* (1901 to 1926): the hand-coloured plates the
+  border's plants are cut from, public domain, as scanned by Project Runeberg
   (`assets/borders/ATTRIBUTION.md`).
 - **[BirdNET-Go](https://github.com/tphakala/birdnet-go)** by tphakala and contributors:
   the bird detection this frame displays. The BirdNET model is by the Cornell Lab of Ornithology

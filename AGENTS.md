@@ -96,7 +96,7 @@ often get wrong:
   `OutlineArt`, plain ovals that look like nothing but a shape. Screenshots for docs, PRs and
   reviews are rendered with `ART_DIR=art/classic`.
 - **Never draw made-up ornament either.** Borders and other decoration are real public-domain
-  plates (`assets/borders/`, cut from Thomé's *Flora*, credited in its `ATTRIBUTION.md`), never
+  plates (`assets/borders/`, cut from Lindman's *Bilder ur Nordens Flora*, credited in its `ATTRIBUTION.md`), never
   shapes drawn by code or generated pictures. New decoration means finding and crediting real
   period art.
 - Never commit fugleramme's artwork (CC BY-SA, ~250 MB): `scripts/fetch-art.sh` downloads it into

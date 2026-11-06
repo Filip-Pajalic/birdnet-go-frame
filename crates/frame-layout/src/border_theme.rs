@@ -6,19 +6,19 @@ use core::str::FromStr;
 /// A seasonal or holiday border: which plants' [`crate::CornerSprays`] the page wears.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BorderTheme {
-    /// Winter: mistletoe and Christmas rose.
+    /// Winter: spruce and juniper.
     Frost,
     /// Spring: bird cherry in flower and wood anemone.
     Blossom,
-    /// Summer: cornflower and ox-eye daisy.
+    /// Summer: cornflower and meadow buttercup.
     Meadow,
-    /// Autumn: rowan berries, oak and acorns.
+    /// Autumn: oak in autumn colour and bilberry.
     Autumn,
-    /// From Lucia (13 December) to Epiphany (6 January): holly and mistletoe.
+    /// From Lucia (13 December) to Epiphany (6 January): mistletoe and lingonberry.
     Christmas,
-    /// From Palm Sunday to Easter Monday: pussy willow and wood anemone.
+    /// From Palm Sunday to Easter Monday: pussy willow and coltsfoot.
     Easter,
-    /// Midsummer, 19 to 25 June: ox-eye daisy and cornflower.
+    /// Midsummer, 19 to 25 June: sticky catchfly and harebell.
     Midsummer,
 }
 

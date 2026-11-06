@@ -70,7 +70,7 @@ out.
 
 ## A fact about the main bird
 
-![Today's collage in autumn's border of rowan and oak, with a line about the great tit at its foot](../images/view-today.jpg)
+![Today's collage in autumn's border of oak and bilberry, with a line about the great tit's song at its foot](../images/view-today.jpg)
 
 Today's, the week's and the rarest page end with one line about their main bird, the one drawn
 first: a bird new for the year, the rarest, or else the most heard. The line tells something
@@ -102,20 +102,20 @@ translated (keys `fact_*` in [Translations](../reference/configuration.md#transl
 ![The seven borders on a portrait page: frost, blossom, meadow, autumn, Christmas, Easter and Midsummer, each a plant from a botanical plate in the top-left and bottom-right corners](../images/borders.jpg)
 
 Every page wears a border of the season's plants: a spray hanging from the top-left corner and
-one rising from the bottom-right, cut from the hand-coloured plates of Thomé's *Flora von
-Deutschland, Österreich und der Schweiz* (1885), the same kind of period plate as the birds.
+one rising from the bottom-right. They are Swedish wild plants, cut from the hand-coloured
+plates of C. A. M. Lindman's *Bilder ur Nordens Flora* (1901 to 1926), the same kind of period plate as the birds.
 They are public domain and built into the program (`assets/borders/`, credited in its
 `ATTRIBUTION.md`); nothing in the border is drawn by code. It changes with the date:
 
 | Border | When | Top left | Bottom right |
 | --- | --- | --- | --- |
-| Frost | December to February | Mistletoe | Christmas rose |
-| Blossom | March to May | Bird cherry in flower | Wood anemone |
-| Meadow | June to August | Cornflower | Ox-eye daisy |
-| Autumn | September to November | Rowan berries | Oak and acorns |
-| Christmas | 13 December (Lucia) to 6 January | Holly | Mistletoe |
-| Easter | Palm Sunday to Easter Monday | Pussy willow | Wood anemone |
-| Midsummer | 19 to 25 June | Ox-eye daisy | Cornflower |
+| Frost | December to February | Spruce (gran) | Juniper (en) |
+| Blossom | March to May | Bird cherry in flower (hägg) | Wood anemone (vitsippa) |
+| Meadow | June to August | Cornflower (blåklint) | Meadow buttercup (smörblomma) |
+| Autumn | September to November | Oak in autumn colour (ek) | Bilberry (blåbär) |
+| Christmas | 13 December (Lucia) to 6 January | Mistletoe (mistel) | Lingonberry (lingon) |
+| Easter | Palm Sunday to Easter Monday | Pussy willow (sälg) | Coltsfoot (hästhov) |
+| Midsummer | 19 to 25 June | Sticky catchfly (tjärblomster) | Harebell (blåklocka) |
 
 On the collage the birds are packed round the plants, by their outlines, as they are round each
 other. On the list, story and season pages each spray fits the corner beside the heading or the

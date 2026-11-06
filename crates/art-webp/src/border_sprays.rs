@@ -31,8 +31,8 @@ const SPRAYS: &[(&str, &[u8])] = sprays![
     "midsummer",
 ];
 
-/// The plants the page's borders are made of, cut from the hand-coloured plates of Thomé's
-/// *Flora von Deutschland, Österreich und der Schweiz* (1885, public domain; see
+/// The plants the page's borders are made of: Swedish wild plants cut from the hand-coloured
+/// plates of Lindman's *Bilder ur Nordens Flora* (1901 to 1926, public domain; see
 /// `assets/borders/ATTRIBUTION.md`). Each theme has a spray named `<theme>-top`, which hangs
 /// from the page's top-left corner, and `<theme>-bottom`, which rises from its bottom-right.
 ///

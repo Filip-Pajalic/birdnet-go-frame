@@ -85,9 +85,10 @@ CC BY-NC-SA 4.0: https://github.com/tphakala/birdnet-go
 
 ## Border plants
 
-The border's plants in `assets/borders/` are cut from the hand-coloured plates of Otto Wilhelm
-Thomé's *Flora von Deutschland, Österreich und der Schweiz* (1885), as scanned on Wikimedia
-Commons. Public domain; see `assets/borders/ATTRIBUTION.md` for each plate.
+The border's plants in `assets/borders/` are cut from the hand-coloured plates of C. A. M.
+Lindman's *Bilder ur Nordens Flora* (third edition, Stockholm, 1917 to 1926), as scanned by
+Project Runeberg (https://runeberg.org/nordflor/). Public domain; see
+`assets/borders/ATTRIBUTION.md` for each plate.
 
 ## Fonts
 

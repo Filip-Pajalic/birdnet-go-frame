@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Cuts the border sprays out of Thomé's botanical plates.
+"""Cuts the border sprays out of Lindman's botanical plates.
 
-Each spray is the main plant of one plate from Otto Wilhelm Thomé, *Flora von Deutschland,
-Österreich und der Schweiz* (1885), as scanned on Wikimedia Commons (public domain). The
-plate's paper is made transparent, its loose detail drawings, numbers and captions are left
-out, its paper tone is matched to the page's, and the plant is turned to lie in its corner.
+Each spray is the main plant of one plate from C. A. M. Lindman, *Bilder ur Nordens Flora*
+(1917 to 1926), as scanned by Project Runeberg (public domain). The plate's paper is made
+transparent, its loose detail drawings, numbers and captions are left out, its paper tone is
+matched to the page's, and the plant is turned to lie in its corner.
 
 Usage: cut_sprays.py PLATES_DIR OUT_DIR
-PLATES_DIR holds the plates as `<Genus>_<species>.jpg`: the Commons files
-`Illustration_<Genus>_<species>0.jpg`, at 1280 pixels wide (see ATTRIBUTION.md).
+PLATES_DIR holds the plates as `<Genus>_<species>.jpg`: Runeberg's
+`https://runeberg.org/nordflor/pics/<plate>.jpg` (see ATTRIBUTION.md for the numbers).
 Needs Pillow, NumPy and SciPy. Not run by the build: the sprays it writes are committed.
 """
 
@@ -23,26 +23,32 @@ from scipy import ndimage
 PAGE_PAPER = np.array([233, 225, 202], dtype=np.float32)
 # Longest side of a written spray, in pixels.
 MAX_SIDE = 480
+# How far from the paper's colour ink is, for a plate whose pale flower needs a lower bar.
+THRESHOLDS = {"Anemone_nemorosa": 22}
+# Pixels of gap, at WORK_WIDTH, across which pieces of ink count as one plant.
+JOIN = 2
+# Width the plates are scaled to before cutting.
+WORK_WIDTH = 1280
 
 # (theme, corner, plate, a box (left, top, right, bottom, as fractions) round the plant's
 # middle, boxes of other drawings to leave out where they touch it, degrees to turn
 # anticlockwise, mirror). The top spray hangs from the top-left
 # corner; the bottom one rises from the bottom-right.
 SPRAYS = [
-    ("frost", "top", "Viscum_album", (0.03, 0.22, 0.97, 0.93), [], 225, False),
-    ("frost", "bottom", "Helleborus_niger", (0.22, 0.04, 0.72, 0.95), [], 45, False),
-    ("blossom", "top", "Prunus_avium", (0.1, 0.1, 0.85, 0.9), [(0.88, 0.1, 1.0, 0.45)], 225, False),
-    ("blossom", "bottom", "Anemone_nemorosa", (0.1, 0.17, 0.85, 0.92), [], 45, False),
-    ("meadow", "top", "Centaurea_cyanus", (0.28, 0.03, 0.72, 0.92), [], 225, False),
-    ("meadow", "bottom", "Chrysanthemum_leucanthemum", (0.1, 0.03, 0.95, 0.92), [], 45, False),
-    ("autumn", "top", "Sorbus_aucuparia", (0.15, 0.1, 0.85, 0.9), [], 225, False),
-    ("autumn", "bottom", "Quercus_robur", (0.3, 0.4, 0.9, 0.85), [(0.0, 0.0, 0.42, 0.5)], 45, False),
-    ("christmas", "top", "Ilex_aquifolium", (0.04, 0.03, 0.96, 0.93), [], 225, False),
-    ("christmas", "bottom", "Viscum_album", (0.03, 0.22, 0.97, 0.93), [], 45, True),
-    ("easter", "top", "Salix_caprea", (0.05, 0.05, 0.97, 0.86), [], 225, False),
-    ("easter", "bottom", "Anemone_nemorosa", (0.1, 0.17, 0.85, 0.92), [], 45, True),
-    ("midsummer", "top", "Chrysanthemum_leucanthemum", (0.1, 0.03, 0.95, 0.92), [], 225, True),
-    ("midsummer", "bottom", "Centaurea_cyanus", (0.28, 0.03, 0.72, 0.92), [], 45, True),
+    ("frost", "top", "Picea_abies", (0.05, 0.02, 0.95, 0.8), [], 225, False),
+    ("frost", "bottom", "Juniperus_communis", (0.2, 0.02, 0.8, 0.8), [], 45, False),
+    ("blossom", "top", "Prunus_padus", (0.1, 0.05, 0.95, 0.6), [], 225, False),
+    ("blossom", "bottom", "Anemone_nemorosa", (0.15, 0.05, 0.85, 0.92), [], 45, False),
+    ("meadow", "top", "Centaurea_cyanus", (0.2, 0.03, 0.75, 0.9), [], 225, False),
+    ("meadow", "bottom", "Ranunculus_acris", (0.15, 0.03, 0.85, 0.92), [], 45, False),
+    ("autumn", "top", "Quercus_robur", (0.1, 0.03, 0.95, 0.75), [], 225, False),
+    ("autumn", "bottom", "Vaccinium_myrtillus", (0.2, 0.03, 0.85, 0.92), [], 45, False),
+    ("christmas", "top", "Viscum_album", (0.05, 0.03, 0.95, 0.65), [], 225, False),
+    ("christmas", "bottom", "Vaccinium_vitis-idaea", (0.05, 0.03, 0.8, 0.95), [], 45, False),
+    ("easter", "top", "Salix_caprea", (0.05, 0.03, 0.95, 0.75), [], 225, False),
+    ("easter", "bottom", "Tussilago_farfara", (0.2, 0.15, 0.95, 0.92), [], 45, False),
+    ("midsummer", "top", "Viscaria_vulgaris", (0.4, 0.0, 0.95, 0.95), [(0.0, 0.0, 0.42, 0.3)], 225, False),
+    ("midsummer", "bottom", "Campanula_rotundifolia", (0.3, 0.03, 0.95, 0.92), [], 45, False),
 ]
 
 
@@ -68,14 +74,26 @@ def paper_colour(pixels):
     return np.asarray(big, dtype=np.float32)
 
 
-def plant_mask(pixels, paper, keep, drops):
+def toning_paper(pixels, paper):
+    """`paper`, except where a dense drawing covers a wide patch: the lightest colour round
+    it is still ink there, and toning by it would paint the plant in false colours, so the
+    plate's usual paper is taken instead."""
+    lightness = paper.sum(axis=2)
+    usual = np.median(paper[lightness >= np.percentile(lightness, 50)], axis=0)
+    far = np.sqrt(((paper - usual) ** 2).sum(axis=2)) > 25
+    toned = paper.copy()
+    toned[far] = usual
+    return toned
+
+
+def plant_mask(pixels, paper, keep, drops, threshold):
     """Pixels that are the plant, not paper, with paper wholly enclosed by small loops of ink
     (petals, berries) filled in. The plant is the biggest piece of ink inside `keep` (left,
     top, right, bottom, as fractions), followed out past the box's edges so no leaf is cut
     off, but never into a `drops` box (a neighbouring drawing that touches it)."""
     height, width = pixels.shape[:2]
     distance = np.sqrt(((pixels - paper) ** 2).sum(axis=2))
-    ink = distance > 42
+    ink = distance > threshold
     # A scan's shadows are grey and a little darker than the paper; the plates' greys are
     # darker still, their whites lighter.
     chroma = pixels.max(axis=2) - pixels.min(axis=2)
@@ -96,7 +114,7 @@ def plant_mask(pixels, paper, keep, drops):
         ink[int(top * height):int(bottom * height), int(left * width):int(right * width)] = False
     ink = ndimage.binary_opening(ink, iterations=1)
     # Merge the plant's parts across small gaps.
-    joined = ndimage.binary_dilation(ink, iterations=2)
+    joined = ndimage.binary_dilation(ink, iterations=JOIN)
     left, top, right, bottom = keep
     box = np.zeros_like(ink)
     box[int(top * height):int(bottom * height), int(left * width):int(right * width)] = True
@@ -118,10 +136,14 @@ def plant_mask(pixels, paper, keep, drops):
 
 def cut(path, keep, drops, degrees, mirror):
     image = Image.open(path).convert("RGB")
+    # The cutter's sizes are tuned to plates WORK_WIDTH pixels wide.
+    height = round(image.height * WORK_WIDTH / image.width)
+    image = image.resize((WORK_WIDTH, height), Image.Resampling.BICUBIC)
     pixels = np.asarray(image, dtype=np.float32)
     paper = paper_colour(pixels)
-    mask = plant_mask(pixels, paper, keep, drops)
+    mask = plant_mask(pixels, paper, keep, drops, THRESHOLDS.get(path.stem, 42))
     # Tone the plate's paper to the page's, so the spray's edges sit on one sheet.
+    paper = toning_paper(pixels, paper)
     toned = np.clip(pixels * (PAGE_PAPER / np.maximum(paper, 1)), 0, 255)
     alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0)
     rgba = np.dstack([toned, alpha * 255]).astype(np.uint8)
