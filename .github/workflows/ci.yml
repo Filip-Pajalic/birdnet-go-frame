@@ -258,7 +258,7 @@ jobs:
       - id: fugleramme
         run: echo "commit=$(git ls-remote https://github.com/arnegiacomo/fugleramme.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
       - id: art
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: art/classic
           key: fugleramme-classic-${{ steps.fugleramme.outputs.commit }}
